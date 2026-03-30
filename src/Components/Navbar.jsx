@@ -2,7 +2,7 @@ import { Box } from "@mui/material";
 import { NavLink } from "react-router-dom";
 
 const NAV_ITEMS = [
-  { label: "LinkUp", to: "/", disable: false },
+  { label: "首頁", to: "/", disable: false },
   { label: "考勤", to: "/attendance", disable: false },
   { label: "基礎", to: "/foundation", disable: true },
   { label: "薪資單", to: "/payroll", disable: true },
