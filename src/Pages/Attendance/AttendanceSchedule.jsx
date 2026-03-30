@@ -1,11 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  Box,
-  Button,
-  Checkbox,
-  Paper,
-  Typography,
-} from "@mui/material";
+import { Box, Button, Checkbox, Paper, Typography } from "@mui/material";
 import { fetchTaiwanCalendarYear } from "../../Utils/TaiwanHolidays";
 import {
   formatCellKey,
@@ -36,13 +30,19 @@ const SHIFT_FILTERS = [
 
 function PeopleGroup({ color }) {
   return (
-    <Box sx={{ display: "flex", alignItems: "center", gap: "4px" }}>
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        gap: { xs: "2px", sm: "4px" },
+      }}
+    >
       {[0, 1, 2].map((item) => (
         <Box
           key={item}
           sx={{
-            width: "14px",
-            height: "14px",
+            width: { xs: "8px", sm: "14px" },
+            height: { xs: "8px", sm: "14px" },
             borderRadius: "50%",
             bgcolor: color,
           }}
@@ -73,10 +73,14 @@ function SidebarCard({ title, children }) {
           justifyContent: "space-between",
         }}
       >
-        <Typography sx={{ fontSize: "18px", fontWeight: 700, color: "#111827" }}>
+        <Typography
+          sx={{ fontSize: "18px", fontWeight: 700, color: "#111827" }}
+        >
           {title}
         </Typography>
-        <Typography sx={{ fontSize: "18px", fontWeight: 700, color: "#111827" }}>
+        <Typography
+          sx={{ fontSize: "18px", fontWeight: 700, color: "#111827" }}
+        >
           ▼
         </Typography>
       </Box>
@@ -91,7 +95,7 @@ function CalendarDayCell({ date, today, holidayMap }) {
     return (
       <Box
         sx={{
-          minHeight: "160px",
+          minHeight: { xs: "82px", sm: "160px" },
           borderRight: "1px solid #303030",
           borderBottom: "1px solid #303030",
           bgcolor: "#f5f5f5",
@@ -107,7 +111,7 @@ function CalendarDayCell({ date, today, holidayMap }) {
   return (
     <Box
       sx={{
-        minHeight: "160px",
+        minHeight: { xs: "82px", sm: "160px" },
         borderRight: "1px solid #303030",
         borderBottom: "1px solid #303030",
         bgcolor: "#ffffff",
@@ -119,12 +123,12 @@ function CalendarDayCell({ date, today, holidayMap }) {
     >
       <Box
         sx={{
-          height: "34px",
+          height: { xs: "22px", sm: "34px" },
           display: "flex",
           alignItems: "center",
           justifyContent: "flex-end",
-          px: "8px",
-          fontSize: "16px",
+          px: { xs: "4px", sm: "8px" },
+          fontSize: { xs: "11px", sm: "16px" },
           fontWeight: isToday ? 700 : 500,
           color: isToday ? "#ffffff" : "#1e3a8a",
           bgcolor: isToday ? "#0c93d4" : "#ffffff",
@@ -144,16 +148,33 @@ function CalendarDayCell({ date, today, holidayMap }) {
             alignItems: "center",
             justifyContent: "center",
             textAlign: "center",
-            px: "8px",
-            py: "10px",
+            px: { xs: "2px", sm: "8px" },
+            py: { xs: "4px", sm: "10px" },
+            wordBreak: "break-word",
+            overflow: "hidden",
           }}
         >
-          <Typography sx={{ fontSize: "15px", fontWeight: 700 }}>
+          <Typography
+            sx={{
+              fontSize: { xs: "9px", sm: "15px" },
+              fontWeight: 700,
+              lineHeight: { xs: 1.15, sm: 1.35 },
+              wordBreak: "break-word",
+            }}
+          >
             {holidayName || shift.title}
           </Typography>
 
           {shift.time ? (
-            <Typography sx={{ fontSize: "15px", fontWeight: 700, mt: "6px" }}>
+            <Typography
+              sx={{
+                fontSize: { xs: "9px", sm: "15px" },
+                fontWeight: 700,
+                mt: { xs: "2px", sm: "6px" },
+                lineHeight: { xs: 1.15, sm: 1.35 },
+                wordBreak: "break-word",
+              }}
+            >
               {shift.time}
             </Typography>
           ) : null}
@@ -161,7 +182,7 @@ function CalendarDayCell({ date, today, holidayMap }) {
 
         <Box
           sx={{
-            height: "42px",
+            height: { xs: "22px", sm: "42px" },
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -199,7 +220,9 @@ export default function AttendanceSchedule() {
           setHolidayMap(map || {});
 
           if (!map || Object.keys(map).length === 0) {
-            setHolidaySourceNote("該年度尚無已發布的官方行事曆資料，先以週末休假顯示。");
+            setHolidaySourceNote(
+              "該年度尚無已發布的官方行事曆資料，先以週末休假顯示。",
+            );
           }
         }
       } catch (error) {
@@ -225,7 +248,7 @@ export default function AttendanceSchedule() {
 
   const monthGrid = useMemo(
     () => getMonthGrid(selectedYear, selectedMonth),
-    [selectedYear, selectedMonth]
+    [selectedYear, selectedMonth],
   );
 
   const totalWorkMinutes = useMemo(() => {
@@ -246,7 +269,9 @@ export default function AttendanceSchedule() {
 
   return (
     <Box>
-      <Typography sx={{ fontSize: "30px", fontWeight: 700, color: "#111827", mb: "20px" }}>
+      <Typography
+        sx={{ fontSize: "30px", fontWeight: 700, color: "#111827", mb: "20px" }}
+      >
         個人班表
       </Typography>
 
@@ -259,7 +284,9 @@ export default function AttendanceSchedule() {
           flexWrap: "wrap",
         }}
       >
-        <Typography sx={{ fontSize: "16px", fontWeight: 700, color: "#374151" }}>
+        <Typography
+          sx={{ fontSize: "16px", fontWeight: 700, color: "#374151" }}
+        >
           年度/月份
         </Typography>
 
@@ -276,13 +303,13 @@ export default function AttendanceSchedule() {
       <Box
         sx={{
           display: "flex",
-          alignItems: "center",
+          alignItems: { xs: "stretch", sm: "center" },
           gap: "12px",
           flexWrap: "wrap",
           mb: "8px",
         }}
       >
-        <Typography sx={{ fontSize: "16px", color: "#374151" }}>
+        <Typography sx={{ fontSize: "16px", color: "#374151", width: "100%" }}>
           簽核中：{formatRange(selectedYear, selectedMonth)}
         </Typography>
 
@@ -294,12 +321,13 @@ export default function AttendanceSchedule() {
             setSelectedMonth(prev.month);
           }}
           sx={{
-            minWidth: "78px",
-            height: "30px",
+            minWidth: { xs: "calc((100% - 24px) / 3)", sm: "78px" },
+            height: "36px",
             borderRadius: 0,
             fontSize: "14px",
             color: "#111827",
             borderColor: "#b9b9b9",
+            flex: { xs: "1 1 0", sm: "0 0 auto" },
           }}
         >
           上一月
@@ -313,12 +341,13 @@ export default function AttendanceSchedule() {
             setSelectedMonth(next.month);
           }}
           sx={{
-            minWidth: "78px",
-            height: "30px",
+            minWidth: { xs: "calc((100% - 24px) / 3)", sm: "78px" },
+            height: "36px",
             borderRadius: 0,
             fontSize: "14px",
             color: "#111827",
             borderColor: "#b9b9b9",
+            flex: { xs: "1 1 0", sm: "0 0 auto" },
           }}
         >
           下一月
@@ -332,12 +361,13 @@ export default function AttendanceSchedule() {
             setSelectedMonth(current.month);
           }}
           sx={{
-            minWidth: "78px",
-            height: "30px",
+            minWidth: { xs: "calc((100% - 24px) / 3)", sm: "78px" },
+            height: "36px",
             borderRadius: 0,
             fontSize: "14px",
             color: "#111827",
             borderColor: "#b9b9b9",
+            flex: { xs: "1 1 0", sm: "0 0 auto" },
           }}
         >
           今天
@@ -366,51 +396,65 @@ export default function AttendanceSchedule() {
       >
         <Box
           sx={{
-            border: "1px solid #303030",
-            bgcolor: "#ffffff",
-            overflow: "hidden",
+            width: "100%",
           }}
         >
-          <Box sx={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)" }}>
-            {WEEK_LABELS.map((label) => (
+          <Box
+            sx={{
+              border: "1px solid #303030",
+              bgcolor: "#ffffff",
+              overflow: "hidden",
+              width: "100%",
+            }}
+          >
+            <Box
+              sx={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)" }}
+            >
+              {WEEK_LABELS.map((label) => (
+                <Box
+                  key={label}
+                  sx={{
+                    height: { xs: "32px", sm: "48px" },
+                    bgcolor: "#333333",
+                    color: "#ffffff",
+                    fontSize: { xs: "12px", sm: "18px" },
+                    fontWeight: 700,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderRight: "1px solid #111111",
+                    px: { xs: "1px", sm: 0 },
+                  }}
+                >
+                  {label}
+                </Box>
+              ))}
+            </Box>
+
+            {monthGrid.map((week, rowIndex) => (
               <Box
-                key={label}
-                sx={{
-                  height: "48px",
-                  bgcolor: "#333333",
-                  color: "#ffffff",
-                  fontSize: "18px",
-                  fontWeight: 700,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderRight: "1px solid #111111",
-                }}
+                key={`${selectedYear}-${selectedMonth}-week-${rowIndex}`}
+                sx={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)" }}
               >
-                {label}
+                {week.map((date, colIndex) => (
+                  <CalendarDayCell
+                    key={
+                      date
+                        ? formatCellKey(
+                            date.getFullYear(),
+                            date.getMonth() + 1,
+                            date.getDate(),
+                          )
+                        : `empty-${rowIndex}-${colIndex}`
+                    }
+                    date={date}
+                    today={today}
+                    holidayMap={holidayMap}
+                  />
+                ))}
               </Box>
             ))}
           </Box>
-
-          {monthGrid.map((week, rowIndex) => (
-            <Box
-              key={`${selectedYear}-${selectedMonth}-week-${rowIndex}`}
-              sx={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)" }}
-            >
-              {week.map((date, colIndex) => (
-                <CalendarDayCell
-                  key={
-                    date
-                      ? formatCellKey(date.getFullYear(), date.getMonth() + 1, date.getDate())
-                      : `empty-${rowIndex}-${colIndex}`
-                  }
-                  date={date}
-                  today={today}
-                  holidayMap={holidayMap}
-                />
-              ))}
-            </Box>
-          ))}
         </Box>
 
         <Box sx={{ display: "flex", flexDirection: "column", gap: "12px" }}>
@@ -424,7 +468,14 @@ export default function AttendanceSchedule() {
               minHeight: "160px",
             }}
           >
-            <Typography sx={{ fontSize: "18px", fontWeight: 700, color: "#111827", mb: "10px" }}>
+            <Typography
+              sx={{
+                fontSize: "18px",
+                fontWeight: 700,
+                color: "#111827",
+                mb: "10px",
+              }}
+            >
               統計
             </Typography>
 
@@ -441,7 +492,10 @@ export default function AttendanceSchedule() {
               </Box>
 
               {SHIFT_FILTERS.map((item) => (
-                <Box key={item.key} sx={{ display: "flex", alignItems: "center" }}>
+                <Box
+                  key={item.key}
+                  sx={{ display: "flex", alignItems: "center" }}
+                >
                   <Checkbox checked size="small" sx={{ p: "4px" }} />
                   <Box
                     sx={{
