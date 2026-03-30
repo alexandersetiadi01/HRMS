@@ -10,7 +10,7 @@ const OFFICE = {
 };
 
 export default function Absent() {
-  const [locationText, setLocationText] = useState("Location not checked yet.");
+  const [locationText, setLocationText] = useState("位置尚未核實。");
   const [statusText, setStatusText] = useState("");
 
   const handleClockCheck = async () => {
