@@ -3,21 +3,25 @@ import {
   Box,
   Button,
   Checkbox,
-  ClickAwayListener,
   Paper,
   Typography,
 } from "@mui/material";
-import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
-import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import { fetchTaiwanCalendarYear } from "../../Utils/TaiwanHolidays";
 import {
-  fetchTaiwanCalendarYear,
-  formatDateKey,
-  getTaiwanHolidayNameFromMap,
-  isTaiwanHolidayFromMap,
-  isWeekend,
+  formatCellKey,
+  formatRange,
+  getNextMonthYear,
+  getPrevMonthYear,
+  getTodayYearMonth,
+  isSameDate,
   pad2,
-} from "../../Utils/TaiwanHolidays";
+} from "../../Utils/Calendar/DateHelpers";
+import { getMonthGrid } from "../../Utils/Calendar/MonthGrid";
+import {
+  getDayType,
+  getDisplayHolidayName,
+  getShiftData,
+} from "../../Utils/Calendar/DayStatus";
 
 const WEEK_LABELS = ["日", "一", "二", "三", "四", "五", "六"];
 
@@ -28,115 +32,6 @@ const SHIFT_FILTERS = [
   { key: "trip", label: "公出/出差", color: "#f6b73c" },
   { key: "normal", label: "常日班", color: "#f5a04a" },
 ];
-
-const MONTH_OPTIONS = Array.from({ length: 12 }, (_, index) => index + 1);
-
-function formatRange(year, month) {
-  const start = `${year}/${pad2(month)}/01`;
-  const endDate = new Date(year, month, 0).getDate();
-  const end = `${year}/${pad2(month)}/${pad2(endDate)}`;
-  return `${start}-${end}`;
-}
-
-function formatKey(year, month, day) {
-  return `${year}-${pad2(month)}-${pad2(day)}`;
-}
-
-function isSameDate(a, b) {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
-}
-
-function getMonthGrid(year, month) {
-  const firstDate = new Date(year, month - 1, 1);
-  const lastDate = new Date(year, month, 0);
-  const firstWeekday = firstDate.getDay();
-  const totalDays = lastDate.getDate();
-
-  const cells = [];
-
-  for (let i = 0; i < firstWeekday; i += 1) {
-    cells.push(null);
-  }
-
-  for (let day = 1; day <= totalDays; day += 1) {
-    cells.push(new Date(year, month - 1, day));
-  }
-
-  while (cells.length % 7 !== 0) {
-    cells.push(null);
-  }
-
-  const weeks = [];
-  for (let i = 0; i < cells.length; i += 7) {
-    weeks.push(cells.slice(i, i + 7));
-  }
-
-  return weeks;
-}
-
-function getOfficialCalendarInfo(date, holidayMap) {
-  if (!date || !holidayMap) return null;
-  return holidayMap[formatDateKey(date)] || null;
-}
-
-function getDayType(date, holidayMap) {
-  if (!date) return "empty";
-
-  const officialInfo = getOfficialCalendarInfo(date, holidayMap);
-
-  if (officialInfo) {
-    return officialInfo.isHoliday ? "holiday" : "normal";
-  }
-
-  if (isWeekend(date)) return "holiday";
-
-  return "normal";
-}
-
-function getShiftData(date, holidayMap) {
-  if (!date) return null;
-
-  if (getDayType(date, holidayMap) === "holiday") {
-    return {
-      title: "休息日",
-      time: "",
-      blockBg: "#9e9ea3",
-      textColor: "#ffffff",
-      peopleColor: "#a9a9a9",
-    };
-  }
-
-  return {
-    title: "常日班",
-    time: "09:00~18:00",
-    blockBg: "#f2ac6d",
-    textColor: "#ffffff",
-    peopleColor: "#f29a4a",
-  };
-}
-
-function getDisplayHolidayName(date, holidayMap) {
-  if (!date) return "";
-
-  const officialInfo = getOfficialCalendarInfo(date, holidayMap);
-  if (officialInfo?.isHoliday) {
-    return officialInfo.description || "國定假日";
-  }
-
-  if (isTaiwanHolidayFromMap(date, holidayMap)) {
-    return getTaiwanHolidayNameFromMap(date, holidayMap);
-  }
-
-  if (isWeekend(date)) {
-    return "休息日";
-  }
-
-  return "";
-}
 
 function PeopleGroup({ color }) {
   return (
@@ -279,259 +174,39 @@ function CalendarDayCell({ date, today, holidayMap }) {
   );
 }
 
-function YearMonthPicker({ valueYear, valueMonth, onConfirm }) {
-  const [open, setOpen] = useState(false);
-  const [draftYear, setDraftYear] = useState(valueYear);
-  const [draftMonth, setDraftMonth] = useState(valueMonth);
-  const [yearPageStart, setYearPageStart] = useState(Math.floor(valueYear / 10) * 10);
-
-  useEffect(() => {
-    if (!open) {
-      setDraftYear(valueYear);
-      setDraftMonth(valueMonth);
-      setYearPageStart(Math.floor(valueYear / 10) * 10);
-    }
-  }, [open, valueYear, valueMonth]);
-
-  const yearOptions = useMemo(
-    () => Array.from({ length: 10 }, (_, index) => yearPageStart + index),
-    [yearPageStart]
-  );
-
-  return (
-    <ClickAwayListener onClickAway={() => setOpen(false)}>
-      <Box sx={{ position: "relative", display: "inline-block" }}>
-        <Box
-          onClick={() => setOpen(true)}
-          sx={{
-            minWidth: "120px",
-            height: "32px",
-            px: "10px",
-            border: "1px solid #c7c7c7",
-            bgcolor: "#ffffff",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            cursor: "pointer",
-            userSelect: "none",
-          }}
-        >
-          <Typography sx={{ fontSize: "16px", color: "#111827" }}>
-            {valueYear}/{valueMonth}
-          </Typography>
-          <KeyboardArrowDownIcon sx={{ fontSize: "20px", color: "#8b8b8b" }} />
-        </Box>
-
-        {open ? (
-          <Paper
-            elevation={0}
-            sx={{
-              position: "absolute",
-              top: "36px",
-              left: 0,
-              zIndex: 20,
-              width: "220px",
-              border: "1px solid #303030",
-              borderRadius: 0,
-              bgcolor: "#ffffff",
-              p: "10px 10px 12px",
-            }}
-          >
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: "100px 1fr",
-                gap: "12px",
-                alignItems: "start",
-              }}
-            >
-              <Box
-                sx={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(2, 1fr)",
-                  gap: "6px 8px",
-                }}
-              >
-                {MONTH_OPTIONS.map((month) => {
-                  const selected = draftMonth === month;
-
-                  return (
-                    <Box
-                      key={month}
-                      onClick={() => setDraftMonth(month)}
-                      sx={{
-                        height: "30px",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: "16px",
-                        color: "#111827",
-                        border: selected ? "1px solid #4fa3ff" : "1px solid transparent",
-                        bgcolor: selected ? "#eaf4ff" : "transparent",
-                        cursor: "pointer",
-                      }}
-                    >
-                      {month}月
-                    </Box>
-                  );
-                })}
-              </Box>
-
-              <Box>
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    mb: "10px",
-                  }}
-                >
-                  <Box
-                    onClick={() => setYearPageStart((prev) => prev - 10)}
-                    sx={{
-                      cursor: "pointer",
-                      color: "#17336b",
-                      display: "flex",
-                      alignItems: "center",
-                    }}
-                  >
-                    <KeyboardArrowLeftIcon sx={{ fontSize: "42px" }} />
-                  </Box>
-
-                  <Box
-                    onClick={() => setYearPageStart((prev) => prev + 10)}
-                    sx={{
-                      cursor: "pointer",
-                      color: "#17336b",
-                      display: "flex",
-                      alignItems: "center",
-                    }}
-                  >
-                    <KeyboardArrowRightIcon sx={{ fontSize: "42px" }} />
-                  </Box>
-                </Box>
-
-                <Box
-                  sx={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(2, 1fr)",
-                    gap: "8px 10px",
-                  }}
-                >
-                  {yearOptions.map((year) => {
-                    const selected = draftYear === year;
-
-                    return (
-                      <Box
-                        key={year}
-                        onClick={() => setDraftYear(year)}
-                        sx={{
-                          height: "30px",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontSize: "16px",
-                          color: "#111827",
-                          border: selected ? "1px solid #4fa3ff" : "1px solid transparent",
-                          bgcolor: selected ? "#eaf4ff" : "transparent",
-                          cursor: "pointer",
-                        }}
-                      >
-                        {year}
-                      </Box>
-                    );
-                  })}
-                </Box>
-              </Box>
-            </Box>
-
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "center",
-                gap: "12px",
-                mt: "14px",
-              }}
-            >
-              <Button
-                variant="contained"
-                onClick={() => {
-                  onConfirm(draftYear, draftMonth);
-                  setOpen(false);
-                }}
-                sx={{
-                  minWidth: "52px",
-                  height: "34px",
-                  borderRadius: 0,
-                  bgcolor: "#152a63",
-                  color: "#ffffff",
-                  fontSize: "14px",
-                  fontWeight: 700,
-                  boxShadow: "none",
-                  "&:hover": {
-                    bgcolor: "#152a63",
-                    boxShadow: "none",
-                  },
-                }}
-              >
-                確定
-              </Button>
-
-              <Button
-                variant="contained"
-                onClick={() => {
-                  setDraftYear(valueYear);
-                  setDraftMonth(valueMonth);
-                  setYearPageStart(Math.floor(valueYear / 10) * 10);
-                  setOpen(false);
-                }}
-                sx={{
-                  minWidth: "52px",
-                  height: "34px",
-                  borderRadius: 0,
-                  bgcolor: "#152a63",
-                  color: "#ffffff",
-                  fontSize: "14px",
-                  fontWeight: 700,
-                  boxShadow: "none",
-                  "&:hover": {
-                    bgcolor: "#152a63",
-                    boxShadow: "none",
-                  },
-                }}
-              >
-                取消
-              </Button>
-            </Box>
-          </Paper>
-        ) : null}
-      </Box>
-    </ClickAwayListener>
-  );
-}
-
 export default function AttendanceSchedule() {
   const today = new Date();
-  const [selectedYear, setSelectedYear] = useState(2026);
-  const [selectedMonth, setSelectedMonth] = useState(3);
+  const todayYearMonth = getTodayYearMonth();
+
+  const [selectedYear, setSelectedYear] = useState(todayYearMonth.year);
+  const [selectedMonth, setSelectedMonth] = useState(todayYearMonth.month);
   const [holidayMap, setHolidayMap] = useState({});
   const [holidayLoading, setHolidayLoading] = useState(false);
+  const [holidaySourceNote, setHolidaySourceNote] = useState("");
 
   useEffect(() => {
     let cancelled = false;
 
     async function loadYearCalendar() {
       setHolidayLoading(true);
+      setHolidaySourceNote("");
 
       try {
         const map = await fetchTaiwanCalendarYear(selectedYear);
+
         if (!cancelled) {
           setHolidayMap(map || {});
+
+          if (!map || Object.keys(map).length === 0) {
+            setHolidaySourceNote("該年度尚無已發布的官方行事曆資料，先以週末休假顯示。");
+          }
         }
       } catch (error) {
         console.error("Failed to load Taiwan calendar:", error);
+
         if (!cancelled) {
           setHolidayMap({});
+          setHolidaySourceNote("台灣行事曆資料載入失敗，先以週末休假顯示。");
         }
       } finally {
         if (!cancelled) {
@@ -597,13 +272,84 @@ export default function AttendanceSchedule() {
         />
       </Box>
 
-      <Typography sx={{ fontSize: "16px", color: "#374151", mb: "8px" }}>
-        簽核中：{formatRange(selectedYear, selectedMonth)}
-      </Typography>
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: "12px",
+          flexWrap: "wrap",
+          mb: "8px",
+        }}
+      >
+        <Typography sx={{ fontSize: "16px", color: "#374151" }}>
+          簽核中：{formatRange(selectedYear, selectedMonth)}
+        </Typography>
+
+        <Button
+          variant="outlined"
+          onClick={() => {
+            const prev = getPrevMonthYear(selectedYear, selectedMonth);
+            setSelectedYear(prev.year);
+            setSelectedMonth(prev.month);
+          }}
+          sx={{
+            minWidth: "78px",
+            height: "30px",
+            borderRadius: 0,
+            fontSize: "14px",
+            color: "#111827",
+            borderColor: "#b9b9b9",
+          }}
+        >
+          上一月
+        </Button>
+
+        <Button
+          variant="outlined"
+          onClick={() => {
+            const next = getNextMonthYear(selectedYear, selectedMonth);
+            setSelectedYear(next.year);
+            setSelectedMonth(next.month);
+          }}
+          sx={{
+            minWidth: "78px",
+            height: "30px",
+            borderRadius: 0,
+            fontSize: "14px",
+            color: "#111827",
+            borderColor: "#b9b9b9",
+          }}
+        >
+          下一月
+        </Button>
+
+        <Button
+          variant="outlined"
+          onClick={() => {
+            const current = getTodayYearMonth();
+            setSelectedYear(current.year);
+            setSelectedMonth(current.month);
+          }}
+          sx={{
+            minWidth: "78px",
+            height: "30px",
+            borderRadius: 0,
+            fontSize: "14px",
+            color: "#111827",
+            borderColor: "#b9b9b9",
+          }}
+        >
+          今天
+        </Button>
+      </Box>
 
       {holidayLoading ? (
         <Typography sx={{ fontSize: "14px", color: "#6b7280", mb: "16px" }}>
           載入台灣行事曆中...
+        </Typography>
+      ) : holidaySourceNote ? (
+        <Typography sx={{ fontSize: "14px", color: "#b45309", mb: "16px" }}>
+          {holidaySourceNote}
         </Typography>
       ) : (
         <Box sx={{ mb: "24px" }} />
@@ -654,7 +400,7 @@ export default function AttendanceSchedule() {
                 <CalendarDayCell
                   key={
                     date
-                      ? formatKey(date.getFullYear(), date.getMonth() + 1, date.getDate())
+                      ? formatCellKey(date.getFullYear(), date.getMonth() + 1, date.getDate())
                       : `empty-${rowIndex}-${colIndex}`
                   }
                   date={date}
