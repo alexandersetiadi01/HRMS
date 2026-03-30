@@ -18,61 +18,83 @@ const shortcutItems = [
     label: "請假",
     icon: <EventNoteOutlinedIcon sx={{ fontSize: "52px", color: "#2196d3" }} />,
     to: "/attendance/leave",
+    disable: true,
   },
   {
     label: "加班",
-    icon: <WorkOutlineOutlinedIcon sx={{ fontSize: "52px", color: "#2196d3" }} />,
+    icon: (
+      <WorkOutlineOutlinedIcon sx={{ fontSize: "52px", color: "#2196d3" }} />
+    ),
     to: "/attendance/overtime",
+    disable: true,
   },
   {
     label: "我要打卡",
     icon: <PlaceOutlinedIcon sx={{ fontSize: "52px", color: "#2196d3" }} />,
     to: "/attendance/clock",
+    disable: false, // ✅ enabled
   },
   {
     label: "忘打卡申請",
-    icon: <HelpOutlineOutlinedIcon sx={{ fontSize: "52px", color: "#2196d3" }} />,
+    icon: (
+      <HelpOutlineOutlinedIcon sx={{ fontSize: "52px", color: "#2196d3" }} />
+    ),
     to: "/attendance/missed-punch",
+    disable: true,
   },
   {
     label: "個人班表",
     icon: <ScheduleOutlinedIcon sx={{ fontSize: "52px", color: "#2196d3" }} />,
     to: "/attendance/schedule",
+    disable: false, // ✅ enabled
   },
   {
     label: "公司規章",
-    icon: <DescriptionOutlinedIcon sx={{ fontSize: "52px", color: "#2196d3" }} />,
+    icon: (
+      <DescriptionOutlinedIcon sx={{ fontSize: "52px", color: "#2196d3" }} />
+    ),
     to: "/dashboard",
+    disable: true,
   },
   {
     label: "部門公告",
     icon: <CampaignOutlinedIcon sx={{ fontSize: "52px", color: "#2196d3" }} />,
     to: "/dashboard",
+    disable: true,
   },
   {
     label: "最新消息",
     icon: <FeedOutlinedIcon sx={{ fontSize: "52px", color: "#2196d3" }} />,
     to: "/dashboard",
+    disable: true,
   },
   {
     label: "最新訂單",
-    icon: <ShoppingCartOutlinedIcon sx={{ fontSize: "52px", color: "#2196d3" }} />,
+    icon: (
+      <ShoppingCartOutlinedIcon sx={{ fontSize: "52px", color: "#2196d3" }} />
+    ),
     to: "/dashboard",
+    disable: true,
   },
   {
     label: "個人資訊",
-    icon: <PersonOutlineOutlinedIcon sx={{ fontSize: "52px", color: "#2196d3" }} />,
+    icon: (
+      <PersonOutlineOutlinedIcon sx={{ fontSize: "52px", color: "#2196d3" }} />
+    ),
     to: "/dashboard",
+    disable: true,
   },
   {
     label: "待辦事項",
     icon: <FactCheckOutlinedIcon sx={{ fontSize: "52px", color: "#2196d3" }} />,
     to: "/dashboard",
+    disable: true,
   },
   {
     label: "便利貼",
     icon: <EditNoteOutlinedIcon sx={{ fontSize: "52px", color: "#2196d3" }} />,
     to: "/dashboard",
+    disable: true,
   },
 ];
 
@@ -91,11 +113,12 @@ function SectionTitle({ children }) {
   );
 }
 
-function ShortcutItem({ icon, label, to }) {
+function ShortcutItem({ icon, label, to, disable }) {
   return (
     <Box
-      component={NavLink}
-      to={to}
+      component={disable ? "div" : NavLink}
+      to={disable ? undefined : to}
+      onClick={disable ? (e) => e.preventDefault() : undefined}
       sx={{
         width: "100%",
         display: "flex",
@@ -103,8 +126,11 @@ function ShortcutItem({ icon, label, to }) {
         alignItems: "center",
         justifyContent: "flex-start",
         gap: "12px",
-        cursor: "pointer",
         textDecoration: "none",
+
+        // ✅ disabled style
+        cursor: disable ? "not-allowed" : "pointer",
+        opacity: disable ? 0.5 : 1,
       }}
     >
       <Box
@@ -114,6 +140,9 @@ function ShortcutItem({ icon, label, to }) {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+
+          // dim icon if disabled
+          filter: disable ? "grayscale(100%) opacity(0.6)" : "none",
         }}
       >
         {icon}
@@ -122,7 +151,7 @@ function ShortcutItem({ icon, label, to }) {
       <Typography
         sx={{
           fontSize: "16px",
-          color: "#1f2937",
+          color: disable ? "#9ca3af" : "#1f2937",
           textAlign: "center",
           lineHeight: 1.3,
         }}
@@ -202,7 +231,13 @@ function HomePage() {
           }}
         >
           {shortcutItems.map((item) => (
-            <ShortcutItem key={item.label} icon={item.icon} label={item.label} to={item.to} />
+            <ShortcutItem
+              key={item.label}
+              icon={item.icon}
+              label={item.label}
+              to={item.to}
+              disable={item.disable}
+            />
           ))}
         </Box>
       </Box>

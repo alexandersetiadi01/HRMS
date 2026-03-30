@@ -15,60 +15,73 @@ const attendanceMenuItems = [
   {
     label: "個人班表",
     to: "/attendance/schedule",
+    disable: false,
     icon: <CalendarMonthOutlinedIcon sx={{ fontSize: "56px", color: "#2196d3" }} />,
   },
   {
     label: "忘打卡申請",
     to: "/attendance/missed-punch",
+    disable: true,
     icon: <PlaceOutlinedIcon sx={{ fontSize: "56px", color: "#2196d3" }} />,
   },
   {
     label: "打卡紀錄",
     to: "/attendance/record",
+    disable: true,
     icon: <DescriptionOutlinedIcon sx={{ fontSize: "56px", color: "#2196d3" }} />,
   },
   {
     label: "特殊假別申請",
     to: "/attendance/special-leave",
+    disable: true,
     icon: <StarBorderOutlinedIcon sx={{ fontSize: "56px", color: "#2196d3" }} />,
   },
   {
     label: "請假",
     to: "/attendance/leave",
+    disable: true,
     icon: <EventBusyOutlinedIcon sx={{ fontSize: "56px", color: "#2196d3" }} />,
   },
   {
     label: "加班",
     to: "/attendance/overtime",
+    disable: true,
     icon: <MoreTimeOutlinedIcon sx={{ fontSize: "56px", color: "#2196d3" }} />,
   },
   {
     label: "表單申請紀錄",
     to: "/attendance/form-record",
+    disable: true,
     icon: <FeedOutlinedIcon sx={{ fontSize: "56px", color: "#2196d3" }} />,
   },
   {
     label: "剩餘假別",
     to: "/attendance/leave-balance",
+    disable: true,
     icon: <ManageSearchOutlinedIcon sx={{ fontSize: "56px", color: "#2196d3" }} />,
   },
   {
     label: "待審核表單",
     to: "/attendance/pending-approval",
+    disable: true,
     icon: <FactCheckOutlinedIcon sx={{ fontSize: "56px", color: "#2196d3" }} />,
   },
   {
     label: "公出/出差",
     to: "/attendance/business-trip",
+    disable: true,
     icon: <WorkOutlineOutlinedIcon sx={{ fontSize: "56px", color: "#2196d3" }} />,
   },
 ];
 
 function AttendanceMenuCard({ item }) {
+  const isDisabled = item.disable;
+
   return (
     <Box
-      component={NavLink}
-      to={item.to}
+      component={isDisabled ? "div" : NavLink}
+      to={isDisabled ? undefined : item.to}
+      onClick={isDisabled ? (e) => e.preventDefault() : undefined}
       sx={{
         textDecoration: "none",
         display: "flex",
@@ -76,13 +89,20 @@ function AttendanceMenuCard({ item }) {
         alignItems: "center",
         gap: "12px",
         color: "#111827",
-        "&.active .attendance-icon-wrap": {
-          transform: "translateY(-2px)",
-        },
-        "&.active .attendance-label": {
-          color: "#0c93d4",
-          fontWeight: 700,
-        },
+        cursor: isDisabled ? "not-allowed" : "pointer",
+        opacity: isDisabled ? 0.5 : 1,
+
+        ...(isDisabled
+          ? {}
+          : {
+              "&.active .attendance-icon-wrap": {
+                transform: "translateY(-2px)",
+              },
+              "&.active .attendance-label": {
+                color: "#0c93d4",
+                fontWeight: 700,
+              },
+            }),
       }}
     >
       <Box
@@ -94,6 +114,7 @@ function AttendanceMenuCard({ item }) {
           alignItems: "center",
           justifyContent: "center",
           transition: "all 0.2s ease",
+          filter: isDisabled ? "grayscale(100%) opacity(0.6)" : "none",
         }}
       >
         {item.icon}
@@ -103,7 +124,7 @@ function AttendanceMenuCard({ item }) {
         className="attendance-label"
         sx={{
           fontSize: "16px",
-          color: "#111827",
+          color: isDisabled ? "#9ca3af" : "#111827",
           textAlign: "center",
           lineHeight: 1.3,
           transition: "all 0.2s ease",
