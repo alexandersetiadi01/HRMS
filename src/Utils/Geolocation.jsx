@@ -1,7 +1,7 @@
 export function getCurrentPosition() {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
-      reject(new Error("Geolocation is not supported by this browser."));
+      reject(new Error("此瀏覽器不支援地理定位功能。"));
       return;
     }
 
@@ -14,7 +14,7 @@ export function getCurrentPosition() {
         });
       },
       (error) => {
-        reject(new Error(error.message || "Unable to get location."));
+        reject(new Error(error.message || "無法取得位置資訊。"));
       },
       {
         enableHighAccuracy: true,

@@ -14,7 +14,7 @@ export default function Absent() {
   const [statusText, setStatusText] = useState("");
 
   const handleClockCheck = async () => {
-    setStatusText("Checking location...");
+    setStatusText("檢查位置...");
 
     try {
       const coords = await getCurrentPosition();
@@ -31,17 +31,17 @@ export default function Absent() {
       );
 
       if (coords.accuracy > 100) {
-        setStatusText("❌ Location not accurate. Please move near a window.");
+        setStatusText("❌ 位置不準確。請移至窗邊。.");
         return;
       }
 
       if (distance <= OFFICE.radius) {
-        setStatusText(`✅ Inside office (${Math.round(distance)}m)`);
+        setStatusText(`✅ 辦公室內部 (${Math.round(distance)}m)`);
       } else {
-        setStatusText(`❌ Outside office (${Math.round(distance)}m)`);
+        setStatusText(`❌ 辦公室外 (${Math.round(distance)}m)`);
       }
     } catch (error) {
-      setStatusText(error.message || "Failed to get location.");
+      setStatusText(error.message || "取得位置失敗.");
     }
   };
 
