@@ -9,19 +9,59 @@ import FeedOutlinedIcon from "@mui/icons-material/FeedOutlined";
 import ManageSearchOutlinedIcon from "@mui/icons-material/ManageSearchOutlined";
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
 import WorkOutlineOutlinedIcon from "@mui/icons-material/WorkOutlineOutlined";
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 
 const attendanceMenuItems = [
-  { label: "個人班表", to: "/attendance/schedule", icon: <CalendarMonthOutlinedIcon sx={{ fontSize: "56px", color: "#2196d3" }} /> },
-  { label: "忘打卡申請", to: "/attendance/missed-punch", icon: <PlaceOutlinedIcon sx={{ fontSize: "56px", color: "#2196d3" }} /> },
-  { label: "打卡紀錄", to: "/attendance/record", icon: <DescriptionOutlinedIcon sx={{ fontSize: "56px", color: "#2196d3" }} /> },
-  { label: "特殊假別申請", to: "/attendance/special-leave", icon: <StarBorderOutlinedIcon sx={{ fontSize: "56px", color: "#2196d3" }} /> },
-  { label: "請假", to: "/attendance/leave", icon: <EventBusyOutlinedIcon sx={{ fontSize: "56px", color: "#2196d3" }} /> },
-  { label: "加班", to: "/attendance/overtime", icon: <MoreTimeOutlinedIcon sx={{ fontSize: "56px", color: "#2196d3" }} /> },
-  { label: "表單申請紀錄", to: "/attendance/form-record", icon: <FeedOutlinedIcon sx={{ fontSize: "56px", color: "#2196d3" }} /> },
-  { label: "剩餘假別", to: "/attendance/leave-balance", icon: <ManageSearchOutlinedIcon sx={{ fontSize: "56px", color: "#2196d3" }} /> },
-  { label: "待審核表單", to: "/attendance/pending-approval", icon: <FactCheckOutlinedIcon sx={{ fontSize: "56px", color: "#2196d3" }} /> },
-  { label: "公出/出差", to: "/attendance/business-trip", icon: <WorkOutlineOutlinedIcon sx={{ fontSize: "56px", color: "#2196d3" }} /> },
+  {
+    label: "個人班表",
+    to: "/attendance/schedule",
+    icon: <CalendarMonthOutlinedIcon sx={{ fontSize: "56px", color: "#2196d3" }} />,
+  },
+  {
+    label: "忘打卡申請",
+    to: "/attendance/missed-punch",
+    icon: <PlaceOutlinedIcon sx={{ fontSize: "56px", color: "#2196d3" }} />,
+  },
+  {
+    label: "打卡紀錄",
+    to: "/attendance/record",
+    icon: <DescriptionOutlinedIcon sx={{ fontSize: "56px", color: "#2196d3" }} />,
+  },
+  {
+    label: "特殊假別申請",
+    to: "/attendance/special-leave",
+    icon: <StarBorderOutlinedIcon sx={{ fontSize: "56px", color: "#2196d3" }} />,
+  },
+  {
+    label: "請假",
+    to: "/attendance/leave",
+    icon: <EventBusyOutlinedIcon sx={{ fontSize: "56px", color: "#2196d3" }} />,
+  },
+  {
+    label: "加班",
+    to: "/attendance/overtime",
+    icon: <MoreTimeOutlinedIcon sx={{ fontSize: "56px", color: "#2196d3" }} />,
+  },
+  {
+    label: "表單申請紀錄",
+    to: "/attendance/form-record",
+    icon: <FeedOutlinedIcon sx={{ fontSize: "56px", color: "#2196d3" }} />,
+  },
+  {
+    label: "剩餘假別",
+    to: "/attendance/leave-balance",
+    icon: <ManageSearchOutlinedIcon sx={{ fontSize: "56px", color: "#2196d3" }} />,
+  },
+  {
+    label: "待審核表單",
+    to: "/attendance/pending-approval",
+    icon: <FactCheckOutlinedIcon sx={{ fontSize: "56px", color: "#2196d3" }} />,
+  },
+  {
+    label: "公出/出差",
+    to: "/attendance/business-trip",
+    icon: <WorkOutlineOutlinedIcon sx={{ fontSize: "56px", color: "#2196d3" }} />,
+  },
 ];
 
 function AttendanceMenuCard({ item }) {
@@ -75,7 +115,7 @@ function AttendanceMenuCard({ item }) {
   );
 }
 
-function AttendanceLayout() {
+export default function AttendanceLayout() {
   return (
     <Box>
       <Typography
@@ -99,27 +139,12 @@ function AttendanceLayout() {
             lg: "repeat(6, minmax(0, 1fr))",
           },
           gap: "48px 28px",
-          mb: "40px",
         }}
       >
         {attendanceMenuItems.map((item) => (
           <AttendanceMenuCard key={item.to} item={item} />
         ))}
       </Box>
-
-      <Box
-        sx={{
-          bgcolor: "#ffffff",
-          border: "1px solid #e5e7eb",
-          borderRadius: "16px",
-          p: "24px",
-          minHeight: "260px",
-        }}
-      >
-        <Outlet />
-      </Box>
     </Box>
   );
 }
-
-export default AttendanceLayout;

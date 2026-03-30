@@ -1,5 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
-import { Box, Button, Checkbox, Paper, Typography } from "@mui/material";
+import {
+  Box,
+  Breadcrumbs,
+  Button,
+  Checkbox,
+  Link,
+  Paper,
+  Typography,
+} from "@mui/material";
+import NavigateNextIcon from "@mui/icons-material/NavigateNext";
+import { Link as RouterLink } from "react-router-dom";
 import { fetchTaiwanCalendarYear } from "../../Utils/TaiwanHolidays";
 import {
   formatCellKey,
@@ -269,8 +279,46 @@ export default function AttendanceSchedule() {
 
   return (
     <Box>
+      <Breadcrumbs
+        separator={
+          <NavigateNextIcon sx={{ fontSize: "18px", color: "#9ca3af" }} />
+        }
+        sx={{ mb: "14px" }}
+      >
+        <Link
+          component={RouterLink}
+          to="/attendance"
+          underline="hover"
+          sx={{
+            fontSize: "14px",
+            color: "#6b7280",
+            textDecoration: "none",
+            "&:hover": {
+              color: "#0c93d4",
+            },
+          }}
+        >
+          個人專區
+        </Link>
+
+        <Typography
+          sx={{
+            fontSize: "14px",
+            color: "#111827",
+            fontWeight: 700,
+          }}
+        >
+          個人班表
+        </Typography>
+      </Breadcrumbs>
+
       <Typography
-        sx={{ fontSize: "30px", fontWeight: 700, color: "#111827", mb: "20px" }}
+        sx={{
+          fontSize: { xs: "28px", md: "32px" },
+          fontWeight: 700,
+          color: "#111827",
+          mb: "20px",
+        }}
       >
         個人班表
       </Typography>

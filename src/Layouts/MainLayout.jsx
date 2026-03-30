@@ -95,7 +95,7 @@ function MainLayout() {
                   whiteSpace: "nowrap",
                 }}
               >
-                user name
+                帳戶
               </Typography>
             </Box>
           </Box>

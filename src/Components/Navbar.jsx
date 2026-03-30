@@ -3,11 +3,13 @@ import { NavLink } from "react-router-dom";
 
 const NAV_ITEMS = [
   { label: "LinkUp", to: "/" },
-  { label: "Attendance", to: "/attendance" },
-  { label: "Foundation", to: "/foundation" },
-  { label: "Payroll", to: "/payroll" },
-  { label: "Dashboard", to: "/dashboard" },
+  { label: "考勤", to: "/attendance" },
+  { label: "基礎", to: "/foundation" },
+  { label: "薪資單", to: "/payroll" },
+  { label: "儀表板", to: "/dashboard" },
 ];
+
+
 
 export default function Navbar() {
   return (

@@ -27,7 +27,7 @@ const shortcutItems = [
   {
     label: "我要打卡",
     icon: <PlaceOutlinedIcon sx={{ fontSize: "52px", color: "#2196d3" }} />,
-    to: "/attendance",
+    to: "/attendance/clock",
   },
   {
     label: "忘打卡申請",
@@ -154,13 +154,13 @@ function HomePage() {
         <Typography
           sx={{
             fontSize: { xs: "28px", md: "46px" },
-            fontWeight: 400,
-            color: "#111827",
+            fontWeight: 700,
+            color: "#2196d3",
             lineHeight: 1.2,
             flexShrink: 0,
           }}
         >
-          Welcome to SEHO HR.
+          歡迎來到SEHO HR.
         </Typography>
 
         <Box

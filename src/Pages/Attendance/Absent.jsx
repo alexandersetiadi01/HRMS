@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Box, Button, Paper, Stack, Typography } from "@mui/material";
-import { getCurrentPosition } from "../Utils/Geolocation";
-import { getDistanceInMeters } from "../Utils/Distance";
+import { getCurrentPosition } from "../../Utils/Geolocation";
+import { getDistanceInMeters } from "../../Utils/Distance";
 
 const OFFICE = {
   lat: 25.0729,
@@ -9,7 +9,7 @@ const OFFICE = {
   radius: 50,
 };
 
-function AttendancePage() {
+export default function Absent() {
   const [locationText, setLocationText] = useState("Location not checked yet.");
   const [statusText, setStatusText] = useState("");
 
@@ -30,13 +30,11 @@ function AttendancePage() {
         `Lat: ${coords.latitude}, Lng: ${coords.longitude}, Accuracy: ${coords.accuracy}m`
       );
 
-      // Step 1: accuracy check
       if (coords.accuracy > 100) {
         setStatusText("❌ Location not accurate. Please move near a window.");
         return;
       }
 
-      // Step 2: geofence check
       if (distance <= OFFICE.radius) {
         setStatusText(`✅ Inside office (${Math.round(distance)}m)`);
       } else {
@@ -51,31 +49,29 @@ function AttendancePage() {
     <Box sx={{ p: "24px", maxWidth: "600px", mx: "auto" }}>
       <Paper sx={{ p: "24px", borderRadius: "16px" }}>
         <Stack spacing={2}>
-          <Typography sx={{ fontSize: "28px", fontWeight: 700 }}>
-            Attendance
+          <Typography sx={{ fontSize: "28px", fontWeight: 700,}}>
+            打卡
           </Typography>
 
-          <Typography sx={{ fontSize: "16px", wordBreak: "break-word" }}>
+          <Typography sx={{ fontSize: "16px", wordBreak: "break-word",}}>
             {locationText}
           </Typography>
 
           <Typography sx={{ fontSize: "16px" }}>{statusText}</Typography>
 
           <Button variant="contained" onClick={handleClockCheck}>
-            Check Location (Clock Validation)
+            {"查看位置 (時鐘驗證)"}
           </Button>
 
           <Button variant="contained" disabled>
-            Clock In
+            上班
           </Button>
 
           <Button variant="outlined" disabled>
-            Clock Out
+            下班
           </Button>
         </Stack>
       </Paper>
     </Box>
   );
 }
-
-export default AttendancePage;
