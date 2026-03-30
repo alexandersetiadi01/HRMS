@@ -77,7 +77,7 @@ function MainLayout() {
             >
               <SearchIcon sx={{ fontSize: "18px", color: "#9ca3af", mr: "6px" }} />
               <InputBase
-                placeholder="People Search"
+                placeholder="人員搜尋"
                 sx={{
                   flex: 1,
                   fontSize: "14px",
