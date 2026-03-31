@@ -1,17 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Box,
-  Breadcrumbs,
   Button,
   Checkbox,
-  Link,
   Paper,
   Typography,
   useMediaQuery,
   useTheme,
 } from "@mui/material";
-import NavigateNextIcon from "@mui/icons-material/NavigateNext";
-import { Link as RouterLink } from "react-router-dom";
 import { fetchTaiwanCalendarYear } from "../../Utils/TaiwanHolidays";
 import {
   formatCellKey,
@@ -30,6 +26,7 @@ import {
 } from "../../Utils/Calendar/DayStatus";
 import YearMonthPicker from "../../Utils/Calendar/YearMonthPicker";
 import MobileCalendar from "../../Utils/Calendar/MobileCalendar";
+import Breadcrumb from "../../Utils/Breadcrumb";
 
 const WEEK_LABELS = ["日", "一", "二", "三", "四", "五", "六"];
 
@@ -326,38 +323,7 @@ export default function AttendanceSchedule() {
 
   return (
     <Box>
-      <Breadcrumbs
-        separator={
-          <NavigateNextIcon sx={{ fontSize: "18px", color: "#9ca3af" }} />
-        }
-        sx={{ mb: "14px" }}
-      >
-        <Link
-          component={RouterLink}
-          to="/attendance"
-          underline="hover"
-          sx={{
-            fontSize: "18px",
-            color: "#6b7280",
-            textDecoration: "none",
-            "&:hover": {
-              color: "#0c93d4",
-            },
-          }}
-        >
-          個人專區
-        </Link>
-
-        <Typography
-          sx={{
-            fontSize: "18px",
-            color: "#111827",
-            fontWeight: 700,
-          }}
-        >
-          個人班表
-        </Typography>
-      </Breadcrumbs>
+      <Breadcrumb rootLabel="個人專區" currentLabel="個人班表" mb="14px" />
 
       <Typography
         sx={{

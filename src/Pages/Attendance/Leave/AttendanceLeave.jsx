@@ -1,31 +1,11 @@
 import { useMemo, useState } from "react";
-import {
-  Box,
-  Breadcrumbs,
-  Button,
-  Checkbox,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  FormControl,
-  FormControlLabel,
-  IconButton,
-  Link,
-  MenuItem,
-  Radio,
-  RadioGroup,
-  Select,
-  TextField,
-  Typography,
-  useMediaQuery,
-  useTheme,
+import { Box, Button, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle,
+  FormControl, FormControlLabel, IconButton, MenuItem, Radio, RadioGroup,
+  Select, TextField, Typography, useMediaQuery, useTheme,
 } from "@mui/material";
-import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
 import CloseIcon from "@mui/icons-material/Close";
-import { Link as RouterLink } from "react-router-dom";
 import {
   HOURS,
   MINUTES_60,
@@ -34,6 +14,7 @@ import {
   MobileTimeSelect,
   buildAttendanceSectionWrapperSx,
 } from "../../../Utils/Attendance/SharedForm";
+import Breadcrumb from "../../../Utils/Breadcrumb";
 
 const LEAVE_TYPES = [
   { value: "paid-sick", label: "有薪病假" },
@@ -262,38 +243,7 @@ export default function AttendanceLeave() {
 
   return (
     <Box sx={{ width: "100%" }}>
-      <Breadcrumbs
-        separator={
-          <NavigateNextIcon sx={{ fontSize: "18px", color: "#9ca3af" }} />
-        }
-        sx={{ mb: "10px" }}
-      >
-        <Link
-          component={RouterLink}
-          to="/attendance"
-          underline="hover"
-          sx={{
-            fontSize: "14px",
-            color: "#6b7280",
-            textDecoration: "none",
-            "&:hover": {
-              color: "#0c93d4",
-            },
-          }}
-        >
-          個人專區
-        </Link>
-
-        <Typography
-          sx={{
-            fontSize: "14px",
-            color: "#111827",
-            fontWeight: 700,
-          }}
-        >
-          請假
-        </Typography>
-      </Breadcrumbs>
+      <Breadcrumb rootLabel="個人專區" currentLabel="請假" mb="14px" />
 
       <Typography
         sx={{

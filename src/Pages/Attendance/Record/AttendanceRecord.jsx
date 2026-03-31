@@ -25,6 +25,7 @@ import {
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import AttendanceRecordTable from "./AttendanceRecordTable";
 import AttendanceAbnormalTable from "./AttendanceAbnormalTable";
+import Breadcrumb from "../../../Utils/Breadcrumb";
 
 const LOCATION_OPTIONS = ["全部"];
 const METHOD_OPTIONS = ["全部"];
@@ -73,6 +74,7 @@ export default function AttendanceRecord() {
         p: { xs: "0px", md: "24px" },
       }}
     >
+      <Breadcrumb rootLabel="個人專區" currentLabel="打卡紀錄" mb="14px" />
       <Typography sx={{ fontSize: "24px", fontWeight: 700, mb: 2 }}>
         打卡紀錄
       </Typography>

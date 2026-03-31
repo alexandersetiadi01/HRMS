@@ -23,6 +23,7 @@ import {
   formatDuration,
   buildAttendanceSectionWrapperSx,
 } from "../../Utils/Attendance/SharedForm";
+import Breadcrumb from "../../Utils/Breadcrumb";
 
 const AGENT_OPTIONS = [
   { value: "", label: "工號或姓名" },
@@ -58,6 +59,7 @@ export default function AttendanceBusinessTrip() {
 
   return (
     <Box sx={{ width: "100%" }}>
+      <Breadcrumb rootLabel="個人專區" currentLabel="公出|出差" mb="14px" />
       <Typography
         sx={{
           fontSize: isMobile ? "24px" : "22px",
@@ -66,7 +68,7 @@ export default function AttendanceBusinessTrip() {
           color: "#111827",
         }}
       >
-        公出/出差
+        公出|出差
       </Typography>
 
       <Box
@@ -474,7 +476,8 @@ export default function AttendanceBusinessTrip() {
             </Button>
 
             <Typography sx={{ fontSize: "13px", color: "#6b7280" }}>
-              *檔案格式限制為 Microsoft Office 文件, TXT文字檔, PDF, 壓縮檔, JPG, JPEG, GIF, PNG
+              *檔案格式限制為 Microsoft Office 文件, TXT文字檔, PDF, 壓縮檔,
+              JPG, JPEG, GIF, PNG
             </Typography>
             <Typography sx={{ fontSize: "13px", color: "#6b7280" }}>
               *檔案大小限制為 3 MB

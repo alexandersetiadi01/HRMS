@@ -23,6 +23,7 @@ import {
   formatDuration,
   buildAttendanceSectionWrapperSx,
 } from "../../Utils/Attendance/SharedForm";
+import Breadcrumb from "../../Utils/Breadcrumb";
 
 export default function AttendanceOvertime() {
   const theme = useTheme();
@@ -47,6 +48,7 @@ export default function AttendanceOvertime() {
 
   return (
     <Box sx={{ width: "100%" }}>
+      <Breadcrumb rootLabel="個人專區" currentLabel="加班" mb="14px" />
       <Typography
         sx={{
           fontSize: isMobile ? "24px" : "22px",
