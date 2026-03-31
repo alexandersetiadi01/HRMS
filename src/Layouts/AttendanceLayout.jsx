@@ -69,7 +69,7 @@ const attendanceMenuItems = [
   {
     label: "公出/出差",
     to: "/attendance/business-trip",
-    disable: true,
+    disable: false,
     icon: <WorkOutlineOutlinedIcon sx={{ fontSize: "56px", color: "#2196d3" }} />,
   },
 ];

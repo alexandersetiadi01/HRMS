@@ -82,7 +82,7 @@ export function MobileTimeSelect({
   hours = HOURS,
   minutes = MINUTES_60,
   colonWidth = "10px",
-  columnGap = "6px",
+  columnGap = "3px",
 }) {
   return (
     <Box
