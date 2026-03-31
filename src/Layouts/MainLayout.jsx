@@ -2,13 +2,14 @@ import { Box, InputBase, Typography } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import { Outlet } from "react-router-dom";
-import Navbar from "../Components/Navbar";
+import Navbar from "../Components/Navbar/Navbar";
 
 function MainLayout() {
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "#f3f4f6" }}>
       <Box
         sx={{
+          display: { xs: "none", md: "block" },
           height: "60px",
           bgcolor: "#ffffff",
           borderBottom: "1px solid #e5e7eb",
@@ -75,7 +76,9 @@ function MainLayout() {
                 bgcolor: "#ffffff",
               }}
             >
-              <SearchIcon sx={{ fontSize: "18px", color: "#9ca3af", mr: "6px" }} />
+              <SearchIcon
+                sx={{ fontSize: "18px", color: "#9ca3af", mr: "6px" }}
+              />
               <InputBase
                 placeholder="人員搜尋"
                 sx={{
@@ -86,7 +89,14 @@ function MainLayout() {
               />
             </Box>
 
-            <Box sx={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                flexShrink: 0,
+              }}
+            >
               <AccountCircleIcon sx={{ color: "#8b8b8b", fontSize: "28px" }} />
               <Typography
                 sx={{

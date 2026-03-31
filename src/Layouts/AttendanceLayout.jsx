@@ -21,7 +21,7 @@ const attendanceMenuItems = [
   {
     label: "忘打卡申請",
     to: "/attendance/missed-punch",
-    disable: true,
+    disable: false,
     icon: <PlaceOutlinedIcon sx={{ fontSize: "56px", color: "#2196d3" }} />,
   },
   {
@@ -39,7 +39,7 @@ const attendanceMenuItems = [
   {
     label: "請假",
     to: "/attendance/leave",
-    disable: true,
+    disable: false,
     icon: <EventBusyOutlinedIcon sx={{ fontSize: "56px", color: "#2196d3" }} />,
   },
   {

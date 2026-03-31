@@ -1,4 +1,4 @@
-import { Box, Typography } from "@mui/material";
+import { Box, Paper, Typography } from "@mui/material";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import EventNoteOutlinedIcon from "@mui/icons-material/EventNoteOutlined";
 import WorkOutlineOutlinedIcon from "@mui/icons-material/WorkOutlineOutlined";
@@ -11,6 +11,12 @@ import ShoppingCartOutlinedIcon from "@mui/icons-material/ShoppingCartOutlined";
 import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
 import EditNoteOutlinedIcon from "@mui/icons-material/EditNoteOutlined";
+import AccessTimeOutlinedIcon from "@mui/icons-material/AccessTimeOutlined";
+import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
+import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
+import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
+import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
+import MenuOutlinedIcon from "@mui/icons-material/MenuOutlined";
 import { NavLink } from "react-router-dom";
 
 const shortcutItems = [
@@ -18,7 +24,7 @@ const shortcutItems = [
     label: "請假",
     icon: <EventNoteOutlinedIcon sx={{ fontSize: "52px", color: "#2196d3" }} />,
     to: "/attendance/leave",
-    disable: true,
+    disable: false,
   },
   {
     label: "加班",
@@ -32,7 +38,7 @@ const shortcutItems = [
     label: "我要打卡",
     icon: <PlaceOutlinedIcon sx={{ fontSize: "52px", color: "#2196d3" }} />,
     to: "/attendance/clock",
-    disable: false, // ✅ enabled
+    disable: false,
   },
   {
     label: "忘打卡申請",
@@ -40,13 +46,13 @@ const shortcutItems = [
       <HelpOutlineOutlinedIcon sx={{ fontSize: "52px", color: "#2196d3" }} />
     ),
     to: "/attendance/missed-punch",
-    disable: true,
+    disable: false,
   },
   {
     label: "個人班表",
     icon: <ScheduleOutlinedIcon sx={{ fontSize: "52px", color: "#2196d3" }} />,
     to: "/attendance/schedule",
-    disable: false, // ✅ enabled
+    disable: false,
   },
   {
     label: "公司規章",
@@ -98,6 +104,48 @@ const shortcutItems = [
   },
 ];
 
+const mobileWidgets = [
+  {
+    label: "個人出勤",
+    subLabel: "你有1異常",
+    value: "08:53 /",
+    icon: (
+      <AccessTimeOutlinedIcon sx={{ fontSize: "46px", color: "#1698dc" }} />
+    ),
+    dotColor: "#d83a3a",
+    to: "/attendance/clock",
+  },
+  {
+    label: "請假",
+    subLabel: "特休",
+    value: "56時",
+    icon: (
+      <CalendarMonthOutlinedIcon sx={{ fontSize: "46px", color: "#1698dc" }} />
+    ),
+    dotColor: "#ffffff",
+    to: "/attendance/leave",
+  },
+  {
+    label: "個人班表",
+    subLabel: "常日班",
+    value: "09:00 ~ 18:00",
+    icon: (
+      <AssignmentOutlinedIcon sx={{ fontSize: "46px", color: "#1698dc" }} />
+    ),
+    dotColor: "#ffffff",
+    to: "/attendance/schedule",
+  },
+  {
+    label: "選單設置",
+    subLabel: "",
+    value: "",
+    icon: <SettingsOutlinedIcon sx={{ fontSize: "46px", color: "#1698dc" }} />,
+    dotColor: "#ffffff",
+    to: "/dashboard",
+    disable: true,
+  },
+];
+
 function SectionTitle({ children }) {
   return (
     <Typography
@@ -127,8 +175,6 @@ function ShortcutItem({ icon, label, to, disable }) {
         justifyContent: "flex-start",
         gap: "12px",
         textDecoration: "none",
-
-        // ✅ disabled style
         cursor: disable ? "not-allowed" : "pointer",
         opacity: disable ? 0.5 : 1,
       }}
@@ -140,8 +186,6 @@ function ShortcutItem({ icon, label, to, disable }) {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-
-          // dim icon if disabled
           filter: disable ? "grayscale(100%) opacity(0.6)" : "none",
         }}
       >
@@ -162,9 +206,236 @@ function ShortcutItem({ icon, label, to, disable }) {
   );
 }
 
-function HomePage() {
+function MobileWidgetCard({ item }) {
+  const isDisabled = !!item.disable;
+
   return (
-    <Box>
+  <Box
+    component={isDisabled ? "div" : NavLink}
+    to={isDisabled ? undefined : item.to}
+    onClick={isDisabled ? (e) => e.preventDefault() : undefined}
+    sx={{
+      textDecoration: "none",
+      minWidth: 0,
+      opacity: isDisabled ? 0.7 : 1,
+      cursor: isDisabled ? "not-allowed" : "pointer",
+    }}
+  >
+    <Paper
+      elevation={0}
+      sx={{
+        bgcolor: "#ffffff",
+        borderRadius: "16px",
+        p: "14px",
+        height: "120px",
+        display: "flex",
+        alignItems: "center",   // ✅ vertical center (main fix)
+        gap: "12px",
+        position: "relative",
+      }}
+    >
+      {/* ICON */}
+      <Box
+        sx={{
+          flexShrink: 0,
+          display: "flex",
+          alignItems: "center", // ✅ icon vertical center
+          justifyContent: "center",
+        }}
+      >
+        {item.icon}
+      </Box>
+
+      {/* TEXT */}
+      <Box
+        sx={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center", // ✅ center text block
+          minWidth: 0,
+        }}
+      >
+        <Typography
+          sx={{
+            fontSize: "16px",
+            fontWeight: 700,
+            color: "#2d3945",
+            lineHeight: 1.2,
+            wordBreak: "break-word", // ✅ allow wrapping
+          }}
+        >
+          {item.label}
+        </Typography>
+
+        {item.subLabel && (
+          <Typography
+            sx={{
+              fontSize: "14px",
+              color: "#9ca3af",
+              mt: "2px",
+              lineHeight: 1.2,
+              wordBreak: "break-word", // ✅ wrap instead of cut
+            }}
+          >
+            {item.subLabel}
+          </Typography>
+        )}
+
+        {item.value && (
+          <Typography
+            sx={{
+              fontSize: "16px",
+              color: "#2d3945",
+              mt: "2px",
+              lineHeight: 1.2,
+              wordBreak: "break-word", // ✅ wrap time properly
+            }}
+          >
+            {item.value}
+          </Typography>
+        )}
+      </Box>
+
+      {/* DOT */}
+      <Box
+        sx={{
+          position: "absolute",
+          top: "10px",
+          right: "10px",
+          width: "12px",
+          height: "12px",
+          borderRadius: "50%",
+          bgcolor: item.dotColor,
+          border: item.dotColor === "#ffffff" ? "1px solid #e5e7eb" : "none",
+        }}
+      />
+    </Paper>
+  </Box>
+);
+}
+
+function MobileClockButton() {
+  return (
+    <Box
+      component={NavLink}
+      to="/attendance/clock"
+      sx={{
+        textDecoration: "none",
+        display: "block",
+        position: "relative",
+        mt: "18px",
+      }}
+    >
+      <Box
+        sx={{
+          height: "430px",
+          borderRadius: "24px",
+          bgcolor: "#f6f7f9",
+          overflow: "hidden",
+          position: "relative",
+          border: "1px solid #f0f2f5",
+        }}
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            inset: 0,
+            opacity: 0.32,
+            backgroundImage:
+              "radial-gradient(circle at 20px 20px, #d9dde3 1.5px, transparent 1.5px)",
+            backgroundSize: "22px 22px",
+          }}
+        />
+        <Box
+          sx={{
+            position: "absolute",
+            left: "50%",
+            top: "46%",
+            transform: "translate(-50%, -50%)",
+            width: "210px",
+            height: "210px",
+            borderRadius: "50%",
+            bgcolor: "#ffffff",
+            boxShadow: "0 0 0 26px rgba(205, 236, 248, 0.9)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Box
+            sx={{
+              width: "112px",
+              height: "112px",
+              borderRadius: "50%",
+              bgcolor: "#ffffff",
+              border: "8px solid #cfeefd",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <PlaceOutlinedIcon sx={{ fontSize: "56px", color: "#1698dc" }} />
+          </Box>
+        </Box>
+
+        <Box
+          sx={{
+            position: "absolute",
+            left: "50%",
+            bottom: "54px",
+            transform: "translateX(-50%)",
+            textAlign: "center",
+          }}
+        >
+          <Typography
+            sx={{
+              fontSize: "18px",
+              fontWeight: 700,
+              color: "#2d3945",
+              lineHeight: 1.2,
+            }}
+          >
+            下班了！{" "}
+            <Box component="span" sx={{ color: "#1698dc" }}>
+              定位打卡
+            </Box>
+          </Typography>
+        </Box>
+      </Box>
+    </Box>
+  );
+}
+
+function MobileHomePage() {
+  return (
+    <Box
+      sx={{
+        display: { xs: "block", md: "none" },
+        pb: "20px",
+      }}
+    >
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+          gap: "18px 14px",
+          mb: "18px",
+        }}
+      >
+        {mobileWidgets.map((item) => (
+          <MobileWidgetCard key={item.label} item={item} />
+        ))}
+      </Box>
+
+      <MobileClockButton />
+    </Box>
+  );
+}
+
+function DesktopHomePage() {
+  return (
+    <Box sx={{ display: { xs: "none", md: "block" } }}>
       <Box
         sx={{
           bgcolor: "#ececf1",
@@ -241,6 +512,15 @@ function HomePage() {
           ))}
         </Box>
       </Box>
+    </Box>
+  );
+}
+
+function HomePage() {
+  return (
+    <Box>
+      <MobileHomePage />
+      <DesktopHomePage />
     </Box>
   );
 }

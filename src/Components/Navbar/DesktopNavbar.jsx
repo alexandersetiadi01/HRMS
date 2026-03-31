@@ -9,13 +9,14 @@ const NAV_ITEMS = [
   { label: "儀表板", to: "/dashboard", disable: true },
 ];
 
-export default function Navbar() {
+export default function DesktopNavbar() {
   return (
     <Box
       sx={{
         width: "100%",
         height: "40px",
         bgcolor: "#0c93d4",
+        display: { xs: "none", md: "block" },
       }}
     >
       <Box
@@ -23,7 +24,7 @@ export default function Navbar() {
           width: "100%",
           maxWidth: "1180px",
           mx: "auto",
-          px: { xs: "16px", md: "24px" },
+          px: { md: "24px" },
           height: "40px",
           display: "flex",
           alignItems: "center",
@@ -50,14 +51,10 @@ export default function Navbar() {
                 textDecoration: "none",
                 position: "relative",
                 flexShrink: 0,
-
-                // ✅ disabled style
                 color: isDisabled ? "#93c5fd" : "#dbeafe",
                 cursor: isDisabled ? "not-allowed" : "pointer",
-                pointerEvents: isDisabled ? "none" : "auto",
                 opacity: isDisabled ? 0.6 : 1,
 
-                // ✅ active style (only for enabled items)
                 ...(isDisabled
                   ? {}
                   : {

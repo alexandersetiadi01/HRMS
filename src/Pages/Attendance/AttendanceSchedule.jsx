@@ -337,7 +337,7 @@ export default function AttendanceSchedule() {
           to="/attendance"
           underline="hover"
           sx={{
-            fontSize: "14px",
+            fontSize: "18px",
             color: "#6b7280",
             textDecoration: "none",
             "&:hover": {
@@ -350,7 +350,7 @@ export default function AttendanceSchedule() {
 
         <Typography
           sx={{
-            fontSize: "14px",
+            fontSize: "18px",
             color: "#111827",
             fontWeight: 700,
           }}
