@@ -1,9 +1,740 @@
-import { Typography } from "@mui/material";
+import { useState } from "react";
+import {
+  Box,
+  Typography,
+  Paper,
+  Tabs,
+  Tab,
+  TextField,
+  MenuItem,
+  Button,
+  Stack,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+  IconButton,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
+  FormControl,
+  Select,
+} from "@mui/material";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+
+const LOCATION_OPTIONS = ["全部"];
+const METHOD_OPTIONS = ["全部"];
+
+const MOCK_DATA = [
+  {
+    date: "2026/03/31",
+    start: "08:53 / 台灣永禾",
+    startMethod: "定位打卡",
+    end: "-",
+    endMethod: "-",
+  },
+  {
+    date: "2026/03/30",
+    start: "08:58 / 台灣永禾",
+    startMethod: "定位打卡",
+    end: "18:01 / 台灣永禾",
+    endMethod: "定位打卡",
+  },
+];
 
 export default function AttendanceRecord() {
+  const [tab, setTab] = useState(0);
+  const [recordType, setRecordType] = useState("上下班");
+  const [startDate, setStartDate] = useState("2026-03-01");
+  const [endDate, setEndDate] = useState("2026-03-31");
+  const [location, setLocation] = useState("全部");
+  const [method, setMethod] = useState("全部");
+
   return (
-    <Typography sx={{ fontSize: "24px", fontWeight: 700 }}>
-      打卡紀錄
-    </Typography>
+    <Box
+      sx={{
+        maxWidth: "1200px",
+        mx: "auto",
+        p: { xs: "0px", md: "24px" },
+      }}
+    >
+      <Typography sx={{ fontSize: "24px", fontWeight: 700, mb: 2 }}>
+        打卡紀錄
+      </Typography>
+
+      <Paper
+        sx={{
+          borderRadius: "0px",
+          overflow: "hidden",
+          border: "1px solid #d1d5db",
+        }}
+      >
+        <Tabs
+          value={tab}
+          onChange={(e, v) => setTab(v)}
+          variant="fullWidth"
+          sx={{
+            minHeight: "52px",
+            borderBottom: "1px solid #d1d5db",
+            "& .MuiTabs-flexContainer": {
+              width: "100%",
+            },
+            "& .MuiTab-root": {
+              minHeight: "52px",
+              fontSize: { xs: "14px", sm: "16px" },
+              color: "#374151",
+              fontWeight: 700,
+            },
+            "& .Mui-selected": {
+              color: "#1976d2",
+            },
+            "& .MuiTabs-indicator": {
+              height: "2px",
+            },
+          }}
+        >
+          <Tab label="上下班/休息/外出" />
+          <Tab label="異常" />
+        </Tabs>
+
+        <Box sx={{ p: { xs: "16px", sm: "20px" } }}>
+          <Stack spacing={2.5}>
+            {/* Desktop layout */}
+            <Box sx={{ display: { xs: "none", md: "block" } }}>
+              <Stack spacing={2.5}>
+                <Stack
+                  direction="row"
+                  spacing={2}
+                  alignItems="center"
+                  flexWrap="wrap"
+                  useFlexGap
+                >
+                  <Typography sx={{ fontSize: "14px", whiteSpace: "nowrap" }}>
+                    *資料類型
+                  </Typography>
+
+                  <RadioGroup
+                    row
+                    value={recordType}
+                    onChange={(e) => setRecordType(e.target.value)}
+                  >
+                    {["上下班", "休息", "外出"].map((item) => (
+                      <FormControlLabel
+                        key={item}
+                        value={item}
+                        control={<Radio size="small" />}
+                        label={item}
+                        sx={{
+                          mr: 0,
+                          ml: 0,
+                          px: "0px",
+                          py: "4px",
+                          borderRadius: "4px",
+                          "& .MuiFormControlLabel-label": {
+                            fontSize: "14px",
+                            fontWeight: 700,
+                            color: recordType === item ? "#1976d2" : "#374151",
+                          },
+                        }}
+                      />
+                    ))}
+                  </RadioGroup>
+
+                  <Typography sx={{ fontSize: "14px", whiteSpace: "nowrap" }}>
+                    *查詢日期
+                  </Typography>
+
+                  <TextField
+                    size="small"
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    sx={{
+                      width: "190px",
+                      "& .MuiInputBase-root": {
+                        height: "40px",
+                      },
+                    }}
+                  />
+
+                  <Typography sx={{ fontSize: "16px" }}>~</Typography>
+
+                  <TextField
+                    size="small"
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    sx={{
+                      width: "190px",
+                      "& .MuiInputBase-root": {
+                        height: "40px",
+                      },
+                    }}
+                  />
+
+                  <Button
+                    variant="contained"
+                    sx={{
+                      minWidth: "64px",
+                      height: "40px",
+                      bgcolor: "#1976d2",
+                      boxShadow: "none",
+                    }}
+                  >
+                    搜尋
+                  </Button>
+
+                  <Button
+                    variant="outlined"
+                    sx={{
+                      minWidth: "64px",
+                      height: "40px",
+                    }}
+                  >
+                    清空
+                  </Button>
+                </Stack>
+
+                <Stack
+                  direction="row"
+                  spacing={2}
+                  alignItems="center"
+                  flexWrap="wrap"
+                  useFlexGap
+                >
+                  <Typography sx={{ fontSize: "14px", whiteSpace: "nowrap" }}>
+                    地點
+                  </Typography>
+
+                  <FormControl size="small" sx={{ minWidth: "120px" }}>
+                    <Select
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                      sx={{ height: "40px" }}
+                    >
+                      {LOCATION_OPTIONS.map((item) => (
+                        <MenuItem key={item} value={item}>
+                          {item}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+
+                  <Typography sx={{ fontSize: "14px", whiteSpace: "nowrap" }}>
+                    打卡方式
+                  </Typography>
+
+                  <FormControl size="small" sx={{ minWidth: "160px" }}>
+                    <Select
+                      value={method}
+                      onChange={(e) => setMethod(e.target.value)}
+                      sx={{ height: "40px" }}
+                    >
+                      {METHOD_OPTIONS.map((item) => (
+                        <MenuItem key={item} value={item}>
+                          {item}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+
+                  <Box sx={{ flex: 1 }} />
+
+                  <Button
+                    variant="contained"
+                    sx={{
+                      minWidth: "100px",
+                      height: "36px",
+                      bgcolor: "#0f1f57",
+                      boxShadow: "none",
+                    }}
+                  >
+                    忘打卡申請
+                  </Button>
+                </Stack>
+              </Stack>
+            </Box>
+
+            {/* Mobile layout */}
+            <Box sx={{ display: { xs: "block", md: "none" } }}>
+              <Stack spacing={2}>
+                <Box>
+                  <Typography sx={{ fontSize: "14px", mb: 1 }}>
+                    *資料類型
+                  </Typography>
+
+                  <RadioGroup
+                    row
+                    value={recordType}
+                    onChange={(e) => setRecordType(e.target.value)}
+                    sx={{
+                      flexWrap: "wrap",
+                      gap: 0.5,
+                    }}
+                  >
+                    {["上下班", "休息", "外出"].map((item) => (
+                      <FormControlLabel
+                        key={item}
+                        value={item}
+                        control={<Radio size="small" />}
+                        label={item}
+                        sx={{
+                          mr: 0.5,
+                          ml: 0,
+                          "& .MuiFormControlLabel-label": {
+                            fontSize: "14px",
+                            fontWeight: 700,
+                            color: recordType === item ? "#1976d2" : "#374151",
+                          },
+                        }}
+                      />
+                    ))}
+                  </RadioGroup>
+                </Box>
+
+                <Box>
+                  <Typography sx={{ fontSize: "14px", mb: 1 }}>
+                    *查詢日期
+                  </Typography>
+
+                  <Stack
+                    direction="row"
+                    alignItems="center"
+                    sx={{ width: "100%" }}
+                  >
+                    <TextField
+                      size="small"
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      sx={{
+                        width: "calc((100% - 24px) / 2)",
+                        "& .MuiInputBase-root": {
+                          height: "40px",
+                        },
+                        "& .MuiInputBase-input": {
+                          px: "10px",
+                          fontSize: "13px",
+                        },
+                        "& input": {
+                          minWidth: 0,
+                        },
+                        "& input::-webkit-date-and-time-value": {
+                          textAlign: "left",
+                        },
+                        "& input::-webkit-calendar-picker-indicator": {
+                          marginLeft: "4px",
+                        },
+                      }}
+                      InputLabelProps={{ shrink: true }}
+                    />
+
+                    <Typography
+                      sx={{
+                        width: "24px",
+                        textAlign: "center",
+                        fontSize: "16px",
+                        color: "#374151",
+                        flexShrink: 0,
+                      }}
+                    >
+                      ~
+                    </Typography>
+
+                    <TextField
+                      size="small"
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      sx={{
+                        width: "calc((100% - 24px) / 2)",
+                        "& .MuiInputBase-root": {
+                          height: "40px",
+                        },
+                        "& .MuiInputBase-input": {
+                          px: "10px",
+                          fontSize: "13px",
+                        },
+                        "& input": {
+                          minWidth: 0,
+                        },
+                        "& input::-webkit-date-and-time-value": {
+                          textAlign: "left",
+                        },
+                        "& input::-webkit-calendar-picker-indicator": {
+                          marginLeft: "4px",
+                        },
+                      }}
+                      InputLabelProps={{ shrink: true }}
+                    />
+                  </Stack>
+                </Box>
+
+                <Stack direction="row" spacing={2.5}>
+                  <Button
+                    variant="contained"
+                    fullWidth
+                    sx={{
+                      height: "40px",
+                      bgcolor: "#1976d2",
+                      boxShadow: "none",
+                    }}
+                  >
+                    搜尋
+                  </Button>
+
+                  <Button
+                    variant="outlined"
+                    fullWidth
+                    sx={{
+                      height: "40px",
+                    }}
+                  >
+                    清空
+                  </Button>
+                </Stack>
+
+                <Box>
+                  <Typography sx={{ fontSize: "14px", mb: 1 }}>地點</Typography>
+                  <FormControl size="small" fullWidth>
+                    <Select
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                      sx={{ height: "40px" }}
+                    >
+                      {LOCATION_OPTIONS.map((item) => (
+                        <MenuItem key={item} value={item}>
+                          {item}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Box>
+
+                <Box>
+                  <Typography sx={{ fontSize: "14px", mb: 1 }}>
+                    打卡方式
+                  </Typography>
+                  <FormControl size="small" fullWidth>
+                    <Select
+                      value={method}
+                      onChange={(e) => setMethod(e.target.value)}
+                      sx={{ height: "40px" }}
+                    >
+                      {METHOD_OPTIONS.map((item) => (
+                        <MenuItem key={item} value={item}>
+                          {item}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Box>
+
+                <Button
+                  variant="contained"
+                  fullWidth
+                  sx={{
+                    height: "36px",
+                    bgcolor: "#0f1f57",
+                    boxShadow: "none",
+                  }}
+                >
+                  忘打卡申請
+                </Button>
+              </Stack>
+            </Box>
+          </Stack>
+        </Box>
+
+        <Box
+          sx={{
+            px: { xs: "12px", sm: "20px" },
+            pb: "20px",
+          }}
+        >
+          <Box
+            sx={{
+              width: "100%",
+              overflowX: "hidden",
+            }}
+          >
+            <Table
+              size="small"
+              sx={{
+                width: "100%",
+                tableLayout: "fixed",
+                "& .MuiTableCell-root": {
+                  fontSize: { xs: "11px", sm: "14px" },
+                  px: { xs: "4px", sm: "16px" },
+                  py: { xs: "8px", sm: "12px" },
+                  verticalAlign: "middle",
+                  wordBreak: "break-word",
+                  overflowWrap: "anywhere",
+                  borderBottom: "1px solid #e5e7eb",
+                },
+              }}
+            >
+              <TableHead>
+                <TableRow sx={{ backgroundColor: "#f3f4f6" }}>
+                  <TableCell
+                    sx={{
+                      fontWeight: 700,
+                      width: { xs: "19%", md: "110px" },
+                      whiteSpace: "normal",
+                      lineHeight: 1.3,
+                    }}
+                  >
+                    日期
+                  </TableCell>
+
+                  <TableCell
+                    sx={{
+                      fontWeight: 700,
+                      width: { xs: "23%", md: "150px" },
+                      whiteSpace: "normal",
+                      lineHeight: 1.3,
+                    }}
+                  >
+                    上班時間/
+                    <br />
+                    地點
+                  </TableCell>
+
+                  <TableCell
+                    sx={{
+                      fontWeight: 700,
+                      width: { xs: "18%", md: "120px" },
+                      whiteSpace: "normal",
+                      lineHeight: 1.3,
+                    }}
+                  >
+                    打卡
+                    <br />
+                    方式
+                  </TableCell>
+
+                  <TableCell
+                    sx={{
+                      fontWeight: 700,
+                      width: { xs: "23%", md: "150px" },
+                      whiteSpace: "normal",
+                      lineHeight: 1.3,
+                    }}
+                  >
+                    下班時間/
+                    <br />
+                    地點
+                  </TableCell>
+
+                  <TableCell
+                    sx={{
+                      fontWeight: 700,
+                      width: { xs: "17%", md: "120px" },
+                      whiteSpace: "normal",
+                      lineHeight: 1.3,
+                    }}
+                  >
+                    打卡
+                    <br />
+                    方式
+                  </TableCell>
+
+                  <TableCell
+                    sx={{
+                      width: { xs: "32px", md: "48px" },
+                    }}
+                  />
+                </TableRow>
+              </TableHead>
+
+              <TableBody>
+                {MOCK_DATA.map((row, i) => (
+                  <TableRow key={i}>
+                    <TableCell
+                      sx={{
+                        whiteSpace: "normal",
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      {row.date.slice(2)}
+                    </TableCell>
+
+                    <TableCell
+                      sx={{
+                        whiteSpace: "normal",
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      {row.start}
+                    </TableCell>
+
+                    <TableCell
+                      sx={{
+                        color: "#2563eb",
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "center",
+                          height: "100%",
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        <Typography
+                          sx={{ fontSize: { xs: "11px", sm: "14px" } }}
+                        >
+                          {row.startMethod}
+                        </Typography>
+                        <Typography
+                          sx={{ fontSize: { xs: "11px", sm: "14px" } }}
+                        >
+                          查看地點
+                        </Typography>
+                      </Box>
+                    </TableCell>
+
+                    <TableCell
+                      sx={{
+                        whiteSpace: "normal",
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      {row.end}
+                    </TableCell>
+
+                    <TableCell
+                      sx={{
+                        color: "#2563eb",
+                        whiteSpace: "normal",
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      <Box>{row.endMethod}</Box>
+                      <Box>查看地點</Box>
+                    </TableCell>
+
+                    <TableCell align="right">
+                      <IconButton
+                        size="small"
+                        sx={{
+                          p: { xs: "2px", sm: "4px" },
+                        }}
+                      >
+                        <DeleteOutlineIcon
+                          sx={{ fontSize: { xs: "18px", sm: "20px" } }}
+                        />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Box>
+
+          <Stack spacing={1.5} sx={{ mt: 2 }}>
+            <Stack
+              direction="row"
+              alignItems="center"
+              justifyContent="center"
+              spacing={0.5}
+              flexWrap="nowrap"
+            >
+              <Button
+                size="small"
+                sx={{
+                  minWidth: { xs: "28px", sm: "40px" },
+                  px: 0.25,
+                  fontSize: { xs: "11px", sm: "14px" },
+                }}
+              >
+                {"<<"}
+              </Button>
+
+              <Button
+                size="small"
+                sx={{
+                  minWidth: { xs: "28px", sm: "40px" },
+                  px: 0.25,
+                  fontSize: { xs: "11px", sm: "14px" },
+                }}
+              >
+                {"<"}
+              </Button>
+
+              <TextField
+                size="small"
+                value="1"
+                sx={{
+                  width: { xs: "42px", sm: "60px" },
+                  "& .MuiInputBase-root": {
+                    height: { xs: "32px", sm: "40px" },
+                  },
+                  "& .MuiInputBase-input": {
+                    px: 0.5,
+                    py: 0.25,
+                    textAlign: "center",
+                    fontSize: { xs: "12px", sm: "14px" },
+                  },
+                }}
+              />
+
+              <Typography sx={{ fontSize: { xs: "12px", sm: "14px" } }}>
+                / 3
+              </Typography>
+
+              <Button
+                size="small"
+                sx={{
+                  minWidth: { xs: "28px", sm: "40px" },
+                  px: 0.25,
+                  fontSize: { xs: "11px", sm: "14px" },
+                }}
+              >
+                {">"}
+              </Button>
+
+              <Button
+                size="small"
+                sx={{
+                  minWidth: { xs: "28px", sm: "40px" },
+                  px: 0.25,
+                  fontSize: { xs: "11px", sm: "14px" },
+                }}
+              >
+                {">>"}
+              </Button>
+            </Stack>
+
+            <Stack
+              direction="row"
+              alignItems="center"
+              justifyContent="flex-start"
+              spacing={1}
+              flexWrap="wrap"
+            >
+              <FormControl size="small">
+                <Select
+                  value={10}
+                  sx={{
+                    width: { xs: "64px", sm: "64px" },
+                    height: { xs: "36px", sm: "40px" },
+                    fontSize: { xs: "12px", sm: "14px" },
+                  }}
+                >
+                  <MenuItem value={10}>10</MenuItem>
+                </Select>
+              </FormControl>
+
+              <Typography sx={{ fontSize: { xs: "12px", sm: "14px" } }}>
+                1-10 / 22
+              </Typography>
+            </Stack>
+          </Stack>
+        </Box>
+      </Paper>
+    </Box>
   );
 }

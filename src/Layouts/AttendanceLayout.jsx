@@ -27,7 +27,7 @@ const attendanceMenuItems = [
   {
     label: "打卡紀錄",
     to: "/attendance/record",
-    disable: true,
+    disable: false,
     icon: <DescriptionOutlinedIcon sx={{ fontSize: "56px", color: "#2196d3" }} />,
   },
   {
