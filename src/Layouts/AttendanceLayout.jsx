@@ -45,7 +45,7 @@ const attendanceMenuItems = [
   {
     label: "加班",
     to: "/attendance/overtime",
-    disable: true,
+    disable: false,
     icon: <MoreTimeOutlinedIcon sx={{ fontSize: "56px", color: "#2196d3" }} />,
   },
   {

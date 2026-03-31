@@ -26,11 +26,14 @@ import AddCircleIcon from "@mui/icons-material/AddCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
 import CloseIcon from "@mui/icons-material/Close";
 import { Link as RouterLink } from "react-router-dom";
-
-const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
-const MINUTES = Array.from({ length: 60 }, (_, i) =>
-  String(i).padStart(2, "0"),
-);
+import {
+  HOURS,
+  MINUTES_60,
+  selectMenuProps,
+  SectionLabel,
+  MobileTimeSelect,
+  buildAttendanceSectionWrapperSx,
+} from "../../../Utils/Attendance/SharedForm";
 
 const LEAVE_TYPES = [
   { value: "paid-sick", label: "有薪病假" },
@@ -64,62 +67,6 @@ const FORM_TYPES = [
   { key: "overtime", label: "加班" },
   { key: "business-trip", label: "公出/出差" },
 ];
-
-const selectMenuProps = {
-  PaperProps: {
-    sx: {
-      maxHeight: 220,
-      overflowY: "auto",
-    },
-  },
-  MenuListProps: {
-    sx: {
-      py: 0,
-    },
-  },
-};
-
-function SectionLabel({ children, mobile }) {
-  if (mobile) {
-    return (
-      <Box
-        sx={{
-          px: "14px",
-          pt: "14px",
-          pb: "8px",
-        }}
-      >
-        <Typography
-          sx={{
-            fontSize: "16px",
-            fontWeight: 700,
-            color: "#2d3945",
-          }}
-        >
-          {children}
-        </Typography>
-      </Box>
-    );
-  }
-
-  return (
-    <Box
-      sx={{
-        bgcolor: "#2f2f2f",
-        color: "#fff",
-        px: "16px",
-        py: "14px",
-        fontSize: "14px",
-        minHeight: "100%",
-        display: "flex",
-        alignItems: "center",
-        fontWeight: 700,
-      }}
-    >
-      {children}
-    </Box>
-  );
-}
 
 function LeaveTypeRow({
   row,
@@ -248,69 +195,6 @@ function LeaveTypeRow({
   );
 }
 
-function MobileTimeSelect({
-  hour,
-  minute,
-  onChangeHour,
-  onChangeMinute,
-  hours,
-  minutes,
-}) {
-  return (
-    <Box
-      sx={{
-        display: "grid",
-        gridTemplateColumns: "minmax(0, 1fr) 2.5px minmax(0, 1fr)",
-        alignItems: "center",
-        columnGap: "5px",
-        width: "100%",
-        minWidth: 0,
-      }}
-    >
-      <FormControl sx={{ width: "100%", minWidth: 0 }}>
-        <Select
-          value={hour}
-          onChange={(e) => onChangeHour(e.target.value)}
-          MenuProps={selectMenuProps}
-          sx={{ height: "38px", fontSize: "15px" }}
-        >
-          {hours.map((h) => (
-            <MenuItem key={h} value={h}>
-              {h}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
-
-      <Typography
-        sx={{
-          fontSize: "18px",
-          color: "#374151",
-          textAlign: "center",
-          lineHeight: 1,
-        }}
-      >
-        :
-      </Typography>
-
-      <FormControl sx={{ width: "100%", minWidth: 0 }}>
-        <Select
-          value={minute}
-          onChange={(e) => onChangeMinute(e.target.value)}
-          MenuProps={selectMenuProps}
-          sx={{ height: "38px", fontSize: "15px" }}
-        >
-          {minutes.map((m) => (
-            <MenuItem key={m} value={m}>
-              {m}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
-    </Box>
-  );
-}
-
 export default function AttendanceLeave() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
@@ -364,21 +248,17 @@ export default function AttendanceLeave() {
 
   const updateLeaveRow = (id, key, value) => {
     setLeaveRows((prev) =>
-      prev.map((row) => (row.id === id ? { ...row, [key]: value } : row)),
+      prev.map((row) => (row.id === id ? { ...row, [key]: value } : row))
     );
   };
 
   const handleToggleFormType = (key) => {
     setSelectedFormTypes((prev) =>
-      prev.includes(key) ? prev.filter((item) => item !== key) : [...prev, key],
+      prev.includes(key) ? prev.filter((item) => item !== key) : [...prev, key]
     );
   };
 
-  const sectionWrapperSx = {
-    display: "grid",
-    gridTemplateColumns: isMobile ? "1fr" : "165px minmax(0, 1fr)",
-    borderBottom: "1px solid #d1d5db",
-  };
+  const sectionWrapperSx = buildAttendanceSectionWrapperSx(isMobile);
 
   return (
     <Box sx={{ width: "100%" }}>
@@ -489,7 +369,7 @@ export default function AttendanceLeave() {
                         onChangeHour={setStartHour}
                         onChangeMinute={setStartMin}
                         hours={HOURS}
-                        minutes={MINUTES}
+                        minutes={MINUTES_60}
                       />
                     </Box>
 
@@ -524,7 +404,7 @@ export default function AttendanceLeave() {
                         onChangeHour={setEndHour}
                         onChangeMinute={setEndMin}
                         hours={HOURS}
-                        minutes={MINUTES}
+                        minutes={MINUTES_60}
                       />
                     </Box>
                   </Box>
@@ -578,7 +458,7 @@ export default function AttendanceLeave() {
                       MenuProps={selectMenuProps}
                       sx={{ height: "38px", fontSize: "15px" }}
                     >
-                      {MINUTES.map((m) => (
+                      {MINUTES_60.map((m) => (
                         <MenuItem key={m} value={m}>
                           {m}
                         </MenuItem>
@@ -626,7 +506,7 @@ export default function AttendanceLeave() {
                       MenuProps={selectMenuProps}
                       sx={{ height: "38px", fontSize: "15px" }}
                     >
-                      {MINUTES.map((m) => (
+                      {MINUTES_60.map((m) => (
                         <MenuItem key={m} value={m}>
                           {m}
                         </MenuItem>
@@ -889,8 +769,7 @@ export default function AttendanceLeave() {
             </Button>
 
             <Typography sx={{ fontSize: "13px", color: "#6b7280" }}>
-              檔案格式限制為 Microsoft Office
-              文件、TXT文字檔、PDF、JPG、JPEG、GIF、PNG
+              檔案格式限制為 Microsoft Office 文件、TXT文字檔、PDF、JPG、JPEG、GIF、PNG
             </Typography>
             <Typography sx={{ fontSize: "13px", color: "#6b7280" }}>
               檔案大小限制為 3 MB

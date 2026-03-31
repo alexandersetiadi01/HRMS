@@ -17,6 +17,7 @@ import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
 import MenuOutlinedIcon from "@mui/icons-material/MenuOutlined";
+import MoreTimeOutlinedIcon from "@mui/icons-material/MoreTimeOutlined";
 import { NavLink } from "react-router-dom";
 
 const shortcutItems = [
@@ -29,10 +30,10 @@ const shortcutItems = [
   {
     label: "加班",
     icon: (
-      <WorkOutlineOutlinedIcon sx={{ fontSize: "52px", color: "#2196d3" }} />
+      <MoreTimeOutlinedIcon sx={{ fontSize: "52px", color: "#2196d3" }} />
     ),
     to: "/attendance/overtime",
-    disable: true,
+    disable: false,
   },
   {
     label: "我要打卡",

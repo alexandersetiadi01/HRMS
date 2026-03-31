@@ -14,6 +14,7 @@ import AttendanceOvertime from "../Pages/Attendance/AttendanceOverTime";
 import AttendanceLeaveBalance from "../Pages/Attendance/AttendanceLeaveBalance";
 import AttendancePendingApproval from "../Pages/Attendance/AttendancePendingApproval";
 import Absent from "../Pages/Attendance/Absent";
+import AttendanceBusinessTrip from "../Pages/Attendance/AttendanceBusinessTrip";
 
 function PlaceholderPage({ title }) {
   return <div style={{ padding: "24px" }}>{title}</div>;
@@ -47,6 +48,8 @@ export default function AppRoutes() {
         <Route path="/attendance/form-record" element={<AttendanceFormRecord />} />
         <Route path="/attendance/leave-balance" element={<AttendanceLeaveBalance />} />
         <Route path="/attendance/pending-approval" element={<AttendancePendingApproval />} />
+        <Route path="/attendance/business-trip" element={<AttendanceBusinessTrip />} />
+        
       </Route>
     </Routes>
   );
