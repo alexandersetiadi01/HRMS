@@ -7,6 +7,8 @@ import {
   Link,
   Paper,
   Typography,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import { Link as RouterLink } from "react-router-dom";
@@ -27,15 +29,17 @@ import {
   getShiftData,
 } from "../../Utils/Calendar/DayStatus";
 import YearMonthPicker from "../../Utils/Calendar/YearMonthPicker";
+import MobileCalendar from "../../Utils/Calendar/MobileCalendar";
 
 const WEEK_LABELS = ["日", "一", "二", "三", "四", "五", "六"];
 
 const SHIFT_FILTERS = [
-  { key: "support", label: "支援", color: "#cfe8ff" },
-  { key: "leave", label: "請假", color: "#f7b3c2" },
-  { key: "rest", label: "休假", color: "#d1d5db" },
-  { key: "trip", label: "公出/出差", color: "#f6b73c" },
-  { key: "normal", label: "常日班", color: "#f5a04a" },
+  { key: "all", label: "全部", color: "#000000", dotColor: "#000000" },
+  { key: "support", label: "支援", color: "#cfe8ff", dotColor: "#7ab8ff" },
+  { key: "leave", label: "請假", color: "#f7b3c2", dotColor: "#f49aa6" },
+  { key: "rest", label: "休假", color: "#d1d5db", dotColor: "#9ca3af" },
+  { key: "trip", label: "公出/出差", color: "#f6b73c", dotColor: "#f5a623" },
+  { key: "normal", label: "常日班", color: "#f5a04a", dotColor: "#f59a42" },
 ];
 
 function PeopleGroup({ color }) {
@@ -207,6 +211,9 @@ function CalendarDayCell({ date, today, holidayMap }) {
 }
 
 export default function AttendanceSchedule() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
   const today = new Date();
   const todayYearMonth = getTodayYearMonth();
 
@@ -215,6 +222,8 @@ export default function AttendanceSchedule() {
   const [holidayMap, setHolidayMap] = useState({});
   const [holidayLoading, setHolidayLoading] = useState(false);
   const [holidaySourceNote, setHolidaySourceNote] = useState("");
+  const [selectedFilter, setSelectedFilter] = useState("normal");
+  const [selectedDate, setSelectedDate] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -261,6 +270,18 @@ export default function AttendanceSchedule() {
     [selectedYear, selectedMonth],
   );
 
+  useEffect(() => {
+    const currentMonthDates = monthGrid.flat().filter(Boolean);
+    if (currentMonthDates.length === 0) return;
+
+    const todayInView = currentMonthDates.find((date) =>
+      isSameDate(date, today),
+    );
+    setSelectedDate(
+      todayInView || currentMonthDates[currentMonthDates.length - 1],
+    );
+  }, [selectedYear, selectedMonth]);
+
   const totalWorkMinutes = useMemo(() => {
     let count = 0;
 
@@ -276,6 +297,32 @@ export default function AttendanceSchedule() {
 
   const totalHours = Math.floor(totalWorkMinutes / 60);
   const totalMinutes = totalWorkMinutes % 60;
+
+  const leaveHours = 0;
+  const leaveMinutes = 0;
+  const restHours = 216;
+  const restMinutes = 0;
+
+  const selectedShift = selectedDate
+    ? getShiftData(selectedDate, holidayMap)
+    : null;
+  const selectedHolidayName = selectedDate
+    ? getDisplayHolidayName(selectedDate, holidayMap)
+    : "";
+
+  const selectedDateDisplay = selectedDate
+    ? `${selectedDate.getFullYear()}/${pad2(selectedDate.getMonth() + 1)}/${pad2(
+        selectedDate.getDate(),
+      )}`
+    : "";
+
+  const monthTitle = useMemo(() => {
+    const date = new Date(selectedYear, selectedMonth - 1, 1);
+    return date.toLocaleString("en-US", {
+      month: "long",
+      year: "numeric",
+    });
+  }, [selectedYear, selectedMonth]);
 
   return (
     <Box>
@@ -323,286 +370,461 @@ export default function AttendanceSchedule() {
         個人班表
       </Typography>
 
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          gap: "12px",
-          mb: "14px",
-          flexWrap: "wrap",
-        }}
-      >
-        <Typography
-          sx={{ fontSize: "16px", fontWeight: 700, color: "#374151" }}
-        >
-          年度/月份
-        </Typography>
-
-        <YearMonthPicker
-          valueYear={selectedYear}
-          valueMonth={selectedMonth}
-          onConfirm={(year, month) => {
-            setSelectedYear(year);
-            setSelectedMonth(month);
-          }}
-        />
-      </Box>
-
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: { xs: "stretch", sm: "center" },
-          gap: "12px",
-          flexWrap: "wrap",
-          mb: "8px",
-        }}
-      >
-        <Typography sx={{ fontSize: "16px", color: "#374151", width: "100%" }}>
-          簽核中：{formatRange(selectedYear, selectedMonth)}
-        </Typography>
-
-        <Button
-          variant="outlined"
-          onClick={() => {
-            const prev = getPrevMonthYear(selectedYear, selectedMonth);
-            setSelectedYear(prev.year);
-            setSelectedMonth(prev.month);
-          }}
-          sx={{
-            minWidth: { xs: "calc((100% - 24px) / 3)", sm: "78px" },
-            height: "36px",
-            borderRadius: 0,
-            fontSize: "14px",
-            color: "#111827",
-            borderColor: "#b9b9b9",
-            flex: { xs: "1 1 0", sm: "0 0 auto" },
-          }}
-        >
-          上一月
-        </Button>
-
-        <Button
-          variant="outlined"
-          onClick={() => {
-            const next = getNextMonthYear(selectedYear, selectedMonth);
-            setSelectedYear(next.year);
-            setSelectedMonth(next.month);
-          }}
-          sx={{
-            minWidth: { xs: "calc((100% - 24px) / 3)", sm: "78px" },
-            height: "36px",
-            borderRadius: 0,
-            fontSize: "14px",
-            color: "#111827",
-            borderColor: "#b9b9b9",
-            flex: { xs: "1 1 0", sm: "0 0 auto" },
-          }}
-        >
-          下一月
-        </Button>
-
-        <Button
-          variant="outlined"
-          onClick={() => {
-            const current = getTodayYearMonth();
-            setSelectedYear(current.year);
-            setSelectedMonth(current.month);
-          }}
-          sx={{
-            minWidth: { xs: "calc((100% - 24px) / 3)", sm: "78px" },
-            height: "36px",
-            borderRadius: 0,
-            fontSize: "14px",
-            color: "#111827",
-            borderColor: "#b9b9b9",
-            flex: { xs: "1 1 0", sm: "0 0 auto" },
-          }}
-        >
-          今天
-        </Button>
-      </Box>
-
-      {holidayLoading ? (
-        <Typography sx={{ fontSize: "14px", color: "#6b7280", mb: "16px" }}>
-          載入台灣行事曆中...
-        </Typography>
-      ) : holidaySourceNote ? (
-        <Typography sx={{ fontSize: "14px", color: "#b45309", mb: "16px" }}>
-          {holidaySourceNote}
-        </Typography>
-      ) : (
-        <Box sx={{ mb: "24px" }} />
-      )}
-
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns: { xs: "1fr", xl: "minmax(0, 1fr) 180px" },
-          gap: "18px",
-          alignItems: "start",
-        }}
-      >
-        <Box
-          sx={{
-            width: "100%",
-          }}
-        >
-          <Box
-            sx={{
-              border: "1px solid #303030",
-              bgcolor: "#ffffff",
-              overflow: "hidden",
-              width: "100%",
+      {isMobile ? (
+        <>
+          <MobileCalendar
+            filters={SHIFT_FILTERS}
+            selectedFilter={selectedFilter}
+            onSelectFilter={setSelectedFilter}
+            monthTitle={monthTitle}
+            monthGrid={monthGrid}
+            holidayMap={holidayMap}
+            selectedDate={selectedDate}
+            onSelectDate={setSelectedDate}
+            workHours={totalHours}
+            workMinutes={totalMinutes}
+            leaveHours={leaveHours}
+            leaveMinutes={leaveMinutes}
+            restHours={restHours}
+            restMinutes={restMinutes}
+            onPrevMonth={() => {
+              const prev = getPrevMonthYear(selectedYear, selectedMonth);
+              setSelectedYear(prev.year);
+              setSelectedMonth(prev.month);
             }}
-          >
-            <Box
-              sx={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)" }}
+            onNextMonth={() => {
+              const next = getNextMonthYear(selectedYear, selectedMonth);
+              setSelectedYear(next.year);
+              setSelectedMonth(next.month);
+            }}
+          />
+
+          {selectedDate ? (
+            <Paper
+              elevation={0}
+              sx={{
+                borderRadius: "10px",
+                bgcolor: "#ffffff",
+                p: "12px 14px",
+                mb: "12px",
+              }}
             >
-              {WEEK_LABELS.map((label) => (
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  justifyContent: "space-between",
+                  gap: "12px",
+                }}
+              >
+                <Box>
+                  <Typography
+                    sx={{
+                      fontSize: "12px",
+                      color: "#a4a9b2",
+                      lineHeight: 1.2,
+                      mb: "2px",
+                    }}
+                  >
+                    {selectedDateDisplay}
+                  </Typography>
+
+                  <Typography
+                    sx={{
+                      fontSize: "14px",
+                      fontWeight: 700,
+                      color: "#2d3945",
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {selectedHolidayName || selectedShift?.title || "-"}
+                  </Typography>
+
+                  <Typography
+                    sx={{
+                      fontSize: "14px",
+                      fontWeight: 700,
+                      color: "#2d3945",
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {selectedShift?.time?.replace("~", " ~ ") || ""}
+                  </Typography>
+                </Box>
+
                 <Box
-                  key={label}
                   sx={{
-                    height: { xs: "32px", sm: "48px" },
-                    bgcolor: "#333333",
-                    color: "#ffffff",
-                    fontSize: { xs: "12px", sm: "18px" },
+                    color: "#8fd0ef",
+                    fontSize: "28px",
+                    lineHeight: 1,
                     fontWeight: 700,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    borderRight: "1px solid #111111",
-                    px: { xs: "1px", sm: 0 },
                   }}
                 >
-                  {label}
+                  +
                 </Box>
-              ))}
-            </Box>
-
-            {monthGrid.map((week, rowIndex) => (
-              <Box
-                key={`${selectedYear}-${selectedMonth}-week-${rowIndex}`}
-                sx={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)" }}
-              >
-                {week.map((date, colIndex) => (
-                  <CalendarDayCell
-                    key={
-                      date
-                        ? formatCellKey(
-                            date.getFullYear(),
-                            date.getMonth() + 1,
-                            date.getDate(),
-                          )
-                        : `empty-${rowIndex}-${colIndex}`
-                    }
-                    date={date}
-                    today={today}
-                    holidayMap={holidayMap}
-                  />
-                ))}
               </Box>
-            ))}
-          </Box>
-        </Box>
+            </Paper>
+          ) : null}
 
-        <Box sx={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-          <Paper
-            elevation={0}
+          {selectedDate ? (
+            <Paper
+              elevation={0}
+              sx={{
+                borderRadius: "10px",
+                bgcolor: "#ffffff",
+                p: "14px",
+              }}
+            >
+              <Typography
+                sx={{
+                  fontSize: "12px",
+                  color: "#b0b5bf",
+                  mb: "8px",
+                }}
+              >
+                部門資訊
+              </Typography>
+
+              <Box sx={{ borderTop: "1px solid #e6e8ed", pt: "12px" }}>
+                <Typography
+                  sx={{
+                    fontSize: "14px",
+                    color: "#f5a04a",
+                    fontWeight: 700,
+                    lineHeight: 1.2,
+                  }}
+                >
+                  • {selectedHolidayName || selectedShift?.title || "常日班"}
+                </Typography>
+
+                <Typography
+                  sx={{
+                    fontSize: "14px",
+                    color: "#f5a04a",
+                    fontWeight: 700,
+                    lineHeight: 1.2,
+                    mb: "6px",
+                  }}
+                >
+                  {selectedShift?.time?.replace("~", " ~ ") || "09:00 ~ 18:00"}
+                </Typography>
+
+                <Typography
+                  sx={{
+                    fontSize: "12px",
+                    color: "#2d3945",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  王穎傑、錢敏雯、張亨灝
+                </Typography>
+              </Box>
+            </Paper>
+          ) : null}
+
+          {holidayLoading ? (
+            <Typography sx={{ fontSize: "14px", color: "#6b7280", mt: "12px" }}>
+              載入台灣行事曆中...
+            </Typography>
+          ) : holidaySourceNote ? (
+            <Typography sx={{ fontSize: "14px", color: "#b45309", mt: "12px" }}>
+              {holidaySourceNote}
+            </Typography>
+          ) : null}
+        </>
+      ) : (
+        <>
+          <Box
             sx={{
-              border: "1px solid #b9b9b9",
-              borderRadius: 0,
-              p: "14px",
-              bgcolor: "#ffffff",
-              minHeight: "160px",
+              display: "flex",
+              alignItems: "center",
+              gap: "12px",
+              mb: "14px",
+              flexWrap: "wrap",
             }}
           >
             <Typography
+              sx={{ fontSize: "16px", fontWeight: 700, color: "#374151" }}
+            >
+              年度/月份
+            </Typography>
+
+            <YearMonthPicker
+              valueYear={selectedYear}
+              valueMonth={selectedMonth}
+              onConfirm={(year, month) => {
+                setSelectedYear(year);
+                setSelectedMonth(month);
+              }}
+            />
+          </Box>
+
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: "12px",
+              flexWrap: "wrap",
+              mb: "8px",
+            }}
+          >
+            <Typography
+              sx={{ fontSize: "16px", color: "#374151", width: "100%" }}
+            >
+              簽核中：{formatRange(selectedYear, selectedMonth)}
+            </Typography>
+
+            <Button
+              variant="outlined"
+              onClick={() => {
+                const prev = getPrevMonthYear(selectedYear, selectedMonth);
+                setSelectedYear(prev.year);
+                setSelectedMonth(prev.month);
+              }}
               sx={{
-                fontSize: "18px",
-                fontWeight: 700,
+                minWidth: "78px",
+                height: "36px",
+                borderRadius: 0,
+                fontSize: "14px",
                 color: "#111827",
-                mb: "10px",
+                borderColor: "#b9b9b9",
               }}
             >
-              統計
+              上一月
+            </Button>
+
+            <Button
+              variant="outlined"
+              onClick={() => {
+                const next = getNextMonthYear(selectedYear, selectedMonth);
+                setSelectedYear(next.year);
+                setSelectedMonth(next.month);
+              }}
+              sx={{
+                minWidth: "78px",
+                height: "36px",
+                borderRadius: 0,
+                fontSize: "14px",
+                color: "#111827",
+                borderColor: "#b9b9b9",
+              }}
+            >
+              下一月
+            </Button>
+
+            <Button
+              variant="outlined"
+              onClick={() => {
+                const current = getTodayYearMonth();
+                setSelectedYear(current.year);
+                setSelectedMonth(current.month);
+              }}
+              sx={{
+                minWidth: "78px",
+                height: "36px",
+                borderRadius: 0,
+                fontSize: "14px",
+                color: "#111827",
+                borderColor: "#b9b9b9",
+              }}
+            >
+              今天
+            </Button>
+          </Box>
+
+          {holidayLoading ? (
+            <Typography sx={{ fontSize: "14px", color: "#6b7280", mb: "16px" }}>
+              載入台灣行事曆中...
             </Typography>
-
-            <Typography sx={{ fontSize: "16px", color: "#374151" }}>
-              上班時數：{totalHours} 時 {totalMinutes} 分
+          ) : holidaySourceNote ? (
+            <Typography sx={{ fontSize: "14px", color: "#b45309", mb: "16px" }}>
+              {holidaySourceNote}
             </Typography>
-          </Paper>
+          ) : (
+            <Box sx={{ mb: "24px" }} />
+          )}
 
-          <SidebarCard title="班次篩選">
-            <Box sx={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              <Box sx={{ display: "flex", alignItems: "center" }}>
-                <Checkbox checked size="small" sx={{ p: "4px" }} />
-                <Typography sx={{ fontSize: "15px" }}>全選</Typography>
-              </Box>
-
-              {SHIFT_FILTERS.map((item) => (
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: { xs: "1fr", xl: "minmax(0, 1fr) 180px" },
+              gap: "18px",
+              alignItems: "start",
+            }}
+          >
+            <Box sx={{ width: "100%" }}>
+              <Box
+                sx={{
+                  border: "1px solid #303030",
+                  bgcolor: "#ffffff",
+                  overflow: "hidden",
+                  width: "100%",
+                }}
+              >
                 <Box
-                  key={item.key}
-                  sx={{ display: "flex", alignItems: "center" }}
+                  sx={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(7, 1fr)",
+                  }}
                 >
-                  <Checkbox checked size="small" sx={{ p: "4px" }} />
+                  {WEEK_LABELS.map((label) => (
+                    <Box
+                      key={label}
+                      sx={{
+                        height: { xs: "32px", sm: "48px" },
+                        bgcolor: "#333333",
+                        color: "#ffffff",
+                        fontSize: { xs: "12px", sm: "18px" },
+                        fontWeight: 700,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        borderRight: "1px solid #111111",
+                        px: { xs: "1px", sm: 0 },
+                      }}
+                    >
+                      {label}
+                    </Box>
+                  ))}
+                </Box>
+
+                {monthGrid.map((week, rowIndex) => (
                   <Box
+                    key={`${selectedYear}-${selectedMonth}-week-${rowIndex}`}
                     sx={{
-                      px: "8px",
-                      py: "2px",
-                      bgcolor: item.color,
-                      fontSize: "14px",
-                      color: "#111827",
-                      minWidth: "74px",
-                      textAlign: "center",
+                      display: "grid",
+                      gridTemplateColumns: "repeat(7, 1fr)",
                     }}
                   >
-                    {item.label}
+                    {week.map((date, colIndex) => (
+                      <CalendarDayCell
+                        key={
+                          date
+                            ? formatCellKey(
+                                date.getFullYear(),
+                                date.getMonth() + 1,
+                                date.getDate(),
+                              )
+                            : `empty-${rowIndex}-${colIndex}`
+                        }
+                        date={date}
+                        today={today}
+                        holidayMap={holidayMap}
+                      />
+                    ))}
+                  </Box>
+                ))}
+              </Box>
+            </Box>
+
+            <Box sx={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              <Paper
+                elevation={0}
+                sx={{
+                  border: "1px solid #b9b9b9",
+                  borderRadius: 0,
+                  p: "14px",
+                  bgcolor: "#ffffff",
+                  minHeight: "160px",
+                }}
+              >
+                <Typography
+                  sx={{
+                    fontSize: "18px",
+                    fontWeight: 700,
+                    color: "#111827",
+                    mb: "10px",
+                  }}
+                >
+                  統計
+                </Typography>
+
+                <Typography sx={{ fontSize: "16px", color: "#374151" }}>
+                  上班時數：{totalHours} 時 {totalMinutes} 分
+                </Typography>
+              </Paper>
+
+              <SidebarCard title="班次篩選">
+                <Box
+                  sx={{ display: "flex", flexDirection: "column", gap: "8px" }}
+                >
+                  <Box sx={{ display: "flex", alignItems: "center" }}>
+                    <Checkbox checked size="small" sx={{ p: "4px" }} />
+                    <Typography sx={{ fontSize: "15px" }}>全選</Typography>
+                  </Box>
+
+                  {[
+                    { key: "support", label: "支援", color: "#cfe8ff" },
+                    { key: "leave", label: "請假", color: "#f7b3c2" },
+                    { key: "rest", label: "休假", color: "#d1d5db" },
+                    { key: "trip", label: "公出/出差", color: "#f6b73c" },
+                    { key: "normal", label: "常日班", color: "#f5a04a" },
+                  ].map((item) => (
+                    <Box
+                      key={item.key}
+                      sx={{ display: "flex", alignItems: "center" }}
+                    >
+                      <Checkbox checked size="small" sx={{ p: "4px" }} />
+                      <Box
+                        sx={{
+                          px: "8px",
+                          py: "2px",
+                          bgcolor: item.color,
+                          fontSize: "14px",
+                          color: "#111827",
+                          minWidth: "74px",
+                          textAlign: "center",
+                        }}
+                      >
+                        {item.label}
+                      </Box>
+                    </Box>
+                  ))}
+                </Box>
+              </SidebarCard>
+
+              <SidebarCard title="人員篩選">
+                <Box
+                  sx={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 34px",
+                    gap: "8px",
+                  }}
+                >
+                  <Box
+                    sx={{
+                      height: "34px",
+                      border: "1px solid #d1d5db",
+                      display: "flex",
+                      alignItems: "center",
+                      px: "10px",
+                      color: "#9ca3af",
+                      fontSize: "14px",
+                    }}
+                  >
+                    請選擇
+                  </Box>
+
+                  <Box
+                    sx={{
+                      height: "34px",
+                      border: "1px solid #9ca3af",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "22px",
+                      fontWeight: 700,
+                      color: "#374151",
+                    }}
+                  >
+                    +
                   </Box>
                 </Box>
-              ))}
+              </SidebarCard>
             </Box>
-          </SidebarCard>
-
-          <SidebarCard title="人員篩選">
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: "1fr 34px",
-                gap: "8px",
-              }}
-            >
-              <Box
-                sx={{
-                  height: "34px",
-                  border: "1px solid #d1d5db",
-                  display: "flex",
-                  alignItems: "center",
-                  px: "10px",
-                  color: "#9ca3af",
-                  fontSize: "14px",
-                }}
-              >
-                請選擇
-              </Box>
-
-              <Box
-                sx={{
-                  height: "34px",
-                  border: "1px solid #9ca3af",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "22px",
-                  fontWeight: 700,
-                  color: "#374151",
-                }}
-              >
-                +
-              </Box>
-            </Box>
-          </SidebarCard>
-        </Box>
-      </Box>
+          </Box>
+        </>
+      )}
     </Box>
   );
 }
