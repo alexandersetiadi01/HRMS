@@ -6,7 +6,7 @@ import LoginPage from "../Pages/LoginPages";
 import AdminDashboardPage from "../Pages/AdminDashboardPage";
 import AttendanceSchedule from "../Pages/Attendance/AttendanceSchedule";
 import AttendanceMissedPunch from "../Pages/Attendance/AttendanceMissedPunch";
-import AttendanceRecord from "../Pages/Attendance/AttendanceRecord";
+import AttendanceRecord from "../Pages/Attendance/Record/AttendanceRecord";
 import AttendanceFormRecord from "../Pages/Attendance/AttendanceFormRecord";
 import AttendanceSpecialLeave from "../Pages/Attendance/AttendanceSpecialLeave";
 import AttendanceLeave from "../Pages/Attendance/Leave/AttendanceLeave";

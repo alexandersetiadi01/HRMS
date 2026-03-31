@@ -244,7 +244,7 @@ export default function MobileNavbar() {
                   mb: "4px",
                 }}
               >
-                許明城
+                帳戶
               </Typography>
               <Typography
                 sx={{
@@ -254,7 +254,7 @@ export default function MobileNavbar() {
                   lineHeight: 1.2,
                 }}
               >
-                alex@mizunogi.com
+                帳戶@mizunogi.com
               </Typography>
             </Box>
 
