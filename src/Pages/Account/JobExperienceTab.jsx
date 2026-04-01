@@ -1,14 +1,85 @@
-import { Box, Typography } from "@mui/material";
+import { Box, Typography, useMediaQuery, useTheme } from "@mui/material";
 
 const rows = [
-  ["內部年資：", "0.62"],
-  ["職等年資：", "N/A"],
-  ["職級年資：", "N/A"],
-  ["職務年資：", "N/A"],
-  ["單位年資：", "0.62"],
+  ["內部年資", "0.62"],
+  ["職等年資", "N/A"],
+  ["職級年資", "N/A"],
+  ["職務年資", "N/A"],
+  ["單位年資", "0.62"],
 ];
 
 export default function JobExperienceTab() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
+  if (isMobile) {
+    return (
+      <Box
+        sx={{
+          bgcolor: "#ffffff",
+        }}
+      >
+        <Box
+          sx={{
+            mx: "12px",
+            overflow: "hidden",
+          }}
+        >
+          {rows.map(([label, value], index) => (
+            <Box
+              key={label}
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "110px 1fr",
+                borderBottom:
+                  index !== rows.length - 1 ? "1px solid #e5e7eb" : "none",
+              }}
+            >
+              <Box
+                sx={{
+                  bgcolor: "#f3f4f6",
+                  px: "10px",
+                  py: "10px",
+                  display: "flex",
+                  alignItems: "center",
+                }}
+              >
+                <Typography
+                  sx={{
+                    fontSize: "14px",
+                    fontWeight: 600,
+                    color: "#374151",
+                  }}
+                >
+                  {label}
+                </Typography>
+              </Box>
+
+              <Box
+                sx={{
+                  px: "12px",
+                  py: "10px",
+                  display: "flex",
+                  alignItems: "center",
+                }}
+              >
+                <Typography
+                  sx={{
+                    fontSize: "15px",
+                    color: "#111827",
+                    wordBreak: "break-word",
+                  }}
+                >
+                  {value || "-"}
+                </Typography>
+              </Box>
+            </Box>
+          ))}
+        </Box>
+      </Box>
+    );
+  }
+
   return (
     <Box
       sx={{
@@ -44,7 +115,7 @@ export default function JobExperienceTab() {
                 textAlign: "right",
               }}
             >
-              {label}
+              {label}：
             </Typography>
 
             <Typography

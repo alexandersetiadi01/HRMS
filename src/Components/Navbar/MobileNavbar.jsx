@@ -33,31 +33,119 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { NavLink, useLocation } from "react-router-dom";
 
 const DRAWER_PRIMARY_ITEMS = [
-  { label: "個人出勤", to: "/attendance/clock", icon: <PlaceOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} /> },
-  { label: "打卡紀錄", to: "/attendance/record", icon: <DescriptionOutlined sx={{ fontSize: "42px", color: "#1098dc" }} /> },
-  { label: "剩餘假別", to: "/attendance/leave-balance", icon: <CalendarMonthOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />, disable: true },
-  { label: "表單申請紀錄", to: "/attendance/form-record", icon: <ManageSearchOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />, disable: true },
-  { label: "請假", to: "/attendance/leave", icon: <EventBusyOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />, disable: false },
-  { label: "個人班表", to: "/attendance/schedule", icon: <CalendarMonthOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} /> },
+  {
+    label: "個人出勤",
+    to: "/attendance/clock",
+    icon: <PlaceOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />,
+  },
+  {
+    label: "打卡紀錄",
+    to: "/attendance/record",
+    icon: <DescriptionOutlined sx={{ fontSize: "42px", color: "#1098dc" }} />,
+  },
+  {
+    label: "剩餘假別",
+    to: "/attendance/leave-balance",
+    icon: (
+      <CalendarMonthOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />
+    ),
+    disable: true,
+  },
+  {
+    label: "表單申請紀錄",
+    to: "/attendance/form-record",
+    icon: (
+      <ManageSearchOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />
+    ),
+    disable: true,
+  },
+  {
+    label: "請假",
+    to: "/attendance/leave",
+    icon: <EventBusyOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />,
+    disable: false,
+  },
+  {
+    label: "個人班表",
+    to: "/attendance/schedule",
+    icon: (
+      <CalendarMonthOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />
+    ),
+  },
   // { label: "訊息中心", to: "/dashboard", icon: <DescriptionOutlined sx={{ fontSize: "42px", color: "#1098dc" }} />, disable: true },
-  { label: "定位打卡", to: "/attendance/clock", icon: <PlaceOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} /> },
-  { label: "審核中心", to: "/attendance/pending-approval", icon: <FactCheckOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />, disable: true },
+  {
+    label: "定位打卡",
+    to: "/attendance/clock",
+    icon: <PlaceOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />,
+  },
+  {
+    label: "審核中心",
+    to: "/attendance/pending-approval",
+    icon: <FactCheckOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />,
+    disable: true,
+  },
   // { label: "待辦事項", to: "/dashboard", icon: <DescriptionOutlined sx={{ fontSize: "42px", color: "#1098dc" }} />, disable: true },
-  { label: "忘打卡申請", to: "/attendance/missed-punch", icon: <DescriptionOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />, disable: false },
-  { label: "加班", to: "/attendance/overtime", icon: <MoreTimeOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />, disable: false },
+  {
+    label: "忘打卡申請",
+    to: "/attendance/missed-punch",
+    icon: (
+      <DescriptionOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />
+    ),
+    disable: false,
+  },
+  {
+    label: "加班",
+    to: "/attendance/overtime",
+    icon: <MoreTimeOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />,
+    disable: false,
+  },
   // { label: "便利貼", to: "/dashboard", icon: <FeedOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />, disable: true },
-  { label: "我的薪資單", to: "/payroll", icon: <WalletOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />, disable: true },
-  { label: "特殊假別申請", to: "/attendance/special-leave", icon: <StarBorderOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />, disable: true },
-  { label: "公出/出差", to: "/attendance/business-trip", icon: <WorkOutlineOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />, disable: false },
+  {
+    label: "我的薪資單",
+    to: "/payroll",
+    icon: <WalletOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />,
+    disable: true,
+  },
+  {
+    label: "特殊假別申請",
+    to: "/attendance/special-leave",
+    icon: (
+      <StarBorderOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />
+    ),
+    disable: true,
+  },
+  {
+    label: "公出/出差",
+    to: "/attendance/business-trip",
+    icon: (
+      <WorkOutlineOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />
+    ),
+    disable: false,
+  },
   // { label: "公司規章", to: "/dashboard", icon: <MenuBookOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />, disable: true },
   // { label: "搜尋人員", to: "/dashboard", icon: <SearchOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />, disable: true },
   // { label: "內部連結", to: "/dashboard", icon: <LinkOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />, disable: true },
 ];
 
 const DRAWER_BOTTOM_ITEMS = [
-  { label: "登出", to: "/login", icon: <LogoutOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />, disable: true },
-  { label: "設定", to: "/dashboard", icon: <SettingsOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />, disable: true },
-  { label: "意見回饋", to: "/dashboard", icon: <FeedbackOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />, disable: true },
+  {
+    label: "登出",
+    to: "/login",
+    icon: <LogoutOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />,
+    disable: true,
+  },
+  {
+    label: "設定",
+    to: "/dashboard",
+    icon: <SettingsOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />,
+    disable: true,
+  },
+  {
+    label: "意見回饋",
+    to: "/dashboard",
+    icon: <FeedbackOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />,
+    disable: true,
+  },
 ];
 
 function DrawerGridItem({ item, onClick }) {
@@ -182,9 +270,18 @@ export default function MobileNavbar() {
           </Box>
 
           <Box sx={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: "6px", color: "#8c8c8c" }}>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                color: "#8c8c8c",
+              }}
+            >
               <PersonIcon sx={{ fontSize: "28px" }} />
-              <Typography sx={{ fontSize: "15px", color: "#8c8c8c" }}>帳戶</Typography>
+              <Typography sx={{ fontSize: "15px", color: "#8c8c8c" }}>
+                帳戶
+              </Typography>
             </Box>
 
             <IconButton onClick={() => setOpen(true)} sx={{ color: "#b6bcc8" }}>
@@ -216,21 +313,36 @@ export default function MobileNavbar() {
           }}
         >
           <Box sx={{ display: "flex", justifyContent: "flex-end", mb: "18px" }}>
-            <IconButton onClick={() => setOpen(false)} sx={{ color: "#b6bcc8" }}>
+            <IconButton
+              onClick={() => setOpen(false)}
+              sx={{ color: "#b6bcc8" }}
+            >
               <CloseIcon sx={{ fontSize: "34px" }} />
             </IconButton>
           </Box>
 
           <Box
+            component={NavLink}
+            to="/account"
+            onClick={() => setOpen(false)}
             sx={{
+              textDecoration: "none",
               display: "grid",
               gridTemplateColumns: "80px 1fr 24px",
               alignItems: "center",
               gap: "12px",
               mb: "18px",
+              cursor: "pointer",
             }}
           >
-            <Avatar sx={{ width: "80px", height: "80px", bgcolor: "#f0f0f0", color: "#9e9e9e" }}>
+            <Avatar
+              sx={{
+                width: "80px",
+                height: "80px",
+                bgcolor: "#f0f0f0",
+                color: "#9e9e9e",
+              }}
+            >
               <PersonIcon sx={{ fontSize: "46px" }} />
             </Avatar>
 
@@ -271,7 +383,11 @@ export default function MobileNavbar() {
             }}
           >
             {DRAWER_PRIMARY_ITEMS.map((item) => (
-              <DrawerGridItem key={item.label} item={item} onClick={() => setOpen(false)} />
+              <DrawerGridItem
+                key={item.label}
+                item={item}
+                onClick={() => setOpen(false)}
+              />
             ))}
           </Box>
 
@@ -285,7 +401,11 @@ export default function MobileNavbar() {
             }}
           >
             {DRAWER_BOTTOM_ITEMS.map((item) => (
-              <DrawerGridItem key={item.label} item={item} onClick={() => setOpen(false)} />
+              <DrawerGridItem
+                key={item.label}
+                item={item}
+                onClick={() => setOpen(false)}
+              />
             ))}
           </Box>
         </Box>

@@ -1,4 +1,12 @@
-import { Box, Collapse, Tab, Tabs, Typography, useMediaQuery, useTheme } from "@mui/material";
+import {
+  Box,
+  Collapse,
+  Tab,
+  Tabs,
+  Typography,
+  useMediaQuery,
+  useTheme,
+} from "@mui/material";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useState } from "react";
@@ -32,7 +40,7 @@ export default function AccountTabs() {
 
   const [tab, setTab] = useState(0);
   const [openSections, setOpenSections] = useState({
-    0: true,
+    0: false,
     1: false,
     2: false,
     3: false,
@@ -42,10 +50,24 @@ export default function AccountTabs() {
 
   const toggleSection = (index, disabled) => {
     if (disabled) return;
-    setOpenSections((prev) => ({
-      ...prev,
-      [index]: !prev[index],
-    }));
+
+    setOpenSections((prev) => {
+      const isCurrentlyOpen = !!prev[index];
+
+      // close all first
+      const next = Object.keys(prev).reduce((acc, key) => {
+        acc[key] = false;
+        return acc;
+      }, {});
+
+      // if current is closed, open only that one
+      // if current is already open, keep all closed
+      if (!isCurrentlyOpen) {
+        next[index] = true;
+      }
+
+      return next;
+    });
   };
 
   if (isMobile) {
@@ -89,7 +111,9 @@ export default function AccountTabs() {
                 {isOpen ? (
                   <ExpandMoreIcon sx={{ fontSize: "32px", color: "#d1d5db" }} />
                 ) : (
-                  <KeyboardArrowRightIcon sx={{ fontSize: "32px", color: "#d1d5db" }} />
+                  <KeyboardArrowRightIcon
+                    sx={{ fontSize: "32px", color: "#d1d5db" }}
+                  />
                 )}
               </Box>
 
