@@ -373,12 +373,8 @@ function ContactInformationEditDialog({ open, onClose }) {
             minWidth: "54px",
             height: "34px",
             fontSize: "13px",
-            bgcolor: "#1e88cf",
+            bgcolor: "primary",
             boxShadow: "none",
-            "&:hover": {
-              bgcolor: "#1976d2",
-              boxShadow: "none",
-            },
           }}
         >
           確定
@@ -391,9 +387,9 @@ function ContactInformationEditDialog({ open, onClose }) {
             minWidth: "54px",
             height: "34px",
             fontSize: "13px",
-            color: "#4b5563",
-            borderColor: "#cfcfcf",
-            bgcolor: "#ffffff",
+            color: "#ffffff",
+            border: "none",
+            bgcolor: "#fa0000",
           }}
         >
           取消

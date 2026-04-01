@@ -1,11 +1,11 @@
 import { Box, Typography, useMediaQuery, useTheme } from "@mui/material";
 
 const rows = [
-  ["內部年資", "0.62"],
+  ["內部年資", "0.0"],
   ["職等年資", "N/A"],
   ["職級年資", "N/A"],
   ["職務年資", "N/A"],
-  ["單位年資", "0.62"],
+  ["單位年資", "0.0"],
 ];
 
 export default function JobExperienceTab() {

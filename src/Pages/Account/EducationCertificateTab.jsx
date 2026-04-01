@@ -500,6 +500,7 @@ export default function EducationCertificateTab() {
               height: "36px",
               color: "#ffffff",
               bgcolor: "#e90000",
+              border: "none"
             }}
           >
             取消
@@ -726,6 +727,7 @@ export default function EducationCertificateTab() {
               height: "36px",
               color: "#ffffff",
               bgcolor: "#e90000",
+              border: "none"
             }}
           >
             取消
