@@ -1,7 +1,7 @@
 import { Box, InputAdornment, TextField } from "@mui/material";
 import CalendarTodayOutlinedIcon from "@mui/icons-material/CalendarTodayOutlined";
 
-export function LabelCell({ required, children }) {
+export function LabelCell({ required, children, sx = {} }) {
   return (
     <Box
       sx={{
@@ -9,6 +9,7 @@ export function LabelCell({ required, children }) {
         fontSize: "15px",
         color: "#374151",
         whiteSpace: "nowrap",
+        ...sx,
       }}
     >
       {required ? (
