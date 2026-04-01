@@ -4,7 +4,7 @@ import { NavLink } from "react-router-dom";
 const NAV_ITEMS = [
   { label: "首頁", to: "/", disable: false },
   { label: "考勤", to: "/attendance", disable: false },
-  { label: "基礎", to: "/foundation", disable: true },
+  { label: "帳戶資訊", to: "/account", disable: false },
   { label: "薪資單", to: "/payroll", disable: true },
   { label: "儀表板", to: "/dashboard", disable: true },
 ];

@@ -15,6 +15,7 @@ import AttendanceLeaveBalance from "../Pages/Attendance/AttendanceLeaveBalance";
 import AttendancePendingApproval from "../Pages/Attendance/AttendancePendingApproval";
 import Absent from "../Pages/Attendance/Absent";
 import AttendanceBusinessTrip from "../Pages/Attendance/AttendanceBusinessTrip";
+import AccountLayout from "../Layouts/AccountLayout";
 
 function PlaceholderPage({ title }) {
   return <div style={{ padding: "24px" }}>{title}</div>;
@@ -29,7 +30,8 @@ export default function AppRoutes() {
         <Route path="/" element={<HomePage />} />
         <Route path="/home" element={<Navigate to="/" replace />} />
         <Route path="/admin" element={<AdminDashboardPage />} />
-        <Route path="/foundation" element={<PlaceholderPage title="Foundation" />} />
+        <Route path="/account" element={<AccountLayout title="account" />} />
+        
         <Route path="/payroll" element={<PlaceholderPage title="Payroll" />} />
         <Route path="/dashboard" element={<PlaceholderPage title="Dashboard" />} />
         <Route path="/mayo-form" element={<PlaceholderPage title="MAYO Form" />} />
