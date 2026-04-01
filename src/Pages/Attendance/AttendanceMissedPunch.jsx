@@ -15,7 +15,8 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { useNavigate } from "react-router-dom";
-import LabelCell from "../../Components/GlobalComponent";
+import {getTodayDate, LabelCell} from "../../Components/GlobalComponent";
+import { HOURS, MINUTES_60, selectMenuProps } from "../../Utils/Attendance/SharedForm";
 
 const TYPE_OPTIONS = [
   { value: "missed-in", label: "上班" },
@@ -24,40 +25,17 @@ const TYPE_OPTIONS = [
   { value: "rest-end", label: "休息結束" },
 ];
 
-const TIME_HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) =>
-  String(i).padStart(2, "0"),
-);
-
-const TIME_MINUTE_OPTIONS = Array.from({ length: 60 }, (_, i) =>
-  String(i).padStart(2, "0"),
-);
-
 const LOCATION_OPTIONS = [
   { value: "office", label: "台灣水禾" },
   { value: "post office", label: "林口郵局" },
   { value: "other", label: "其他" },
 ];
 
-const selectMenuProps = {
-  PaperProps: {
-    sx: {
-      maxHeight: 220,
-      overflowY: "auto",
-    },
-  },
-  MenuListProps: {
-    dense: false,
-    sx: {
-      py: 0,
-    },
-  },
-};
-
 export default function AttendanceMissedPunch() {
   const navigate = useNavigate();
 
   const [open, setOpen] = useState(true);
-  const [date, setDate] = useState("2026-03-31");
+  const [date, setDate] = useState(getTodayDate());
   const [type, setType] = useState("");
   const [timeHour, setTimeHour] = useState("");
   const [timeMinute, setTimeMinute] = useState("");
@@ -208,7 +186,7 @@ export default function AttendanceMissedPunch() {
                 <MenuItem value="" disabled>
                   請選擇
                 </MenuItem>
-                {TIME_HOUR_OPTIONS.map((item) => (
+                {HOURS.map((item) => (
                   <MenuItem key={item} value={item}>
                     {item}
                   </MenuItem>
@@ -250,7 +228,7 @@ export default function AttendanceMissedPunch() {
                 <MenuItem value="" disabled>
                   請選擇
                 </MenuItem>
-                {TIME_MINUTE_OPTIONS.map((item) => (
+                {MINUTES_60.map((item) => (
                   <MenuItem key={item} value={item}>
                     {item}
                   </MenuItem>

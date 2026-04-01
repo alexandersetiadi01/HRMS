@@ -8,6 +8,7 @@ import {
   DialogTitle,
   FormControl,
   IconButton,
+  InputAdornment,
   MenuItem,
   Select,
   TextField,
@@ -17,15 +18,11 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { useNavigate } from "react-router-dom";
-import LabelCell from "../../Components/GlobalComponent";
+import { getTodayDate, LabelCell, renderDateField } from "../../Components/GlobalComponent";
+import { HOURS, MINUTES_30, selectMenuProps } from "../../Utils/Attendance/SharedForm";
 
 const currentYear = new Date().getFullYear();
 const YEAR_OPTIONS = [currentYear - 1, currentYear, currentYear + 1];
-
-const HOUR_OPTIONS = Array.from({ length: 24 }, (_, index) =>
-  String(index).padStart(2, "0"),
-);
-const MINUTE_OPTIONS = ["00", "30"];
 
 const SPECIAL_LEAVE_OPTIONS = [
   {
@@ -112,33 +109,10 @@ const FUNERAL_RELATION_OPTIONS = [
   { value: "Grandparents-of-spouse", label: "配偶祖父母", text: "24 時 0 分" },
 ];
 
-const selectMenuProps = {
-  PaperProps: {
-    sx: {
-      maxHeight: 220,
-      overflowY: "auto",
-    },
-  },
-  MenuListProps: {
-    dense: false,
-    sx: {
-      py: 0,
-    },
-  },
-};
-
 export default function AttendanceSpecialLeave() {
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-
-  function getTodayDate() {
-    const today = new Date();
-    const y = today.getFullYear();
-    const m = String(today.getMonth() + 1).padStart(2, "0");
-    const d = String(today.getDate()).padStart(2, "0");
-    return `${y}-${m}-${d}`;
-  }
 
   const [open, setOpen] = useState(true);
   const [reason, setReason] = useState("");
@@ -411,21 +385,9 @@ export default function AttendanceSpecialLeave() {
                 }}
               >
                 <Box sx={{ width: "100%", maxWidth: "270px" }}>
-                  <TextField
-                    fullWidth
-                    type="date"
-                    value={marriageDate}
-                    onChange={(e) => setMarriageDate(e.target.value)}
-                    sx={{
-                      "& .MuiInputBase-root": {
-                        height: "38px",
-                        fontSize: "15px",
-                      },
-                      "& .MuiOutlinedInput-input": {
-                        py: "8px",
-                      },
-                    }}
-                  />
+                  {renderDateField(marriageDate, (e) =>
+                    setMarriageDate(e.target.value),
+                  )}
                 </Box>
 
                 <Typography
@@ -493,21 +455,9 @@ export default function AttendanceSpecialLeave() {
                 }}
               >
                 <Box sx={{ width: "100%", maxWidth: "270px" }}>
-                  <TextField
-                    fullWidth
-                    type="date"
-                    value={funeralDate}
-                    onChange={(e) => setFuneralDate(e.target.value)}
-                    sx={{
-                      "& .MuiInputBase-root": {
-                        height: "38px",
-                        fontSize: "15px",
-                      },
-                      "& .MuiOutlinedInput-input": {
-                        py: "8px",
-                      },
-                    }}
-                  />
+                  {renderDateField(funeralDate, (e) =>
+                    setFuneralDate(e.target.value),
+                  )}
                 </Box>
 
                 <Typography
@@ -579,21 +529,9 @@ export default function AttendanceSpecialLeave() {
                 }}
               >
                 <Box sx={{ width: "100%", maxWidth: "270px" }}>
-                  <TextField
-                    fullWidth
-                    type="date"
-                    value={spouseDeliveryDate}
-                    onChange={(e) => setSpouseDeliveryDate(e.target.value)}
-                    sx={{
-                      "& .MuiInputBase-root": {
-                        height: "38px",
-                        fontSize: "15px",
-                      },
-                      "& .MuiOutlinedInput-input": {
-                        py: "8px",
-                      },
-                    }}
-                  />
+                  {renderDateField(spouseDeliveryDate, (e) =>
+                    setSpouseDeliveryDate(e.target.value),
+                  )}
                 </Box>
 
                 <Typography
@@ -639,21 +577,9 @@ export default function AttendanceSpecialLeave() {
                       }}
                     >
                       <Box sx={{ width: { xs: "100%", sm: "150px" } }}>
-                        <TextField
-                          fullWidth
-                          type="date"
-                          value={publicStartDate}
-                          onChange={(e) => setPublicStartDate(e.target.value)}
-                          sx={{
-                            "& .MuiInputBase-root": {
-                              height: "38px",
-                              fontSize: "15px",
-                            },
-                            "& .MuiOutlinedInput-input": {
-                              py: "8px",
-                            },
-                          }}
-                        />
+                        {renderDateField(publicStartDate, (e) =>
+                          setPublicStartDate(e.target.value),
+                        )}
                       </Box>
 
                       <Box
@@ -699,7 +625,7 @@ export default function AttendanceSpecialLeave() {
                                 fontSize: "15px",
                               }}
                             >
-                              {HOUR_OPTIONS.map((hour) => (
+                              {HOURS.map((hour) => (
                                 <MenuItem key={hour} value={hour}>
                                   {hour}
                                 </MenuItem>
@@ -730,7 +656,7 @@ export default function AttendanceSpecialLeave() {
                                 fontSize: "15px",
                               }}
                             >
-                              {MINUTE_OPTIONS.map((minute) => (
+                              {MINUTES_30.map((minute) => (
                                 <MenuItem key={minute} value={minute}>
                                   {minute}
                                 </MenuItem>
@@ -780,21 +706,9 @@ export default function AttendanceSpecialLeave() {
                       }}
                     >
                       <Box sx={{ width: { xs: "100%", sm: "150px" } }}>
-                        <TextField
-                          fullWidth
-                          type="date"
-                          value={publicEndDate}
-                          onChange={(e) => setPublicEndDate(e.target.value)}
-                          sx={{
-                            "& .MuiInputBase-root": {
-                              height: "38px",
-                              fontSize: "15px",
-                            },
-                            "& .MuiOutlinedInput-input": {
-                              py: "8px",
-                            },
-                          }}
-                        />
+                        {renderDateField(publicEndDate, (e) =>
+                          setPublicEndDate(e.target.value),
+                        )}
                       </Box>
 
                       <Box
@@ -838,7 +752,7 @@ export default function AttendanceSpecialLeave() {
                                 fontSize: "15px",
                               }}
                             >
-                              {HOUR_OPTIONS.map((hour) => (
+                              {HOURS.map((hour) => (
                                 <MenuItem key={hour} value={hour}>
                                   {hour}
                                 </MenuItem>
@@ -869,7 +783,7 @@ export default function AttendanceSpecialLeave() {
                                 fontSize: "15px",
                               }}
                             >
-                              {MINUTE_OPTIONS.map((minute) => (
+                              {MINUTES_30.map((minute) => (
                                 <MenuItem key={minute} value={minute}>
                                   {minute}
                                 </MenuItem>

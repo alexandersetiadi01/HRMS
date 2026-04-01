@@ -24,12 +24,13 @@ import {
   buildAttendanceSectionWrapperSx,
 } from "../../Utils/Attendance/SharedForm";
 import Breadcrumb from "../../Utils/Breadcrumb";
+import { getTodayDate } from "../../Components/GlobalComponent";
 
 export default function AttendanceOvertime() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
-  const [startDate, setStartDate] = useState("2026-03-31");
+  const [startDate, setStartDate] = useState(getTodayDate());
   const [endDate, setEndDate] = useState("2026-03-31");
   const [startHour, setStartHour] = useState("18");
   const [startMin, setStartMin] = useState("00");
