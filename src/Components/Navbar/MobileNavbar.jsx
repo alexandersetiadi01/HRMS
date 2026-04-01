@@ -112,7 +112,7 @@ const DRAWER_PRIMARY_ITEMS = [
     icon: (
       <StarBorderOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />
     ),
-    disable: true,
+    disable: false,
   },
   {
     label: "公出/出差",

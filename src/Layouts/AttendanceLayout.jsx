@@ -33,7 +33,7 @@ const attendanceMenuItems = [
   {
     label: "特殊假別申請",
     to: "/attendance/special-leave",
-    disable: true,
+    disable: false,
     icon: <StarBorderOutlinedIcon sx={{ fontSize: "56px", color: "#2196d3" }} />,
   },
   {

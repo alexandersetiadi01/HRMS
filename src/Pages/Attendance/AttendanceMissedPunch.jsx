@@ -15,6 +15,7 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { useNavigate } from "react-router-dom";
+import LabelCell from "../../Components/GlobalComponent";
 
 const TYPE_OPTIONS = [
   { value: "missed-in", label: "上班" },
@@ -51,26 +52,6 @@ const selectMenuProps = {
     },
   },
 };
-
-function LabelCell({ required, children }) {
-  return (
-    <Box
-      sx={{
-        pt: "8px",
-        fontSize: "15px",
-        color: "#374151",
-        whiteSpace: "nowrap",
-      }}
-    >
-      {required ? (
-        <Box component="span" sx={{ color: "#ef4444", mr: "2px" }}>
-          *
-        </Box>
-      ) : null}
-      {children}
-    </Box>
-  );
-}
 
 export default function AttendanceMissedPunch() {
   const navigate = useNavigate();
