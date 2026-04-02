@@ -20,7 +20,8 @@ import FeedOutlinedIcon from "@mui/icons-material/FeedOutlined";
 import ManageSearchOutlinedIcon from "@mui/icons-material/ManageSearchOutlined";
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
 import WorkOutlineOutlinedIcon from "@mui/icons-material/WorkOutlineOutlined";
-import WalletOutlinedIcon from "@mui/icons-material/WalletOutlined";
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import EventIcon from '@mui/icons-material/Event';
 import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import LinkOutlinedIcon from "@mui/icons-material/LinkOutlined";
@@ -47,9 +48,9 @@ const DRAWER_PRIMARY_ITEMS = [
     label: "剩餘假別",
     to: "/attendance/leave-balance",
     icon: (
-      <CalendarMonthOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />
+      <EventIcon sx={{ fontSize: "42px", color: "#1098dc" }} />
     ),
-    disable: true,
+    disable: false,
   },
   {
     label: "表單申請紀錄",
@@ -103,8 +104,8 @@ const DRAWER_PRIMARY_ITEMS = [
   {
     label: "我的薪資單",
     to: "/payroll",
-    icon: <WalletOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />,
-    disable: true,
+    icon: <AccountBalanceWalletIcon sx={{ fontSize: "42px", color: "#1098dc" }} />,
+    disable: false,
   },
   {
     label: "特殊假別申請",

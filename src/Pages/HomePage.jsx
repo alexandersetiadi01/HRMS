@@ -15,6 +15,7 @@ import AccessTimeOutlinedIcon from "@mui/icons-material/AccessTimeOutlined";
 import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
 import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
 import MenuOutlinedIcon from "@mui/icons-material/MenuOutlined";
 import MoreTimeOutlinedIcon from "@mui/icons-material/MoreTimeOutlined";
@@ -103,6 +104,13 @@ const shortcutItems = [
     to: "/dashboard",
     disable: true,
   },
+   {
+    label: "我的薪資單",
+    icon: <AccountBalanceWalletIcon sx={{ fontSize: "52px", color: "#2196d3" }} />,
+    to: "/payroll",
+    disable: false,
+  },
+  
 ];
 
 const mobileWidgets = [

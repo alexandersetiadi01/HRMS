@@ -16,6 +16,8 @@ import AttendancePendingApproval from "../Pages/Attendance/AttendancePendingAppr
 import Absent from "../Pages/Attendance/Absent";
 import AttendanceBusinessTrip from "../Pages/Attendance/AttendanceBusinessTrip";
 import AccountLayout from "../Layouts/AccountLayout";
+import PayrollPage from "../Pages/Payroll/PayrollPage";
+import PayrollDetail from "../Pages/Payroll/PayrollDetail";
 
 function PlaceholderPage({ title }) {
   return <div style={{ padding: "24px" }}>{title}</div>;
@@ -31,15 +33,13 @@ export default function AppRoutes() {
         <Route path="/home" element={<Navigate to="/" replace />} />
         <Route path="/admin" element={<AdminDashboardPage />} />
         <Route path="/account" element={<AccountLayout title="account" />} />
-        
-        <Route path="/payroll" element={<PlaceholderPage title="Payroll" />} />
+
+        <Route path="/payroll" element={<PayrollPage />} />
+        <Route path="/payroll/:payrollId" element={<PayrollDetail />} />
+
         <Route path="/dashboard" element={<PlaceholderPage title="Dashboard" />} />
-        <Route path="/mayo-form" element={<PlaceholderPage title="MAYO Form" />} />
 
-        {/* attendance landing page */}
         <Route path="/attendance" element={<AttendanceLayout />} />
-
-        {/* attendance subpages */}
         <Route path="/attendance/clock" element={<Absent />} />
         <Route path="/attendance/schedule" element={<AttendanceSchedule />} />
         <Route path="/attendance/missed-punch" element={<AttendanceMissedPunch />} />
@@ -51,7 +51,6 @@ export default function AppRoutes() {
         <Route path="/attendance/leave-balance" element={<AttendanceLeaveBalance />} />
         <Route path="/attendance/pending-approval" element={<AttendancePendingApproval />} />
         <Route path="/attendance/business-trip" element={<AttendanceBusinessTrip />} />
-        
       </Route>
     </Routes>
   );

@@ -9,6 +9,7 @@ import FeedOutlinedIcon from "@mui/icons-material/FeedOutlined";
 import ManageSearchOutlinedIcon from "@mui/icons-material/ManageSearchOutlined";
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
 import WorkOutlineOutlinedIcon from "@mui/icons-material/WorkOutlineOutlined";
+import EventIcon from '@mui/icons-material/Event';
 import { NavLink } from "react-router-dom";
 
 const attendanceMenuItems = [
@@ -57,8 +58,8 @@ const attendanceMenuItems = [
   {
     label: "剩餘假別",
     to: "/attendance/leave-balance",
-    disable: true,
-    icon: <ManageSearchOutlinedIcon sx={{ fontSize: "56px", color: "#2196d3" }} />,
+    disable: false,
+    icon: <EventIcon sx={{ fontSize: "56px", color: "#2196d3" }} />,
   },
   {
     label: "待審核表單",
