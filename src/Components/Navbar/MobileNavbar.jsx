@@ -30,6 +30,7 @@ import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import FeedbackOutlinedIcon from "@mui/icons-material/FeedbackOutlined";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import LocalActivityIcon from '@mui/icons-material/LocalActivity';
 
 import { NavLink, useLocation } from "react-router-dom";
 
@@ -111,7 +112,7 @@ const DRAWER_PRIMARY_ITEMS = [
     label: "特殊假別申請",
     to: "/attendance/special-leave",
     icon: (
-      <StarBorderOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />
+      <LocalActivityIcon sx={{ fontSize: "42px", color: "#1098dc" }} />
     ),
     disable: false,
   },

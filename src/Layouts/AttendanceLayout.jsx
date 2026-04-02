@@ -6,7 +6,7 @@ import StarBorderOutlinedIcon from "@mui/icons-material/StarBorderOutlined";
 import EventBusyOutlinedIcon from "@mui/icons-material/EventBusyOutlined";
 import MoreTimeOutlinedIcon from "@mui/icons-material/MoreTimeOutlined";
 import FeedOutlinedIcon from "@mui/icons-material/FeedOutlined";
-import ManageSearchOutlinedIcon from "@mui/icons-material/ManageSearchOutlined";
+import LocalActivityIcon from '@mui/icons-material/LocalActivity';
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
 import WorkOutlineOutlinedIcon from "@mui/icons-material/WorkOutlineOutlined";
 import EventIcon from '@mui/icons-material/Event';
@@ -35,7 +35,7 @@ const attendanceMenuItems = [
     label: "特殊假別申請",
     to: "/attendance/special-leave",
     disable: false,
-    icon: <StarBorderOutlinedIcon sx={{ fontSize: "56px", color: "#2196d3" }} />,
+    icon: <LocalActivityIcon sx={{ fontSize: "56px", color: "#2196d3" }} />,
   },
   {
     label: "請假",
@@ -52,7 +52,7 @@ const attendanceMenuItems = [
   {
     label: "表單申請紀錄",
     to: "/attendance/form-record",
-    disable: true,
+    disable: false,
     icon: <FeedOutlinedIcon sx={{ fontSize: "56px", color: "#2196d3" }} />,
   },
   {

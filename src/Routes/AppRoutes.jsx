@@ -7,7 +7,6 @@ import AdminDashboardPage from "../Pages/AdminDashboardPage";
 import AttendanceSchedule from "../Pages/Attendance/AttendanceSchedule";
 import AttendanceMissedPunch from "../Pages/Attendance/AttendanceMissedPunch";
 import AttendanceRecord from "../Pages/Attendance/Record/AttendanceRecord";
-import AttendanceFormRecord from "../Pages/Attendance/AttendanceFormRecord";
 import AttendanceSpecialLeave from "../Pages/Attendance/AttendanceSpecialLeave";
 import AttendanceLeave from "../Pages/Attendance/Leave/AttendanceLeave";
 import AttendanceOvertime from "../Pages/Attendance/AttendanceOverTime";
@@ -18,6 +17,7 @@ import AttendanceBusinessTrip from "../Pages/Attendance/AttendanceBusinessTrip";
 import AccountLayout from "../Layouts/AccountLayout";
 import PayrollPage from "../Pages/Payroll/PayrollPage";
 import PayrollDetail from "../Pages/Payroll/PayrollDetail";
+import AttendanceFormPage from "../Pages/Attendance/AttendanceForm/AttendanceFormPage";
 
 function PlaceholderPage({ title }) {
   return <div style={{ padding: "24px" }}>{title}</div>;
@@ -47,7 +47,7 @@ export default function AppRoutes() {
         <Route path="/attendance/special-leave" element={<AttendanceSpecialLeave />} />
         <Route path="/attendance/leave" element={<AttendanceLeave />} />
         <Route path="/attendance/overtime" element={<AttendanceOvertime />} />
-        <Route path="/attendance/form-record" element={<AttendanceFormRecord />} />
+        <Route path="/attendance/form-record" element={<AttendanceFormPage />} />
         <Route path="/attendance/leave-balance" element={<AttendanceLeaveBalance />} />
         <Route path="/attendance/pending-approval" element={<AttendancePendingApproval />} />
         <Route path="/attendance/business-trip" element={<AttendanceBusinessTrip />} />
