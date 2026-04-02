@@ -1,10 +1,11 @@
 import { Box } from "@mui/material";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import ForgetTapping from "./ForgetTapping";
 import Leave from "./Leave";
 import SpecialLeave from "./SpecialLeave";
 import Overtime from "./Overtime";
 import BusinessTrip from "./BusinessTrip";
+import { MobileSectionTitle } from "./SharedFields";
 
 const TAB_ITEMS = [
   { key: "forget-tapping", label: "忘打卡申請" },
@@ -17,6 +18,10 @@ const TAB_ITEMS = [
 export default function ApplicationRecord() {
   const [activeTab, setActiveTab] = useState("forget-tapping");
 
+  const activeTabLabel = useMemo(() => {
+    return TAB_ITEMS.find((item) => item.key === activeTab)?.label || "";
+  }, [activeTab]);
+
   const renderContent = () => {
     if (activeTab === "forget-tapping") return <ForgetTapping />;
     if (activeTab === "leave") return <Leave />;
@@ -28,6 +33,8 @@ export default function ApplicationRecord() {
 
   return (
     <Box>
+      <MobileSectionTitle>{activeTabLabel}</MobileSectionTitle>
+
       <Box
         sx={{
           display: "flex",
@@ -37,6 +44,13 @@ export default function ApplicationRecord() {
           mb: "16px",
           overflowX: "auto",
           pb: "0",
+          "&::-webkit-scrollbar": {
+            height: "6px",
+          },
+          "&::-webkit-scrollbar-thumb": {
+            bgcolor: "#c7c7c7",
+            borderRadius: "999px",
+          },
         }}
       >
         {TAB_ITEMS.map((tab) => {
@@ -64,6 +78,7 @@ export default function ApplicationRecord() {
                 cursor: "pointer",
                 whiteSpace: "nowrap",
                 mt: "1px",
+                flexShrink: 0,
               }}
             >
               {tab.label}

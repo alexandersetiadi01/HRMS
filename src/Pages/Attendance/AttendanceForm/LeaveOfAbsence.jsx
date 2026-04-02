@@ -1,15 +1,18 @@
 import { useMemo, useState } from "react";
-import {
-  Box,
-  Button,
-  MenuItem,
-  Select,
-  Typography,
-} from "@mui/material";
+import { Box, Button, MenuItem, Select, Typography } from "@mui/material";
 import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
 import KeyboardDoubleArrowRightIcon from "@mui/icons-material/KeyboardDoubleArrowRight";
+import ResponsiveAttendanceTable from "./ResponsiveAttendanceTable";
+import {
+  ACTION_BUTTON_SX,
+  COMMON_SELECT_SX,
+} from "./ApplicationRecord/Options";
+import {
+  FilterActions,
+  MobileSectionTitle,
+} from "./ApplicationRecord/SharedFields";
 
 const STATUS_OPTIONS = [
   { value: "all", label: "全部" },
@@ -39,6 +42,20 @@ const MOCK_ROWS = [
   },
 ];
 
+const TABLE_COLUMNS = [
+  { key: "applyDate", label: "申請日期", width: "15%" },
+  { key: "applicant", label: "申請人", width: "24%" },
+  { key: "leaveType", label: "假別", width: "24%" },
+  {
+    key: "dateTime",
+    label: "日期/時間",
+    width: "20%",
+    desktopWhiteSpace: "pre-line",
+    mobileWhiteSpace: "pre-line",
+  },
+  { key: "status", label: "狀態", width: "17%" },
+];
+
 const rowsPerPageOptions = [10, 20, 30, 50];
 
 export default function LeaveOfAbsence() {
@@ -47,7 +64,9 @@ export default function LeaveOfAbsence() {
 
   const yearOptions = useMemo(() => {
     const baseYear = now.getFullYear();
-    return Array.from({ length: 5 }, (_, index) => String(baseYear - 2 + index));
+    return Array.from({ length: 5 }, (_, index) =>
+      String(baseYear - 2 + index)
+    );
   }, [now]);
 
   const [year, setYear] = useState(currentYear);
@@ -90,213 +109,128 @@ export default function LeaveOfAbsence() {
 
   return (
     <Box>
+      <MobileSectionTitle>請假紀錄</MobileSectionTitle>
+
       <Box
         sx={{
           display: "flex",
-          alignItems: "center",
+          alignItems: { xs: "stretch", sm: "center" },
           gap: "12px",
           flexWrap: "wrap",
           mb: "14px",
         }}
       >
-        <Typography sx={{ fontSize: "15px", color: "#111827", fontWeight: 500 }}>
-          年度
-        </Typography>
-
-        <Select
-          size="small"
-          value={year}
-          onChange={(event) => setYear(event.target.value)}
-          sx={{
-            minWidth: "92px",
-            height: "30px",
-            fontSize: "15px",
-            bgcolor: "#ffffff",
-            "& .MuiSelect-select": {
-              py: "4px",
-            },
-          }}
-        >
-          {yearOptions.map((item) => (
-            <MenuItem key={item} value={item}>
-              {item}
-            </MenuItem>
-          ))}
-        </Select>
-
-        <Typography
-          sx={{
-            ml: "12px",
-            fontSize: "15px",
-            color: "#111827",
-            fontWeight: 500,
-          }}
-        >
-          狀態
-        </Typography>
-
-        <Select
-          size="small"
-          value={status}
-          onChange={(event) => setStatus(event.target.value)}
-          MenuProps={{
-            PaperProps: {
-              sx: {
-                mt: "2px",
-                borderRadius: 0,
-                boxShadow: "none",
-                border: "1px solid #cfcfcf",
-                maxHeight: 220,
-                "& .MuiMenuItem-root": {
-                  minHeight: "36px",
-                  fontSize: "15px",
-                  color: "#374151",
-                },
-                "& .Mui-selected": {
-                  bgcolor: "#dbe5f1 !important",
-                  color: "#111827",
-                },
-                "& .MuiMenuItem-root:hover": {
-                  bgcolor: "#eef3f8",
-                },
-              },
-            },
-          }}
-          sx={{
-            minWidth: "190px",
-            height: "30px",
-            fontSize: "15px",
-            bgcolor: "#ffffff",
-            "& .MuiSelect-select": {
-              py: "4px",
-            },
-          }}
-        >
-          {STATUS_OPTIONS.map((item) => (
-            <MenuItem key={item.value} value={item.value}>
-              {item.label}
-            </MenuItem>
-          ))}
-        </Select>
-
-        <Box sx={{ flex: 1 }} />
-
-        <Button
-          variant="outlined"
-          onClick={handleSearch}
-          sx={{
-            minWidth: "50px",
-            height: "32px",
-            px: "14px",
-            borderColor: "#9ca3af",
-            color: "#111827",
-            fontSize: "15px",
-            borderRadius: "4px",
-          }}
-        >
-          搜尋
-        </Button>
-
-        <Button
-          variant="outlined"
-          onClick={handleClear}
-          sx={{
-            minWidth: "50px",
-            height: "32px",
-            px: "14px",
-            borderColor: "#9ca3af",
-            color: "#111827",
-            fontSize: "15px",
-            borderRadius: "4px",
-          }}
-        >
-          清空
-        </Button>
-      </Box>
-
-      <Box>
         <Box
           sx={{
-            display: "grid",
-            gridTemplateColumns: "15% 24% 24% 20% 17%",
-            minHeight: "40px",
-            alignItems: "center",
-            bgcolor: "#d4d4d4",
-            px: "10px",
+            display: "flex",
+            flexDirection: { xs: "column", sm: "row" },
+            alignItems: { xs: "stretch", sm: "center" },
+            gap: { xs: "8px", sm: "10px" },
+            width: { xs: "100%", sm: "auto" },
           }}
         >
-          <Typography sx={{ fontSize: "15px", fontWeight: 700, color: "#111827" }}>
-            申請日期
+          <Typography
+            sx={{ fontSize: "15px", color: "#111827", fontWeight: 500 }}
+          >
+            年度
           </Typography>
-          <Typography sx={{ fontSize: "15px", fontWeight: 700, color: "#111827" }}>
-            申請人
-          </Typography>
-          <Typography sx={{ fontSize: "15px", fontWeight: 700, color: "#111827" }}>
-            假別
-          </Typography>
-          <Typography sx={{ fontSize: "15px", fontWeight: 700, color: "#111827" }}>
-            日期/時間
-          </Typography>
-          <Typography sx={{ fontSize: "15px", fontWeight: 700, color: "#111827" }}>
-            狀態
-          </Typography>
+
+          <Select
+            size="small"
+            value={year}
+            onChange={(event) => setYear(event.target.value)}
+            sx={{
+              minWidth: { xs: "100%", sm: "92px" },
+              width: { xs: "100%", sm: "auto" },
+              ...COMMON_SELECT_SX,
+            }}
+          >
+            {yearOptions.map((item) => (
+              <MenuItem key={item} value={item}>
+                {item}
+              </MenuItem>
+            ))}
+          </Select>
         </Box>
 
-        {pagedRows.map((row) => (
-          <Box
-            key={row.id}
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: { xs: "column", sm: "row" },
+            alignItems: { xs: "stretch", sm: "center" },
+            gap: { xs: "8px", sm: "10px" },
+            width: { xs: "100%", sm: "auto" },
+          }}
+        >
+          <Typography
             sx={{
-              display: "grid",
-              gridTemplateColumns: "15% 24% 24% 20% 17%",
-              px: "10px",
-              py: "16px",
-              borderBottom: "1px solid #d1d5db",
-              alignItems: "start",
+              ml: { xs: 0, sm: "12px" },
+              fontSize: "15px",
+              color: "#111827",
+              fontWeight: 500,
             }}
           >
-            <Typography sx={{ fontSize: "15px", color: "#111827" }}>
-              {row.applyDate}
-            </Typography>
+            狀態
+          </Typography>
 
-            <Typography sx={{ fontSize: "15px", color: "#111827" }}>
-              {row.applicant}
-            </Typography>
-
-            <Typography sx={{ fontSize: "15px", color: "#111827" }}>
-              {row.leaveType}
-            </Typography>
-
-            <Typography
-              sx={{
-                fontSize: "15px",
-                color: "#111827",
-                whiteSpace: "pre-line",
-                lineHeight: 1.5,
-              }}
-            >
-              {row.dateTime}
-            </Typography>
-
-            <Typography sx={{ fontSize: "15px", color: "#111827" }}>
-              {row.status}
-            </Typography>
-          </Box>
-        ))}
-
-        {pagedRows.length === 0 && (
-          <Box
+          <Select
+            size="small"
+            value={status}
+            onChange={(event) => setStatus(event.target.value)}
+            MenuProps={{
+              PaperProps: {
+                sx: {
+                  mt: "2px",
+                  borderRadius: 0,
+                  boxShadow: "none",
+                  border: "1px solid #cfcfcf",
+                  maxHeight: 220,
+                  "& .MuiMenuItem-root": {
+                    minHeight: "36px",
+                    fontSize: "15px",
+                    color: "#374151",
+                  },
+                  "& .Mui-selected": {
+                    bgcolor: "#dbe5f1 !important",
+                    color: "#111827",
+                  },
+                  "& .MuiMenuItem-root:hover": {
+                    bgcolor: "#eef3f8",
+                  },
+                },
+              },
+            }}
             sx={{
-              px: "10px",
-              py: "16px",
-              borderBottom: "1px solid #d1d5db",
+              minWidth: { xs: "100%", sm: "190px" },
+              width: { xs: "100%", sm: "auto" },
+              ...COMMON_SELECT_SX,
             }}
           >
-            <Typography sx={{ fontSize: "15px", color: "#111827" }}>
-              查無資料
-            </Typography>
-          </Box>
-        )}
+            {STATUS_OPTIONS.map((item) => (
+              <MenuItem key={item.value} value={item.value}>
+                {item.label}
+              </MenuItem>
+            ))}
+          </Select>
+        </Box>
+
+        <FilterActions>
+          <Button variant="outlined" onClick={handleSearch} sx={ACTION_BUTTON_SX}>
+            搜尋
+          </Button>
+
+          <Button variant="outlined" onClick={handleClear} sx={ACTION_BUTTON_SX}>
+            清空
+          </Button>
+        </FilterActions>
       </Box>
+
+      <ResponsiveAttendanceTable
+        columns={TABLE_COLUMNS}
+        rows={pagedRows}
+        mobileCardTitleKey="applyDate"
+        getRowKey={(row) => row.id}
+      />
 
       <Box
         sx={{
@@ -355,7 +289,9 @@ export default function LeaveOfAbsence() {
             {safePage}
           </Box>
 
-          <Typography sx={{ fontSize: "15px", color: "#111827", fontWeight: 700 }}>
+          <Typography
+            sx={{ fontSize: "15px", color: "#111827", fontWeight: 700 }}
+          >
             / 1
           </Typography>
 

@@ -338,7 +338,8 @@ export default function FormRecordLayout({
 
       <Typography
         sx={{
-          fontSize: { xs: "20px", md: "24px" },
+          display: { xs: "none", md: "block" },
+          fontSize: "24px",
           fontWeight: 700,
           color: "#111827",
           mb: "16px",

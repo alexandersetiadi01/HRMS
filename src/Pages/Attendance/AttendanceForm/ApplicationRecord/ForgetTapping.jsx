@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Box } from "@mui/material";
+import ResponsiveAttendanceTable from "../ResponsiveAttendanceTable";
 import {
   EMPLOYEE_OPTIONS,
   UNIT_OPTIONS,
@@ -10,7 +11,6 @@ import {
   ActionButtons,
   FilterRow,
   SelectField,
-  SimpleTable,
   YearMonthField,
 } from "./SharedFields";
 
@@ -22,13 +22,32 @@ const STATUS_OPTIONS = [
 ];
 
 const TABLE_COLUMNS = [
-  { label: "申請日期", width: "12%" },
-  { label: "單位", width: "17%" },
-  { label: "申請人", width: "17%" },
-  { label: "日期/時間", width: "18%" },
-  { label: "類型", width: "14%" },
-  { label: "地點", width: "11%" },
-  { label: "狀態", width: "11%" },
+  { key: "applyDate", label: "申請日期", width: "12%" },
+  { key: "unit", label: "單位", width: "17%" },
+  { key: "applicant", label: "申請人", width: "17%" },
+  {
+    key: "dateTime",
+    label: "日期/時間",
+    width: "18%",
+    desktopWhiteSpace: "pre-line",
+    mobileWhiteSpace: "pre-line",
+  },
+  { key: "type", label: "類型", width: "14%" },
+  { key: "location", label: "地點", width: "11%" },
+  { key: "status", label: "狀態", width: "11%" },
+];
+
+const MOCK_ROWS = [
+  {
+    id: 1,
+    applyDate: "2026/04/02",
+    unit: "D002/業務部",
+    applicant: "25002/許明城",
+    dateTime: "2026/04/01 09:00",
+    type: "忘打卡申請",
+    location: "台北辦公室",
+    status: "忘打卡申請",
+  },
 ];
 
 export default function ForgetTapping() {
@@ -48,6 +67,23 @@ export default function ForgetTapping() {
   const [employee, setEmployee] = useState("");
   const [status, setStatus] = useState("all");
 
+  const filteredRows = useMemo(() => {
+    return MOCK_ROWS.filter((row) => {
+      const unitMatch = !unit || row.unit === unit;
+      const employeeMatch = !employee || row.applicant === employee;
+
+      const statusMap = {
+        "forget-apply": "忘打卡申請",
+        "delete-mistake": "誤打卡刪除",
+        "manual-fill": "打卡補登",
+      };
+
+      const statusMatch = status === "all" || row.status === statusMap[status];
+
+      return unitMatch && employeeMatch && statusMatch;
+    });
+  }, [unit, employee, status]);
+
   const handleClear = () => {
     setYear(String(currentYear));
     setMonth(currentMonth);
@@ -58,7 +94,14 @@ export default function ForgetTapping() {
 
   return (
     <Box>
-      <Box sx={{ display: "flex", flexDirection: "column", gap: "14px", mb: "14px" }}>
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "14px",
+          mb: "14px",
+        }}
+      >
         <FilterRow>
           <YearMonthField
             required
@@ -100,7 +143,12 @@ export default function ForgetTapping() {
         </FilterRow>
       </Box>
 
-      <SimpleTable columns={TABLE_COLUMNS} />
+      <ResponsiveAttendanceTable
+        columns={TABLE_COLUMNS}
+        rows={filteredRows}
+        mobileCardTitleKey="applyDate"
+        getRowKey={(row) => row.id}
+      />
     </Box>
   );
 }

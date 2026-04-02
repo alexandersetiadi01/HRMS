@@ -52,13 +52,15 @@ export const COMMON_SELECT_SX = {
 };
 
 export const ACTION_BUTTON_SX = {
-  minWidth: "50px",
+  minWidth: { xs: "60px", sm: "50px" },
   height: "32px",
   px: "14px",
   borderColor: "#9ca3af",
   color: "#111827",
   fontSize: "15px",
   borderRadius: "4px",
+  whiteSpace: "nowrap",
+  flexShrink: 0,
 };
 
 export function getApplicationRecordYearOptions(currentYear) {

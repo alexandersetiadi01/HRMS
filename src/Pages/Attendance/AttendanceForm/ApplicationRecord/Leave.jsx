@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Box } from "@mui/material";
+import ResponsiveAttendanceTable from "../ResponsiveAttendanceTable";
 import {
   EMPLOYEE_OPTIONS,
   UNIT_OPTIONS,
@@ -9,7 +10,6 @@ import {
   ActionButtons,
   FilterRow,
   SelectField,
-  SimpleTable,
 } from "./SharedFields";
 
 const STATUS_OPTIONS = [
@@ -22,13 +22,32 @@ const STATUS_OPTIONS = [
 ];
 
 const YEAR_OPTIONS_LABEL = "年度";
+
 const TABLE_COLUMNS = [
-  { label: "申請日期", width: "11%" },
-  { label: "單位", width: "17%" },
-  { label: "申請人", width: "17%" },
-  { label: "假別", width: "16%" },
-  { label: "日期/時間", width: "22%" },
-  { label: "狀態", width: "17%" },
+  { key: "applyDate", label: "申請日期", width: "11%" },
+  { key: "unit", label: "單位", width: "17%" },
+  { key: "applicant", label: "申請人", width: "17%" },
+  { key: "leaveType", label: "假別", width: "16%" },
+  {
+    key: "dateTime",
+    label: "日期/時間",
+    width: "22%",
+    desktopWhiteSpace: "pre-line",
+    mobileWhiteSpace: "pre-line",
+  },
+  { key: "status", label: "狀態", width: "17%" },
+];
+
+const MOCK_ROWS = [
+  {
+    id: 1,
+    applyDate: "2026/04/02",
+    unit: "D002/業務部",
+    applicant: "25002/許明城",
+    leaveType: "特休",
+    dateTime: "2026/04/10 09:00 -\n2026/04/10 18:00",
+    status: "已核准",
+  },
 ];
 
 export default function Leave() {
@@ -45,7 +64,29 @@ export default function Leave() {
   const [employee, setEmployee] = useState("");
   const [status, setStatus] = useState("all");
 
-  const yearSelectOptions = yearOptions.map((item) => ({ value: item, label: item }));
+  const yearSelectOptions = yearOptions.map((item) => ({
+    value: item,
+    label: item,
+  }));
+
+  const filteredRows = useMemo(() => {
+    return MOCK_ROWS.filter((row) => {
+      const unitMatch = !unit || row.unit === unit;
+      const employeeMatch = !employee || row.applicant === employee;
+
+      const statusMap = {
+        signing: "簽核中",
+        returned: "已駁回",
+        approved: "已核准",
+        "cancel-signing": "撤銷簽核中",
+        cancelled: "已撤銷",
+      };
+
+      const statusMatch = status === "all" || row.status === statusMap[status];
+
+      return unitMatch && employeeMatch && statusMatch;
+    });
+  }, [unit, employee, status]);
 
   const handleClear = () => {
     setYear(String(currentYear));
@@ -56,7 +97,14 @@ export default function Leave() {
 
   return (
     <Box>
-      <Box sx={{ display: "flex", flexDirection: "column", gap: "14px", mb: "14px" }}>
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "14px",
+          mb: "14px",
+        }}
+      >
         <FilterRow>
           <SelectField
             label={YEAR_OPTIONS_LABEL}
@@ -97,7 +145,12 @@ export default function Leave() {
         </FilterRow>
       </Box>
 
-      <SimpleTable columns={TABLE_COLUMNS} />
+      <ResponsiveAttendanceTable
+        columns={TABLE_COLUMNS}
+        rows={filteredRows}
+        mobileCardTitleKey="applyDate"
+        getRowKey={(row) => row.id}
+      />
     </Box>
   );
 }

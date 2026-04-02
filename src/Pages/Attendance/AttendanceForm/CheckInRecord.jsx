@@ -1,11 +1,7 @@
 import { useMemo, useState } from "react";
-import {
-  Box,
-  Button,
-  MenuItem,
-  Select,
-  Typography,
-} from "@mui/material";
+import { Box, Button, MenuItem, Select, Typography } from "@mui/material";
+import { MobileSectionTitle } from "./ApplicationRecord/SharedFields";
+import ResponsiveAttendanceTable from "./ResponsiveAttendanceTable";
 
 const CHECKIN_TYPES = [
   { value: "", label: "請選擇" },
@@ -19,10 +15,30 @@ const TABLE_COLUMNS = [
   { key: "applyDate", label: "申請日期", width: "15%" },
   { key: "applicant", label: "申請人", width: "15%" },
   { key: "maintainType", label: "維護類型", width: "12%" },
-  { key: "dateTime", label: "日期/時間", width: "20%" },
+  {
+    key: "dateTime",
+    label: "日期/時間",
+    width: "20%",
+    desktopWhiteSpace: "pre-line",
+    mobileWhiteSpace: "pre-line",
+  },
   { key: "type", label: "類型", width: "10%" },
   { key: "location", label: "地點", width: "16%" },
   { key: "status", label: "狀態", width: "12%" },
+];
+
+// ✅ Mock data added
+const MOCK_ROWS = [
+  {
+    id: 1,
+    applyDate: "2026/04/02",
+    applicant: "許明城",
+    maintainType: "忘打卡",
+    dateTime: "2026/04/01 09:00",
+    type: "上班",
+    location: "台北辦公室",
+    status: "已核准",
+  },
 ];
 
 export default function CheckInRecord() {
@@ -32,7 +48,9 @@ export default function CheckInRecord() {
 
   const yearOptions = useMemo(() => {
     const currentYear = now.getFullYear();
-    return Array.from({ length: 5 }, (_, index) => String(currentYear - 2 + index));
+    return Array.from({ length: 5 }, (_, index) =>
+      String(currentYear - 2 + index)
+    );
   }, [now]);
 
   const monthOptions = useMemo(() => {
@@ -51,6 +69,8 @@ export default function CheckInRecord() {
 
   return (
     <Box>
+      <MobileSectionTitle>打卡紀錄管理</MobileSectionTitle>
+
       <Box
         sx={{
           display: "flex",
@@ -68,7 +88,6 @@ export default function CheckInRecord() {
           size="small"
           value={year}
           onChange={(event) => setYear(event.target.value)}
-          displayEmpty
           sx={{
             minWidth: "76px",
             height: "32px",
@@ -89,7 +108,6 @@ export default function CheckInRecord() {
           size="small"
           value={month}
           onChange={(event) => setMonth(event.target.value)}
-          displayEmpty
           sx={{
             minWidth: "62px",
             height: "32px",
@@ -118,7 +136,6 @@ export default function CheckInRecord() {
           size="small"
           value={type}
           onChange={(event) => setType(event.target.value)}
-          displayEmpty
           sx={{
             minWidth: "200px",
             height: "32px",
@@ -165,50 +182,12 @@ export default function CheckInRecord() {
         </Button>
       </Box>
 
-      <Box>
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: "15% 15% 12% 20% 10% 16% 12%",
-            bgcolor: "#d9d9d9",
-            minHeight: "40px",
-            alignItems: "center",
-            px: "12px",
-          }}
-        >
-          {TABLE_COLUMNS.map((column) => (
-            <Typography
-              key={column.key}
-              sx={{
-                fontSize: "15px",
-                fontWeight: 700,
-                color: "#111827",
-              }}
-            >
-              {column.label}
-            </Typography>
-          ))}
-        </Box>
-
-        <Box
-          sx={{
-            minHeight: "48px",
-            display: "flex",
-            alignItems: "center",
-            px: "12px",
-            borderBottom: "1px solid #d1d5db",
-          }}
-        >
-          <Typography
-            sx={{
-              fontSize: "15px",
-              color: "#3f3f46",
-            }}
-          >
-            查無資料
-          </Typography>
-        </Box>
-      </Box>
+      <ResponsiveAttendanceTable
+        columns={TABLE_COLUMNS}
+        rows={MOCK_ROWS} // ✅ use mock data
+        mobileCardTitleKey="applyDate"
+        getRowKey={(row) => row.id}
+      />
     </Box>
   );
 }
