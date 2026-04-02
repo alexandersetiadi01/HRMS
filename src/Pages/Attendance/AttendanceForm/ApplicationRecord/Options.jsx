@@ -17,3 +17,56 @@ export const EMPLOYEE_OPTIONS = [
   { value: "25004/張亭灝", label: "25004/張亭灝" },
   { value: "D0000/導入中", label: "D0000/導入中" },
 ];
+
+export const COMMON_SELECT_MENU_PROPS = {
+  PaperProps: {
+    sx: {
+      mt: "2px",
+      borderRadius: "2px",
+      boxShadow: "none",
+      border: "1px solid #cfcfcf",
+      maxHeight: 260,
+      "& .MuiMenuItem-root": {
+        minHeight: "36px",
+        fontSize: "15px",
+        color: "#374151",
+      },
+      "& .Mui-selected": {
+        bgcolor: "#dbe5f1 !important",
+        color: "#111827",
+      },
+      "& .MuiMenuItem-root:hover": {
+        bgcolor: "#eef3f8",
+      },
+    },
+  },
+};
+
+export const COMMON_SELECT_SX = {
+  height: "32px",
+  fontSize: "15px",
+  bgcolor: "#ffffff",
+  "& .MuiSelect-select": {
+    py: "4px",
+  },
+};
+
+export const ACTION_BUTTON_SX = {
+  minWidth: "50px",
+  height: "32px",
+  px: "14px",
+  borderColor: "#9ca3af",
+  color: "#111827",
+  fontSize: "15px",
+  borderRadius: "4px",
+};
+
+export function getApplicationRecordYearOptions(currentYear) {
+  return Array.from({ length: 5 }, (_, index) => String(currentYear - 3 + index));
+}
+
+export function getApplicationRecordMonthOptions() {
+  return Array.from({ length: 12 }, (_, index) =>
+    String(index + 1).padStart(2, "0")
+  );
+}

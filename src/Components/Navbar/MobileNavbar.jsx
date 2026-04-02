@@ -57,9 +57,9 @@ const DRAWER_PRIMARY_ITEMS = [
     label: "表單申請紀錄",
     to: "/attendance/form-record",
     icon: (
-      <ManageSearchOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />
+      <FeedOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />
     ),
-    disable: true,
+    disable: false,
   },
   {
     label: "請假",

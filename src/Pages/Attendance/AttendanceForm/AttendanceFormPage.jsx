@@ -32,7 +32,8 @@ function EmptyContent() {
 
 export default function AttendanceFormPage() {
   const [activeMenu, setActiveMenu] = useState("checkin");
-  const [activeOvertimeMenu, setActiveOvertimeMenu] = useState("overtime-record");
+  const [activeOvertimeMenu, setActiveOvertimeMenu] =
+    useState("overtime-record");
 
   const content = useMemo(() => {
     if (activeMenu === "checkin") return <CheckInRecord />;
@@ -41,7 +42,8 @@ export default function AttendanceFormPage() {
 
     if (activeMenu === "overtime") {
       if (activeOvertimeMenu === "overtime-record") return <OvertimeRecord />;
-      if (activeOvertimeMenu === "overtime-statistic") return <OvertimeStatistic />;
+      if (activeOvertimeMenu === "overtime-statistic")
+        return <OvertimeStatistic />;
       return <EmptyContent />;
     }
 
@@ -53,8 +55,6 @@ export default function AttendanceFormPage() {
 
   const handleMenuClick = (key) => {
     if (key === "overtime") {
-      setActiveMenu("overtime");
-      setActiveOvertimeMenu("overtime-record");
       return;
     }
 
