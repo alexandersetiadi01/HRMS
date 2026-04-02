@@ -132,8 +132,8 @@ export function YearMonthField({
           value={year}
           onChange={(event) => onYearChange(event.target.value)}
           sx={{
-            minWidth: { xs: 0, sm: "74px" },
-            width: { xs: "100%", sm: "74px" },
+            minWidth: { xs: 0, md: "74px" },
+            width: { xs: "100%", sm: "85px" },
             ...COMMON_SELECT_SX,
           }}
         >
