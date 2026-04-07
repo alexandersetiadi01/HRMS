@@ -9,6 +9,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import { REGULATION_ITEMS } from "./data";
 import RegulationDialog from "./RegulationDialog";
 import { DesktopTable, MobileList } from "./Table";
+import Breadcrumb from "../../Utils/Breadcrumb";
 
 export default function CompanyRegulations() {
   const [keyword, setKeyword] = useState("");
@@ -37,6 +38,7 @@ export default function CompanyRegulations() {
 
   return (
     <Box>
+      <Breadcrumb rootLabel="首頁" currentLabel="公司規章" mb="14px" />
       <Typography
         sx={{
           fontSize: "18px",

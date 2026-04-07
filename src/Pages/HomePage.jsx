@@ -67,8 +67,8 @@ const shortcutItems = [
   {
     label: "部門公告",
     icon: <CampaignOutlinedIcon sx={{ fontSize: "52px", color: "#2196d3" }} />,
-    to: "/dashboard",
-    disable: true,
+    to: "/announcement",
+    disable: false,
   },
   {
     label: "最新消息",
