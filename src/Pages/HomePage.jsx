@@ -1,117 +1,11 @@
 import { Box, Paper, Typography } from "@mui/material";
-import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
-import EventNoteOutlinedIcon from "@mui/icons-material/EventNoteOutlined";
-import WorkOutlineOutlinedIcon from "@mui/icons-material/WorkOutlineOutlined";
-import PlaceOutlinedIcon from "@mui/icons-material/PlaceOutlined";
-import HelpOutlineOutlinedIcon from "@mui/icons-material/HelpOutlineOutlined";
-import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
-import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
-import FeedOutlinedIcon from "@mui/icons-material/FeedOutlined";
-import ShoppingCartOutlinedIcon from "@mui/icons-material/ShoppingCartOutlined";
-import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
-import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
-import EditNoteOutlinedIcon from "@mui/icons-material/EditNoteOutlined";
 import AccessTimeOutlinedIcon from "@mui/icons-material/AccessTimeOutlined";
-import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
 import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
+import PlaceOutlinedIcon from "@mui/icons-material/PlaceOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
-import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
-import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
-import MenuOutlinedIcon from "@mui/icons-material/MenuOutlined";
-import MoreTimeOutlinedIcon from "@mui/icons-material/MoreTimeOutlined";
 import { NavLink } from "react-router-dom";
-
-const shortcutItems = [
-  {
-    label: "請假",
-    icon: <EventNoteOutlinedIcon sx={{ fontSize: "52px", color: "#2196d3" }} />,
-    to: "/attendance/leave",
-    disable: false,
-  },
-  {
-    label: "加班",
-    icon: (
-      <MoreTimeOutlinedIcon sx={{ fontSize: "52px", color: "#2196d3" }} />
-    ),
-    to: "/attendance/overtime",
-    disable: false,
-  },
-  {
-    label: "我要打卡",
-    icon: <PlaceOutlinedIcon sx={{ fontSize: "52px", color: "#2196d3" }} />,
-    to: "/attendance/clock",
-    disable: false,
-  },
-  {
-    label: "忘打卡申請",
-    icon: (
-      <HelpOutlineOutlinedIcon sx={{ fontSize: "52px", color: "#2196d3" }} />
-    ),
-    to: "/attendance/missed-punch",
-    disable: false,
-  },
-  {
-    label: "個人班表",
-    icon: <ScheduleOutlinedIcon sx={{ fontSize: "52px", color: "#2196d3" }} />,
-    to: "/attendance/schedule",
-    disable: false,
-  },
-  {
-    label: "公司規章",
-    icon: (
-      <DescriptionOutlinedIcon sx={{ fontSize: "52px", color: "#2196d3" }} />
-    ),
-    to: "/regulation",
-    disable: false,
-  },
-  {
-    label: "部門公告",
-    icon: <CampaignOutlinedIcon sx={{ fontSize: "52px", color: "#2196d3" }} />,
-    to: "/announcement",
-    disable: false,
-  },
-  {
-    label: "最新消息",
-    icon: <FeedOutlinedIcon sx={{ fontSize: "52px", color: "#2196d3" }} />,
-    to: "/latest-news",
-    disable: false,
-  },
-  {
-    label: "最新訂單",
-    icon: (
-      <ShoppingCartOutlinedIcon sx={{ fontSize: "52px", color: "#2196d3" }} />
-    ),
-    to: "/ordering-system",
-    disable: false,
-  },
-  {
-    label: "個人資訊",
-    icon: (
-      <PersonOutlineOutlinedIcon sx={{ fontSize: "52px", color: "#2196d3" }} />
-    ),
-    to: "/account",
-    disable: false,
-  },
-  {
-    label: "待辦事項",
-    icon: <FactCheckOutlinedIcon sx={{ fontSize: "52px", color: "#2196d3" }} />,
-    to: "/to-do-list",
-    disable: false,
-  },
-  {
-    label: "便利貼",
-    icon: <EditNoteOutlinedIcon sx={{ fontSize: "52px", color: "#2196d3" }} />,
-    to: "/sticky-note",
-    disable: false,
-  },
-   {
-    label: "我的薪資單",
-    icon: <AccountBalanceWalletIcon sx={{ fontSize: "52px", color: "#2196d3" }} />,
-    to: "/payroll",
-    disable: false,
-  },
-  
-];
+import MenuTile from "../Components/MenuTile";
+import { getHomeShortcutItems } from "../Utils/Menu/MenuRegistry";
 
 const mobileWidgets = [
   {
@@ -128,9 +22,7 @@ const mobileWidgets = [
     label: "請假",
     subLabel: "特休",
     value: "56時",
-    icon: (
-      <CalendarMonthOutlinedIcon sx={{ fontSize: "46px", color: "#1698dc" }} />
-    ),
+    icon: <AssignmentOutlinedIcon sx={{ fontSize: "46px", color: "#1698dc" }} />,
     dotColor: "#ffffff",
     to: "/attendance/leave",
   },
@@ -138,9 +30,7 @@ const mobileWidgets = [
     label: "個人班表",
     subLabel: "常日班",
     value: "09:00 ~ 18:00",
-    icon: (
-      <AssignmentOutlinedIcon sx={{ fontSize: "46px", color: "#1698dc" }} />
-    ),
+    icon: <AssignmentOutlinedIcon sx={{ fontSize: "46px", color: "#1698dc" }} />,
     dotColor: "#ffffff",
     to: "/attendance/schedule",
   },
@@ -150,8 +40,8 @@ const mobileWidgets = [
     value: "",
     icon: <SettingsOutlinedIcon sx={{ fontSize: "46px", color: "#1698dc" }} />,
     dotColor: "#ffffff",
-    to: "/dashboard",
-    disable: true,
+    to: "/settings/menu-shortcuts",
+    disable: false,
   },
 ];
 
@@ -170,158 +60,110 @@ function SectionTitle({ children }) {
   );
 }
 
-function ShortcutItem({ icon, label, to, disable }) {
-  return (
-    <Box
-      component={disable ? "div" : NavLink}
-      to={disable ? undefined : to}
-      onClick={disable ? (e) => e.preventDefault() : undefined}
-      sx={{
-        width: "100%",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "flex-start",
-        gap: "12px",
-        textDecoration: "none",
-        cursor: disable ? "not-allowed" : "pointer",
-        opacity: disable ? 0.5 : 1,
-      }}
-    >
-      <Box
-        sx={{
-          width: "72px",
-          height: "72px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          filter: disable ? "grayscale(100%) opacity(0.6)" : "none",
-        }}
-      >
-        {icon}
-      </Box>
-
-      <Typography
-        sx={{
-          fontSize: "16px",
-          color: disable ? "#9ca3af" : "#1f2937",
-          textAlign: "center",
-          lineHeight: 1.3,
-        }}
-      >
-        {label}
-      </Typography>
-    </Box>
-  );
-}
-
 function MobileWidgetCard({ item }) {
   const isDisabled = !!item.disable;
 
   return (
-  <Box
-    component={isDisabled ? "div" : NavLink}
-    to={isDisabled ? undefined : item.to}
-    onClick={isDisabled ? (e) => e.preventDefault() : undefined}
-    sx={{
-      textDecoration: "none",
-      minWidth: 0,
-      opacity: isDisabled ? 0.7 : 1,
-      cursor: isDisabled ? "not-allowed" : "pointer",
-    }}
-  >
-    <Paper
-      elevation={0}
+    <Box
+      component={isDisabled ? "div" : NavLink}
+      to={isDisabled ? undefined : item.to}
+      onClick={isDisabled ? (e) => e.preventDefault() : undefined}
       sx={{
-        bgcolor: "#ffffff",
-        borderRadius: "16px",
-        p: "14px",
-        height: "120px",
-        display: "flex",
-        alignItems: "center",   // ✅ vertical center (main fix)
-        gap: "12px",
-        position: "relative",
+        textDecoration: "none",
+        minWidth: 0,
+        opacity: isDisabled ? 0.7 : 1,
+        cursor: isDisabled ? "not-allowed" : "pointer",
       }}
     >
-      {/* ICON */}
-      <Box
+      <Paper
+        elevation={0}
         sx={{
-          flexShrink: 0,
+          bgcolor: "#ffffff",
+          borderRadius: "16px",
+          p: "14px",
+          height: "120px",
           display: "flex",
-          alignItems: "center", // ✅ icon vertical center
-          justifyContent: "center",
+          alignItems: "center",
+          gap: "12px",
+          position: "relative",
         }}
       >
-        {item.icon}
-      </Box>
-
-      {/* TEXT */}
-      <Box
-        sx={{
-          flex: 1,
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center", // ✅ center text block
-          minWidth: 0,
-        }}
-      >
-        <Typography
+        <Box
           sx={{
-            fontSize: "16px",
-            fontWeight: 700,
-            color: "#2d3945",
-            lineHeight: 1.2,
-            wordBreak: "break-word", // ✅ allow wrapping
+            flexShrink: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
         >
-          {item.label}
-        </Typography>
+          {item.icon}
+        </Box>
 
-        {item.subLabel && (
-          <Typography
-            sx={{
-              fontSize: "14px",
-              color: "#9ca3af",
-              mt: "2px",
-              lineHeight: 1.2,
-              wordBreak: "break-word", // ✅ wrap instead of cut
-            }}
-          >
-            {item.subLabel}
-          </Typography>
-        )}
-
-        {item.value && (
+        <Box
+          sx={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            minWidth: 0,
+          }}
+        >
           <Typography
             sx={{
               fontSize: "16px",
+              fontWeight: 700,
               color: "#2d3945",
-              mt: "2px",
               lineHeight: 1.2,
-              wordBreak: "break-word", // ✅ wrap time properly
+              wordBreak: "break-word",
             }}
           >
-            {item.value}
+            {item.label}
           </Typography>
-        )}
-      </Box>
 
-      {/* DOT */}
-      <Box
-        sx={{
-          position: "absolute",
-          top: "10px",
-          right: "10px",
-          width: "12px",
-          height: "12px",
-          borderRadius: "50%",
-          bgcolor: item.dotColor,
-          border: item.dotColor === "#ffffff" ? "1px solid #e5e7eb" : "none",
-        }}
-      />
-    </Paper>
-  </Box>
-);
+          {item.subLabel && (
+            <Typography
+              sx={{
+                fontSize: "14px",
+                color: "#9ca3af",
+                mt: "2px",
+                lineHeight: 1.2,
+                wordBreak: "break-word",
+              }}
+            >
+              {item.subLabel}
+            </Typography>
+          )}
+
+          {item.value && (
+            <Typography
+              sx={{
+                fontSize: "16px",
+                color: "#2d3945",
+                mt: "2px",
+                lineHeight: 1.2,
+                wordBreak: "break-word",
+              }}
+            >
+              {item.value}
+            </Typography>
+          )}
+        </Box>
+
+        <Box
+          sx={{
+            position: "absolute",
+            top: "10px",
+            right: "10px",
+            width: "12px",
+            height: "12px",
+            borderRadius: "50%",
+            bgcolor: item.dotColor,
+            border: item.dotColor === "#ffffff" ? "1px solid #e5e7eb" : "none",
+          }}
+        />
+      </Paper>
+    </Box>
+  );
 }
 
 function MobileClockButton() {
@@ -356,6 +198,7 @@ function MobileClockButton() {
             backgroundSize: "22px 22px",
           }}
         />
+
         <Box
           sx={{
             position: "absolute",
@@ -443,6 +286,8 @@ function MobileHomePage() {
 }
 
 function DesktopHomePage() {
+  const shortcutItems = getHomeShortcutItems();
+
   return (
     <Box sx={{ display: { xs: "none", md: "block" } }}>
       <Box
@@ -511,13 +356,7 @@ function DesktopHomePage() {
           }}
         >
           {shortcutItems.map((item) => (
-            <ShortcutItem
-              key={item.label}
-              icon={item.icon}
-              label={item.label}
-              to={item.to}
-              disable={item.disable}
-            />
+            <MenuTile key={item.id} item={item} iconSize={52} />
           ))}
         </Box>
       </Box>
@@ -525,13 +364,11 @@ function DesktopHomePage() {
   );
 }
 
-function HomePage() {
+export default function HomePage() {
   return (
-    <Box>
-      <MobileHomePage />
+    <>
       <DesktopHomePage />
-    </Box>
+      <MobileHomePage />
+    </>
   );
 }
-
-export default HomePage;

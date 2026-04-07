@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Avatar,
   Box,
@@ -10,220 +10,47 @@ import {
 import MenuIcon from "@mui/icons-material/Menu";
 import CloseIcon from "@mui/icons-material/Close";
 import PersonIcon from "@mui/icons-material/Person";
-import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
-import PlaceOutlinedIcon from "@mui/icons-material/PlaceOutlined";
-import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
-import StarBorderOutlinedIcon from "@mui/icons-material/StarBorderOutlined";
-import EventBusyOutlinedIcon from "@mui/icons-material/EventBusyOutlined";
-import MoreTimeOutlinedIcon from "@mui/icons-material/MoreTimeOutlined";
-import FeedOutlinedIcon from "@mui/icons-material/FeedOutlined";
-import ManageSearchOutlinedIcon from "@mui/icons-material/ManageSearchOutlined";
-import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
-import WorkOutlineOutlinedIcon from "@mui/icons-material/WorkOutlineOutlined";
-import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
-import EventIcon from '@mui/icons-material/Event';
-import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
-import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
-import LinkOutlinedIcon from "@mui/icons-material/LinkOutlined";
-import DescriptionOutlined from "@mui/icons-material/DescriptionOutlined";
-import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
-import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
-import FeedbackOutlinedIcon from "@mui/icons-material/FeedbackOutlined";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import LocalActivityIcon from '@mui/icons-material/LocalActivity';
-
 import { NavLink, useLocation } from "react-router-dom";
-
-const DRAWER_PRIMARY_ITEMS = [
-  {
-    label: "個人出勤",
-    to: "/attendance/clock",
-    icon: <PlaceOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />,
-  },
-  {
-    label: "打卡紀錄",
-    to: "/attendance/record",
-    icon: <DescriptionOutlined sx={{ fontSize: "42px", color: "#1098dc" }} />,
-  },
-  {
-    label: "剩餘假別",
-    to: "/attendance/leave-balance",
-    icon: (
-      <EventIcon sx={{ fontSize: "42px", color: "#1098dc" }} />
-    ),
-    disable: false,
-  },
-  {
-    label: "表單申請紀錄",
-    to: "/attendance/form-record",
-    icon: (
-      <FeedOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />
-    ),
-    disable: false,
-  },
-  {
-    label: "請假",
-    to: "/attendance/leave",
-    icon: <EventBusyOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />,
-    disable: false,
-  },
-  {
-    label: "個人班表",
-    to: "/attendance/schedule",
-    icon: (
-      <CalendarMonthOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />
-    ),
-  },
-  // { label: "訊息中心", to: "/dashboard", icon: <DescriptionOutlined sx={{ fontSize: "42px", color: "#1098dc" }} />, disable: true },
-  {
-    label: "定位打卡",
-    to: "/attendance/clock",
-    icon: <PlaceOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />,
-  },
-  {
-    label: "待審核表單",
-    to: "/attendance/pending-approval",
-    icon: <FactCheckOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />,
-    disable: false,
-  },
-  // { label: "待辦事項", to: "/dashboard", icon: <DescriptionOutlined sx={{ fontSize: "42px", color: "#1098dc" }} />, disable: true },
-  {
-    label: "忘打卡申請",
-    to: "/attendance/missed-punch",
-    icon: (
-      <DescriptionOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />
-    ),
-    disable: false,
-  },
-  {
-    label: "加班",
-    to: "/attendance/overtime",
-    icon: <MoreTimeOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />,
-    disable: false,
-  },
-  // { label: "便利貼", to: "/dashboard", icon: <FeedOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />, disable: true },
-  {
-    label: "我的薪資單",
-    to: "/payroll",
-    icon: <AccountBalanceWalletIcon sx={{ fontSize: "42px", color: "#1098dc" }} />,
-    disable: false,
-  },
-  {
-    label: "特殊假別申請",
-    to: "/attendance/special-leave",
-    icon: (
-      <LocalActivityIcon sx={{ fontSize: "42px", color: "#1098dc" }} />
-    ),
-    disable: false,
-  },
-  {
-    label: "公司規章",
-    icon: (
-      <DescriptionOutlinedIcon sx={{ fontSize: "52px", color: "#2196d3" }} />
-    ),
-    to: "/regulation",
-    disable: false,
-  },
-  {
-    label: "公出/出差",
-    to: "/attendance/business-trip",
-    icon: (
-      <WorkOutlineOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />
-    ),
-    disable: false,
-  },
-  // { label: "公司規章", to: "/dashboard", icon: <MenuBookOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />, disable: true },
-  // { label: "搜尋人員", to: "/dashboard", icon: <SearchOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />, disable: true },
-  // { label: "內部連結", to: "/dashboard", icon: <LinkOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />, disable: true },
-];
-
-const DRAWER_BOTTOM_ITEMS = [
-  {
-    label: "登出",
-    to: "/login",
-    icon: <LogoutOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />,
-    disable: true,
-  },
-  {
-    label: "設定",
-    to: "/dashboard",
-    icon: <SettingsOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />,
-    disable: true,
-  },
-  {
-    label: "意見回饋",
-    to: "/dashboard",
-    icon: <FeedbackOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />,
-    disable: true,
-  },
-];
-
-function DrawerGridItem({ item, onClick }) {
-  const isDisabled = !!item.disable;
-
-  return (
-    <Box
-      component={isDisabled ? "div" : NavLink}
-      to={isDisabled ? undefined : item.to}
-      onClick={
-        isDisabled
-          ? (e) => e.preventDefault()
-          : () => {
-              onClick?.();
-            }
-      }
-      sx={{
-        textDecoration: "none",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "flex-start",
-        gap: "10px",
-        minHeight: "112px",
-        opacity: isDisabled ? 0.5 : 1,
-        cursor: isDisabled ? "not-allowed" : "pointer",
-      }}
-    >
-      <Box
-        sx={{
-          width: "56px",
-          height: "56px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          filter: isDisabled ? "grayscale(100%)" : "none",
-        }}
-      >
-        {item.icon}
-      </Box>
-
-      <Typography
-        sx={{
-          fontSize: "14px",
-          fontWeight: 700,
-          color: "#2d3945",
-          textAlign: "center",
-          lineHeight: 1.3,
-          wordBreak: "break-word",
-        }}
-      >
-        {item.label}
-      </Typography>
-    </Box>
-  );
-}
+import MenuTile from "../MenuTile";
+import {
+  getDrawerBottomItems,
+  getMenuItemsByIds,
+} from "../../Utils/Menu/MenuRegistry";
+import { loadMobileDrawerShortcutIds } from "../../Utils/Menu/MobileShortcutSettings";
 
 export default function MobileNavbar() {
   const [open, setOpen] = useState(false);
+  const [shortcutIds, setShortcutIds] = useState(loadMobileDrawerShortcutIds());
   const location = useLocation();
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setShortcutIds(loadMobileDrawerShortcutIds());
+    };
+
+    window.addEventListener("hrms-mobile-drawer-shortcuts-updated", handleUpdate);
+    window.addEventListener("storage", handleUpdate);
+
+    return () => {
+      window.removeEventListener(
+        "hrms-mobile-drawer-shortcuts-updated",
+        handleUpdate
+      );
+      window.removeEventListener("storage", handleUpdate);
+    };
+  }, []);
 
   const title = useMemo(() => {
     if (location.pathname.startsWith("/attendance")) return "考勤";
-    if (location.pathname.startsWith("/foundation")) return "基礎";
     if (location.pathname.startsWith("/payroll")) return "薪資單";
+    if (location.pathname.startsWith("/settings")) return "設定";
     if (location.pathname.startsWith("/dashboard")) return "儀表板";
     return "首頁";
   }, [location.pathname]);
+
+  const primaryItems = getMenuItemsByIds(shortcutIds);
+  const bottomItems = getDrawerBottomItems();
 
   return (
     <>
@@ -263,6 +90,7 @@ export default function MobileNavbar() {
             >
               SEHO
             </Typography>
+
             <Box
               sx={{
                 px: "4px",
@@ -368,6 +196,7 @@ export default function MobileNavbar() {
               >
                 帳戶
               </Typography>
+
               <Typography
                 sx={{
                   fontSize: "16px",
@@ -392,11 +221,26 @@ export default function MobileNavbar() {
               gap: "22px 14px",
             }}
           >
-            {DRAWER_PRIMARY_ITEMS.map((item) => (
-              <DrawerGridItem
-                key={item.label}
+            {primaryItems.map((item) => (
+              <MenuTile
+                key={item.id}
                 item={item}
+                iconSize={42}
+                iconColor="#1098dc"
                 onClick={() => setOpen(false)}
+                wrapperSx={{
+                  gap: "10px",
+                  minHeight: "112px",
+                }}
+                iconBoxSx={{
+                  width: "56px",
+                  height: "56px",
+                }}
+                labelSx={{
+                  fontSize: "14px",
+                  fontWeight: 700,
+                  color: "#2d3945",
+                }}
               />
             ))}
           </Box>
@@ -410,11 +254,26 @@ export default function MobileNavbar() {
               gap: "22px 14px",
             }}
           >
-            {DRAWER_BOTTOM_ITEMS.map((item) => (
-              <DrawerGridItem
-                key={item.label}
+            {bottomItems.map((item) => (
+              <MenuTile
+                key={item.id}
                 item={item}
+                iconSize={42}
+                iconColor="#1098dc"
                 onClick={() => setOpen(false)}
+                wrapperSx={{
+                  gap: "10px",
+                  minHeight: "112px",
+                }}
+                iconBoxSx={{
+                  width: "56px",
+                  height: "56px",
+                }}
+                labelSx={{
+                  fontSize: "14px",
+                  fontWeight: 700,
+                  color: "#2d3945",
+                }}
               />
             ))}
           </Box>

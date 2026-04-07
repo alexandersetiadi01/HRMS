@@ -24,6 +24,8 @@ import LatestNews from "../Pages/LatestNews";
 import OrderingSystem from "../Pages/OrderingSystem";
 import ToDoList from "../Pages/ToDoList";
 import StickyNotes from "../Pages/StickyNotes";
+import Settings from "../Pages/Settings/Settings";
+import MenuShortcuts from "../Pages/Settings/MenuShortcut";
 
 function PlaceholderPage({ title }) {
   return <div style={{ padding: "24px" }}>{title}</div>;
@@ -54,6 +56,9 @@ export default function AppRoutes() {
         <Route path="/to-do-list" element={<ToDoList />} />
 
         <Route path="/sticky-note" element={<StickyNotes />} />
+
+        <Route path="/settings" element={<Settings />} />
+        <Route path="/settings/menu-shortcuts" element={<MenuShortcuts />} />
 
         <Route path="/dashboard" element={<PlaceholderPage title="Dashboard" />} />
 
