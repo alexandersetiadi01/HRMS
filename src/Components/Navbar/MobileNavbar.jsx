@@ -41,14 +41,6 @@ export default function MobileNavbar() {
     };
   }, []);
 
-  const title = useMemo(() => {
-    if (location.pathname.startsWith("/attendance")) return "考勤";
-    if (location.pathname.startsWith("/payroll")) return "薪資單";
-    if (location.pathname.startsWith("/settings")) return "設定";
-    if (location.pathname.startsWith("/dashboard")) return "儀表板";
-    return "首頁";
-  }, [location.pathname]);
-
   const primaryItems = getMenuItemsByIds(shortcutIds);
   const bottomItems = getDrawerBottomItems();
 
