@@ -12,11 +12,17 @@ import {
   TextField,
   Typography,
   IconButton,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { useNavigate } from "react-router-dom";
-import {getTodayDate, LabelCell} from "../../Components/GlobalComponent";
-import { HOURS, MINUTES_60, selectMenuProps } from "../../Utils/Attendance/SharedForm";
+import { getTodayDate, LabelCell } from "../../Components/GlobalComponent";
+import {
+  HOURS,
+  MINUTES_60,
+  selectMenuProps,
+} from "../../Utils/Attendance/SharedForm";
 
 const TYPE_OPTIONS = [
   { value: "missed-in", label: "上班" },
@@ -33,6 +39,8 @@ const LOCATION_OPTIONS = [
 
 export default function AttendanceMissedPunch() {
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const [open, setOpen] = useState(true);
   const [date, setDate] = useState(getTodayDate());
@@ -67,10 +75,13 @@ export default function AttendanceMissedPunch() {
       onClose={handleClose}
       fullWidth
       maxWidth="md"
+      fullScreen={isMobile}
       PaperProps={{
         sx: {
-          borderRadius: 2,
+          borderRadius: { xs: 0, sm: 2 },
           overflow: "hidden",
+          m: { xs: 0, sm: 4 },
+          height: { xs: "100%", sm: "auto" },
         },
       }}
     >
@@ -121,7 +132,7 @@ export default function AttendanceMissedPunch() {
           }}
         >
           <LabelCell required>日期</LabelCell>
-          <Box sx={{ width: "100%", maxWidth: "270px" }}>
+          <Box sx={{ width: "100%", maxWidth: { xs: "100%", sm: "270px" } }}>
             <TextField
               fullWidth
               type="date"
@@ -140,7 +151,7 @@ export default function AttendanceMissedPunch() {
           </Box>
 
           <LabelCell required>類型</LabelCell>
-          <Box sx={{ width: "100%", maxWidth: "270px" }}>
+          <Box sx={{ width: "100%", maxWidth: { xs: "100%", sm: "270px" } }}>
             <FormControl fullWidth>
               <Select
                 displayEmpty
@@ -169,10 +180,16 @@ export default function AttendanceMissedPunch() {
             sx={{
               display: "flex",
               alignItems: "center",
-              width: "270px",
+              width: "100%",
+              maxWidth: { xs: "100%", sm: "270px" },
             }}
           >
-            <FormControl sx={{ width: "124px", flexShrink: 0 }}>
+            <FormControl
+              sx={{
+                width: { xs: "calc((100% - 22px) / 2)", sm: "124px" },
+                flexShrink: 0,
+              }}
+            >
               <Select
                 displayEmpty
                 value={timeHour}
@@ -214,7 +231,12 @@ export default function AttendanceMissedPunch() {
               </Typography>
             </Box>
 
-            <FormControl sx={{ width: "124px", flexShrink: 0 }}>
+            <FormControl
+              sx={{
+                width: { xs: "calc((100% - 22px) / 2)", sm: "124px" },
+                flexShrink: 0,
+              }}
+            >
               <Select
                 displayEmpty
                 value={timeMinute}
@@ -238,7 +260,7 @@ export default function AttendanceMissedPunch() {
           </Box>
 
           <LabelCell required>地點</LabelCell>
-          <Box sx={{ width: "100%", maxWidth: "270px" }}>
+          <Box sx={{ width: "100%", maxWidth: { xs: "100%", sm: "270px" } }}>
             <FormControl fullWidth>
               <Select
                 displayEmpty
@@ -265,19 +287,18 @@ export default function AttendanceMissedPunch() {
           {location === "other" && (
             <>
               <LabelCell required>地點說明</LabelCell>
-              <Box>
+              <Box sx={{ width: "100%", maxWidth: { xs: "100%", sm: "550px" } }}>
                 <TextField
                   fullWidth
                   multiline
                   minRows={4}
-                  value={reason}
+                  value={locationDesc}
                   onChange={(e) => {
                     if (e.target.value.length <= 250) {
-                      setReason(e.target.value);
+                      setLocationDesc(e.target.value);
                     }
                   }}
                   sx={{
-                    maxWidth: "550px",
                     "& .MuiInputBase-root": {
                       fontSize: "15px",
                     },
@@ -290,14 +311,14 @@ export default function AttendanceMissedPunch() {
                     color: "#9ca3af",
                   }}
                 >
-                  字數限制 250 字，已輸入 {reason.length} 字
+                  字數限制 250 字，已輸入 {locationDesc.length} 字
                 </Typography>
               </Box>
             </>
           )}
 
           <LabelCell>事由</LabelCell>
-          <Box>
+          <Box sx={{ width: "100%", maxWidth: { xs: "100%", sm: "550px" } }}>
             <TextField
               fullWidth
               multiline
@@ -309,7 +330,6 @@ export default function AttendanceMissedPunch() {
                 }
               }}
               sx={{
-                maxWidth: "550px",
                 "& .MuiInputBase-root": {
                   fontSize: "15px",
                 },
