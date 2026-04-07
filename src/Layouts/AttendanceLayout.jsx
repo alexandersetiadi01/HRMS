@@ -64,7 +64,7 @@ const attendanceMenuItems = [
   {
     label: "待審核表單",
     to: "/attendance/pending-approval",
-    disable: true,
+    disable: false,
     icon: <FactCheckOutlinedIcon sx={{ fontSize: "56px", color: "#2196d3" }} />,
   },
   {

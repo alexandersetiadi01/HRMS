@@ -73,36 +73,36 @@ const shortcutItems = [
   {
     label: "最新消息",
     icon: <FeedOutlinedIcon sx={{ fontSize: "52px", color: "#2196d3" }} />,
-    to: "/dashboard",
-    disable: true,
+    to: "/latest-news",
+    disable: false,
   },
   {
     label: "最新訂單",
     icon: (
       <ShoppingCartOutlinedIcon sx={{ fontSize: "52px", color: "#2196d3" }} />
     ),
-    to: "/dashboard",
-    disable: true,
+    to: "/ordering-system",
+    disable: false,
   },
   {
     label: "個人資訊",
     icon: (
       <PersonOutlineOutlinedIcon sx={{ fontSize: "52px", color: "#2196d3" }} />
     ),
-    to: "/dashboard",
-    disable: true,
+    to: "/account",
+    disable: false,
   },
   {
     label: "待辦事項",
     icon: <FactCheckOutlinedIcon sx={{ fontSize: "52px", color: "#2196d3" }} />,
-    to: "/dashboard",
-    disable: true,
+    to: "/to-do-list",
+    disable: false,
   },
   {
     label: "便利貼",
     icon: <EditNoteOutlinedIcon sx={{ fontSize: "52px", color: "#2196d3" }} />,
-    to: "/dashboard",
-    disable: true,
+    to: "/sticky-note",
+    disable: false,
   },
    {
     label: "我的薪資單",

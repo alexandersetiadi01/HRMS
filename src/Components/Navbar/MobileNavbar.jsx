@@ -81,10 +81,10 @@ const DRAWER_PRIMARY_ITEMS = [
     icon: <PlaceOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />,
   },
   {
-    label: "審核中心",
+    label: "待審核表單",
     to: "/attendance/pending-approval",
     icon: <FactCheckOutlinedIcon sx={{ fontSize: "42px", color: "#1098dc" }} />,
-    disable: true,
+    disable: false,
   },
   // { label: "待辦事項", to: "/dashboard", icon: <DescriptionOutlined sx={{ fontSize: "42px", color: "#1098dc" }} />, disable: true },
   {

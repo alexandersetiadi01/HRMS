@@ -20,6 +20,10 @@ import PayrollDetail from "../Pages/Payroll/PayrollDetail";
 import AttendanceFormPage from "../Pages/Attendance/AttendanceForm/AttendanceFormPage";
 import CompanyRegulations from "../Pages/CompanyRegulation/CompanyRegulation";
 import CompanyAnnouncement from "../Pages/Announcement/Company/CompanyAnnouncement";
+import LatestNews from "../Pages/LatestNews";
+import OrderingSystem from "../Pages/OrderingSystem";
+import ToDoList from "../Pages/ToDoList";
+import StickyNotes from "../Pages/StickyNotes";
 
 function PlaceholderPage({ title }) {
   return <div style={{ padding: "24px" }}>{title}</div>;
@@ -42,6 +46,14 @@ export default function AppRoutes() {
         <Route path="/regulation" element={<CompanyRegulations />} />
 
         <Route path="/announcement" element={<CompanyAnnouncement />} />
+
+        <Route path="/latest-news" element={<LatestNews />} />
+
+        <Route path="/ordering-system" element={<OrderingSystem />} />
+
+        <Route path="/to-do-list" element={<ToDoList />} />
+
+        <Route path="/sticky-note" element={<StickyNotes />} />
 
         <Route path="/dashboard" element={<PlaceholderPage title="Dashboard" />} />
 
