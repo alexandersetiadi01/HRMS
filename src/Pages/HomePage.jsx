@@ -61,8 +61,8 @@ const shortcutItems = [
     icon: (
       <DescriptionOutlinedIcon sx={{ fontSize: "52px", color: "#2196d3" }} />
     ),
-    to: "/dashboard",
-    disable: true,
+    to: "/regulation",
+    disable: false,
   },
   {
     label: "部門公告",

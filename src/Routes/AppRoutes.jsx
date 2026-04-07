@@ -18,6 +18,7 @@ import AccountLayout from "../Layouts/AccountLayout";
 import PayrollPage from "../Pages/Payroll/PayrollPage";
 import PayrollDetail from "../Pages/Payroll/PayrollDetail";
 import AttendanceFormPage from "../Pages/Attendance/AttendanceForm/AttendanceFormPage";
+import CompanyRegulations from "../Pages/CompanyRegulation/CompanyRegulation";
 
 function PlaceholderPage({ title }) {
   return <div style={{ padding: "24px" }}>{title}</div>;
@@ -36,6 +37,8 @@ export default function AppRoutes() {
 
         <Route path="/payroll" element={<PayrollPage />} />
         <Route path="/payroll/:payrollId" element={<PayrollDetail />} />
+
+        <Route path="/regulation" element={<CompanyRegulations />} />
 
         <Route path="/dashboard" element={<PlaceholderPage title="Dashboard" />} />
 

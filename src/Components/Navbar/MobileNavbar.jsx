@@ -117,6 +117,14 @@ const DRAWER_PRIMARY_ITEMS = [
     disable: false,
   },
   {
+    label: "公司規章",
+    icon: (
+      <DescriptionOutlinedIcon sx={{ fontSize: "52px", color: "#2196d3" }} />
+    ),
+    to: "/regulation",
+    disable: false,
+  },
+  {
     label: "公出/出差",
     to: "/attendance/business-trip",
     icon: (
