@@ -74,6 +74,55 @@ export default function AppRoutes() {
         <Route path="/attendance/leave-balance" element={<AttendanceLeaveBalance />} />
         <Route path="/attendance/pending-approval" element={<AttendancePendingApproval />} />
         <Route path="/attendance/business-trip" element={<AttendanceBusinessTrip />} />
+
+        <Route
+          path="/attendance/admin/staff-attendance"
+          element={<PlaceholderPage title="人員出勤" />}
+        />
+        <Route
+          path="/attendance/admin/shift-approval"
+          element={<PlaceholderPage title="班表審核" />}
+        />
+        <Route
+          path="/attendance/admin/shift-manager-setting"
+          element={<PlaceholderPage title="單位排班管理員設定" />}
+        />
+        <Route
+          path="/attendance/admin/report-center"
+          element={<PlaceholderPage title="報表中心" />}
+        />
+        <Route
+          path="/attendance/admin/record-maintenance"
+          element={<PlaceholderPage title="打卡紀錄維護" />}
+        />
+        <Route
+          path="/attendance/admin/form-management"
+          element={<PlaceholderPage title="表單紀錄管理" />}
+        />
+        <Route
+          path="/attendance/admin/leave-hours-management"
+          element={<PlaceholderPage title="假別時數管理" />}
+        />
+        <Route
+          path="/attendance/admin/payroll-work"
+          element={<PlaceholderPage title="結算作業" />}
+        />
+        <Route
+          path="/attendance/admin/module-setting"
+          element={<PlaceholderPage title="模組設定" />}
+        />
+        <Route
+          path="/attendance/admin/personnel-basic"
+          element={<PlaceholderPage title="人員基本資料" />}
+        />
+        <Route
+          path="/attendance/admin/manager-report-center"
+          element={<PlaceholderPage title="報表中心" />}
+        />
+        <Route
+          path="/attendance/admin/shift-import"
+          element={<PlaceholderPage title="班表匯入" />}
+        />
       </Route>
     </Routes>
   );

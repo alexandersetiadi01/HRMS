@@ -1,12 +1,12 @@
 import { Box, Typography } from "@mui/material";
 import MenuTile from "../Components/MenuTile";
-import { getAttendanceMenuItems } from "../Utils/Menu/MenuRegistry";
+import { getAttendanceMenuItemsBySection } from "../Utils/Menu/MenuRegistry";
 
-export default function AttendanceLayout() {
-  const attendanceMenuItems = getAttendanceMenuItems();
+function AttendanceMenuSection({ title, items }) {
+  if (!items.length) return null;
 
   return (
-    <Box>
+    <Box sx={{ mb: "44px" }}>
       <Typography
         sx={{
           fontSize: "18px",
@@ -15,7 +15,7 @@ export default function AttendanceLayout() {
           mb: "28px",
         }}
       >
-        個人專區
+        {title}
       </Typography>
 
       <Box
@@ -30,7 +30,7 @@ export default function AttendanceLayout() {
           gap: "48px 28px",
         }}
       >
-        {attendanceMenuItems.map((item) => (
+        {items.map((item) => (
           <MenuTile
             key={item.id}
             item={item}
@@ -41,6 +41,20 @@ export default function AttendanceLayout() {
           />
         ))}
       </Box>
+    </Box>
+  );
+}
+
+export default function AttendanceLayout() {
+  const personalItems = getAttendanceMenuItemsBySection("personal");
+  const supervisorItems = getAttendanceMenuItemsBySection("supervisor");
+  const managerItems = getAttendanceMenuItemsBySection("manager");
+
+  return (
+    <Box>
+      <AttendanceMenuSection title="個人專區" items={personalItems} />
+      <AttendanceMenuSection title="主管專區" items={supervisorItems} />
+      <AttendanceMenuSection title="管理者專區" items={managerItems} />
     </Box>
   );
 }

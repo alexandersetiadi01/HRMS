@@ -19,6 +19,17 @@ import EventNoteOutlinedIcon from "@mui/icons-material/EventNoteOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import FeedbackOutlinedIcon from "@mui/icons-material/FeedbackOutlined";
+import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
+import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlined";
+import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
+import QueryStatsOutlinedIcon from "@mui/icons-material/QueryStatsOutlined";
+import FmdGoodOutlinedIcon from "@mui/icons-material/FmdGoodOutlined";
+import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
+import ManageHistoryOutlinedIcon from "@mui/icons-material/ManageHistoryOutlined";
+import CalculateOutlinedIcon from "@mui/icons-material/CalculateOutlined";
+import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
+import BadgeOutlinedIcon from "@mui/icons-material/BadgeOutlined";
+import LoginOutlinedIcon from "@mui/icons-material/LoginOutlined";
 
 export function renderMenuIcon(iconKey, { size = 52, color = "#2196d3" } = {}) {
   const sx = { fontSize: `${size}px`, color };
@@ -46,6 +57,28 @@ export function renderMenuIcon(iconKey, { size = 52, color = "#2196d3" } = {}) {
       return <LocalActivityIcon sx={sx} />;
     case "attendance-business-trip":
       return <WorkOutlineOutlinedIcon sx={sx} />;
+    case "attendance-staff-attendance":
+      return <GroupsOutlinedIcon sx={sx} />;
+    case "attendance-shift-approval":
+      return <EventAvailableOutlinedIcon sx={sx} />;
+    case "attendance-shift-manager-setting":
+      return <AccountTreeOutlinedIcon sx={sx} />;
+    case "attendance-report-center":
+      return <QueryStatsOutlinedIcon sx={sx} />;
+    case "attendance-record-maintenance":
+      return <FmdGoodOutlinedIcon sx={sx} />;
+    case "attendance-form-management":
+      return <AssignmentOutlinedIcon sx={sx} />;
+    case "attendance-leave-hours-management":
+      return <ManageHistoryOutlinedIcon sx={sx} />;
+    case "attendance-payroll-work":
+      return <CalculateOutlinedIcon sx={sx} />;
+    case "attendance-module-setting":
+      return <TuneOutlinedIcon sx={sx} />;
+    case "attendance-personnel-basic":
+      return <BadgeOutlinedIcon sx={sx} />;
+    case "attendance-shift-import":
+      return <LoginOutlinedIcon sx={sx} />;
     case "home-announcement":
       return <CampaignOutlinedIcon sx={sx} />;
     case "home-latest-news":
@@ -90,6 +123,7 @@ export const MENU_ITEMS = [
     iconKey: "attendance-record",
     disable: false,
     groups: ["mobileDrawer", "attendance"],
+    sectionKey: "personal",
     defaultInMobileDrawer: true,
   },
   {
@@ -99,6 +133,7 @@ export const MENU_ITEMS = [
     iconKey: "attendance-leave-balance",
     disable: false,
     groups: ["mobileDrawer", "attendance"],
+    sectionKey: "personal",
     defaultInMobileDrawer: true,
   },
   {
@@ -108,6 +143,7 @@ export const MENU_ITEMS = [
     iconKey: "attendance-form-record",
     disable: false,
     groups: ["mobileDrawer", "attendance"],
+    sectionKey: "personal",
     defaultInMobileDrawer: true,
   },
   {
@@ -117,6 +153,7 @@ export const MENU_ITEMS = [
     iconKey: "attendance-leave",
     disable: false,
     groups: ["mobileDrawer", "attendance", "homeShortcut"],
+    sectionKey: "personal",
     defaultInMobileDrawer: true,
   },
   {
@@ -126,6 +163,7 @@ export const MENU_ITEMS = [
     iconKey: "attendance-schedule",
     disable: false,
     groups: ["mobileDrawer", "attendance", "homeShortcut"],
+    sectionKey: "personal",
     defaultInMobileDrawer: true,
   },
   {
@@ -144,6 +182,7 @@ export const MENU_ITEMS = [
     iconKey: "attendance-pending",
     disable: false,
     groups: ["mobileDrawer", "attendance"],
+    sectionKey: "personal",
     defaultInMobileDrawer: true,
   },
   {
@@ -153,6 +192,7 @@ export const MENU_ITEMS = [
     iconKey: "attendance-missed-punch",
     disable: false,
     groups: ["mobileDrawer", "attendance", "homeShortcut"],
+    sectionKey: "personal",
     defaultInMobileDrawer: true,
   },
   {
@@ -162,6 +202,7 @@ export const MENU_ITEMS = [
     iconKey: "attendance-overtime",
     disable: false,
     groups: ["mobileDrawer", "attendance", "homeShortcut"],
+    sectionKey: "personal",
     defaultInMobileDrawer: true,
   },
   {
@@ -180,6 +221,7 @@ export const MENU_ITEMS = [
     iconKey: "attendance-special-leave",
     disable: false,
     groups: ["mobileDrawer", "attendance"],
+    sectionKey: "personal",
     defaultInMobileDrawer: true,
   },
   {
@@ -198,7 +240,130 @@ export const MENU_ITEMS = [
     iconKey: "attendance-business-trip",
     disable: false,
     groups: ["mobileDrawer", "attendance"],
+    sectionKey: "personal",
     defaultInMobileDrawer: true,
+  },
+
+  {
+    id: "staff-attendance",
+    label: "人員出勤",
+    to: "/attendance/admin/staff-attendance",
+    iconKey: "attendance-staff-attendance",
+    disable: true,
+    groups: ["attendance"],
+    sectionKey: "supervisor",
+    adminOnly: true,
+  },
+  {
+    id: "shift-approval",
+    label: "班表審核",
+    to: "/attendance/admin/shift-approval",
+    iconKey: "attendance-shift-approval",
+    disable: true,
+    groups: ["attendance"],
+    sectionKey: "supervisor",
+    adminOnly: true,
+  },
+  {
+    id: "shift-manager-setting",
+    label: "單位排班管理員設定",
+    to: "/attendance/admin/shift-manager-setting",
+    iconKey: "attendance-shift-manager-setting",
+    disable: true,
+    groups: ["attendance"],
+    sectionKey: "supervisor",
+    adminOnly: true,
+  },
+  {
+    id: "report-center-supervisor",
+    label: "報表中心",
+    to: "/attendance/admin/report-center",
+    iconKey: "attendance-report-center",
+    disable: true,
+    groups: ["attendance"],
+    sectionKey: "supervisor",
+    adminOnly: true,
+  },
+
+  {
+    id: "record-maintenance",
+    label: "打卡紀錄維護",
+    to: "/attendance/admin/record-maintenance",
+    iconKey: "attendance-record-maintenance",
+    disable: true,
+    groups: ["attendance"],
+    sectionKey: "manager",
+    adminOnly: true,
+  },
+  {
+    id: "form-management",
+    label: "表單紀錄管理",
+    to: "/attendance/admin/form-management",
+    iconKey: "attendance-form-management",
+    disable: true,
+    groups: ["attendance"],
+    sectionKey: "manager",
+    adminOnly: true,
+  },
+  {
+    id: "leave-hours-management",
+    label: "假別時數管理",
+    to: "/attendance/admin/leave-hours-management",
+    iconKey: "attendance-leave-hours-management",
+    disable: true,
+    groups: ["attendance"],
+    sectionKey: "manager",
+    adminOnly: true,
+  },
+  {
+    id: "payroll-work",
+    label: "結算作業",
+    to: "/attendance/admin/payroll-work",
+    iconKey: "attendance-payroll-work",
+    disable: true,
+    groups: ["attendance"],
+    sectionKey: "manager",
+    adminOnly: true,
+  },
+  {
+    id: "module-setting",
+    label: "模組設定",
+    to: "/attendance/admin/module-setting",
+    iconKey: "attendance-module-setting",
+    disable: true,
+    groups: ["attendance"],
+    sectionKey: "manager",
+    adminOnly: true,
+  },
+  {
+    id: "personnel-basic",
+    label: "人員基本資料",
+    to: "/attendance/admin/personnel-basic",
+    iconKey: "attendance-personnel-basic",
+    disable: true,
+    groups: ["attendance"],
+    sectionKey: "manager",
+    adminOnly: true,
+  },
+  {
+    id: "report-center-manager",
+    label: "報表中心",
+    to: "/attendance/admin/manager-report-center",
+    iconKey: "attendance-report-center",
+    disable: true,
+    groups: ["attendance"],
+    sectionKey: "manager",
+    adminOnly: true,
+  },
+  {
+    id: "shift-import",
+    label: "班表匯入",
+    to: "/attendance/admin/shift-import",
+    iconKey: "attendance-shift-import",
+    disable: true,
+    groups: ["attendance"],
+    sectionKey: "manager",
+    adminOnly: true,
   },
 
   {
@@ -284,6 +449,12 @@ export function getMenuItemsByIds(ids = []) {
 
 export function getAttendanceMenuItems() {
   return getMenuItemsByGroup("attendance");
+}
+
+export function getAttendanceMenuItemsBySection(sectionKey) {
+  return getAttendanceMenuItems().filter(
+    (item) => (item.sectionKey || "personal") === sectionKey
+  );
 }
 
 export function getHomeShortcutItems() {
