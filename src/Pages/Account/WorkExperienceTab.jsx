@@ -12,100 +12,119 @@ const headers = [
   "工作地點",
 ];
 
-const rows = [
-  [
-    "YYYY/MM/DD",
-    "-",
-    "-",
-    "-",
-    "-",
-    "-",
-    "-",
-    "-",
-    "-",
-  ],
-];
+function buildLookupMap(items, keyField, valueField) {
+  return (Array.isArray(items) ? items : []).reduce((acc, item) => {
+    const key = item?.[keyField];
 
-export default function WorkExperienceTab() {
+    if (key !== undefined && key !== null && key !== "") {
+      acc[String(key)] = item?.[valueField] || "";
+    }
+
+    return acc;
+  }, {});
+}
+
+function buildRows(profile) {
+  const jobRecords = Array.isArray(profile?.jobRecords)
+    ? profile.jobRecords
+    : [];
+
+  const units = buildLookupMap(
+    profile?.lookups?.units,
+    "unit_id",
+    "unit_name"
+  );
+
+  const positions = buildLookupMap(
+    profile?.lookups?.positions,
+    "position_id",
+    "position_name"
+  );
+
+  return jobRecords.map((row) => [
+    row.effective_date || "-",
+    row.change_type || "-",
+    units[String(row.unit_id)] || "-",
+    row.job_grade_id || "-",
+    row.job_level_id || "-",
+    positions[String(row.position_id)] || "-",
+    row.identity_category || "-",
+    row.identity_subcategory || "-",
+    row.work_location || "-",
+  ]);
+}
+
+export default function WorkExperienceTab({ profile }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
-  if (isMobile) {
-  return (
-    <Box
-      sx={{
-        bgcolor: "#ffffff",
-      }}
-    >
-      {rows.map((row, rowIndex) => (
-        <Box
-          key={rowIndex}
-          sx={{
-            mx: "12px",
-            // border: "1px solid #e5e7eb",
-            // borderRadius: "6px",
-            overflow: "hidden",
-          }}
-        >
-          {headers.map((header, index) => (
-            <Box
-              key={`${rowIndex}-${header}`}
-              sx={{
-                display: "grid",
-                gridTemplateColumns: "110px 1fr",
-                borderBottom:
-                  index !== headers.length - 1
-                    ? "1px solid #e5e7eb"
-                    : "none",
-              }}
-            >
-              {/* LEFT LABEL CELL */}
-              <Box
-                sx={{
-                  bgcolor: "#f3f4f6",
-                  px: "10px",
-                  py: "10px",
-                  display: "flex",
-                  alignItems: "center",
-                }}
-              >
-                <Typography
-                  sx={{
-                    fontSize: "14px",
-                    fontWeight: 600,
-                    color: "#374151",
-                  }}
-                >
-                  {header}
-                </Typography>
-              </Box>
+  const rows = buildRows(profile);
 
-              {/* RIGHT VALUE CELL */}
+  if (isMobile) {
+    return (
+      <Box sx={{ bgcolor: "#ffffff" }}>
+        {(rows.length
+          ? rows
+          : [["-", "-", "-", "-", "-", "-", "-", "-", "-"]]
+        ).map((row, rowIndex) => (
+          <Box key={rowIndex} sx={{ mx: "12px", overflow: "hidden" }}>
+            {headers.map((header, index) => (
               <Box
+                key={`${rowIndex}-${header}`}
                 sx={{
-                  px: "12px",
-                  py: "10px",
-                  display: "flex",
-                  alignItems: "center",
+                  display: "grid",
+                  gridTemplateColumns: "110px 1fr",
+                  borderBottom:
+                    index !== headers.length - 1
+                      ? "1px solid #e5e7eb"
+                      : "none",
                 }}
               >
-                <Typography
+                <Box
                   sx={{
-                    fontSize: "15px",
-                    color: "#111827",
-                    wordBreak: "break-word",
+                    bgcolor: "#f3f4f6",
+                    px: "10px",
+                    py: "10px",
+                    display: "flex",
+                    alignItems: "center",
                   }}
                 >
-                  {row[index] || "-"}
-                </Typography>
+                  <Typography
+                    sx={{
+                      fontSize: "14px",
+                      fontWeight: 600,
+                      color: "#374151",
+                    }}
+                  >
+                    {header}
+                  </Typography>
+                </Box>
+
+                <Box
+                  sx={{
+                    px: "12px",
+                    py: "10px",
+                    display: "flex",
+                    alignItems: "center",
+                  }}
+                >
+                  <Typography
+                    sx={{
+                      fontSize: "15px",
+                      color: "#111827",
+                      wordBreak: "break-word",
+                    }}
+                  >
+                    {row[index] || "-"}
+                  </Typography>
+                </Box>
               </Box>
-            </Box>
-          ))}
-        </Box>
-      ))}
-    </Box>
-  );
-}
+            ))}
+          </Box>
+        ))}
+      </Box>
+    );
+  }
 
   return (
     <Box
@@ -144,7 +163,10 @@ export default function WorkExperienceTab() {
         ))}
       </Box>
 
-      {rows.map((row, rowIndex) => (
+      {(rows.length
+        ? rows
+        : [["-", "-", "-", "-", "-", "-", "-", "-", "-"]]
+      ).map((row, rowIndex) => (
         <Box
           key={rowIndex}
           sx={{

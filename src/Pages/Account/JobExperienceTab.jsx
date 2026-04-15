@@ -1,16 +1,65 @@
 import { Box, Typography, useMediaQuery, useTheme } from "@mui/material";
 
-const rows = [
-  ["內部年資", "0.0"],
-  ["職等年資", "N/A"],
-  ["職級年資", "N/A"],
-  ["職務年資", "N/A"],
-  ["單位年資", "0.0"],
-];
+function toYearValue(startDate) {
+  if (!startDate) {
+    return "N/A";
+  }
 
-export default function JobExperienceTab() {
+  const start = new Date(startDate);
+  const now = new Date();
+
+  if (Number.isNaN(start.getTime())) {
+    return "N/A";
+  }
+
+  const diffMs = now.getTime() - start.getTime();
+  const diffYears = diffMs / (1000 * 60 * 60 * 24 * 365.25);
+
+  return Math.max(0, diffYears).toFixed(1);
+}
+
+function buildRows(profile) {
+  const employee = profile?.employee || {};
+  const jobRecords = Array.isArray(profile?.jobRecords)
+    ? profile.jobRecords
+    : [];
+
+  const latestJobRecord = jobRecords[0] || {};
+
+  return [
+    ["內部年資", toYearValue(employee.hire_date)],
+    [
+      "職等年資",
+      latestJobRecord.job_grade_id
+        ? toYearValue(latestJobRecord.effective_date)
+        : "N/A",
+    ],
+    [
+      "職級年資",
+      latestJobRecord.job_level_id
+        ? toYearValue(latestJobRecord.effective_date)
+        : "N/A",
+    ],
+    [
+      "職務年資",
+      latestJobRecord.position_id
+        ? toYearValue(latestJobRecord.effective_date)
+        : "N/A",
+    ],
+    [
+      "單位年資",
+      latestJobRecord.unit_id
+        ? toYearValue(latestJobRecord.effective_date)
+        : "0.0",
+    ],
+  ];
+}
+
+export default function JobExperienceTab({ profile }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
+  const rows = buildRows(profile);
 
   if (isMobile) {
     return (

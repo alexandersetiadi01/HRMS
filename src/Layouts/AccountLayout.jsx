@@ -1,11 +1,86 @@
-import { Box, Button, Paper, TextField, Typography, useMediaQuery, useTheme } from "@mui/material";
+import { useEffect, useMemo, useState } from "react";
+import {
+  Alert,
+  Box,
+  Button,
+  CircularProgress,
+  Paper,
+  TextField,
+  Typography,
+  useMediaQuery,
+  useTheme,
+} from "@mui/material";
 import CameraAltIcon from "@mui/icons-material/CameraAlt";
 import PersonIcon from "@mui/icons-material/Person";
 import AccountTabs from "../Pages/Account/AccountTabs";
+import { fetchMyAccountProfile } from "../API/account";
 
 export default function AccountLayout() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [errorText, setErrorText] = useState("");
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadProfile() {
+      setLoading(true);
+      setErrorText("");
+
+      try {
+        const data = await fetchMyAccountProfile();
+
+        if (!active) {
+          return;
+        }
+
+        setProfile(data);
+      } catch (error) {
+        if (!active) {
+          return;
+        }
+
+        setErrorText(error?.message || "無法取得帳戶資料。");
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadProfile();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const employee = profile?.employee || {};
+  const photoUrl = employee?.personal_photo_url || "";
+  const dynamicMessage = employee?.dynamic_message || "";
+
+  const photoContent = useMemo(() => {
+    if (photoUrl) {
+      return (
+        <Box
+          component="img"
+          src={photoUrl}
+          alt={employee?.display_name || "employee"}
+          sx={{
+            width: "140px",
+            height: "170px",
+            objectFit: "cover",
+            display: "block",
+          }}
+        />
+      );
+    }
+
+    return <PersonIcon sx={{ fontSize: "150px", color: "#a8a8a8" }} />;
+  }, [employee?.display_name, photoUrl]);
 
   return (
     <Box
@@ -47,9 +122,10 @@ export default function AccountLayout() {
                 alignItems: "center",
                 justifyContent: "center",
                 bgcolor: "#fafafa",
+                overflow: "hidden",
               }}
             >
-              <PersonIcon sx={{ fontSize: "150px", color: "#a8a8a8" }} />
+              {photoContent}
             </Box>
           </Paper>
 
@@ -73,6 +149,10 @@ export default function AccountLayout() {
             fullWidth
             placeholder="請輸入您的動態訊息"
             size="small"
+            value={dynamicMessage}
+            InputProps={{
+              readOnly: true,
+            }}
             sx={{
               maxWidth: { xs: "260px", md: "100%" },
               width: "100%",
@@ -111,7 +191,24 @@ export default function AccountLayout() {
             overflow: "hidden",
           }}
         >
-          <AccountTabs />
+          {loading ? (
+            <Box
+              sx={{
+                minHeight: "300px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <CircularProgress />
+            </Box>
+          ) : errorText ? (
+            <Box sx={{ p: "16px" }}>
+              <Alert severity="error">{errorText}</Alert>
+            </Box>
+          ) : (
+            <AccountTabs profile={profile} />
+          )}
         </Paper>
       </Box>
     </Box>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Box,
   Button,
@@ -14,20 +14,6 @@ import {
 import EditIcon from "@mui/icons-material/Edit";
 import CloseIcon from "@mui/icons-material/Close";
 import { LabelCell } from "../../Components/GlobalComponent";
-
-const rows = [
-  ["電話(市話)", ""],
-  ["電話(手機)", "0972948684"],
-  ["戶籍地址", "新北市三重區仁義街225巷15號四樓"],
-  ["聯絡地址", "新北市三重區仁義街225巷15號四樓"],
-  ["分機", ""],
-  ["公務手機", ""],
-  ["私人信箱", ""],
-  ["緊急聯絡人", ""],
-  ["緊急聯絡人關係", ""],
-  ["電話(市話)", ""],
-  ["電話(手機)", ""],
-];
 
 const textFieldSx = {
   "& .MuiInputBase-root": {
@@ -53,22 +39,41 @@ const dialogLabelSx = {
   lineHeight: 1.2,
 };
 
-function ContactInformationEditDialog({ open, onClose }) {
+function buildContactRows(profile) {
+  const contact = profile?.contact || {};
+
+  return [
+    ["電話(市話)", contact.home_phone || "-"],
+    ["電話(手機)", contact.mobile_phone || "-"],
+    ["戶籍地址", contact.postal_address || "-"],
+    ["聯絡地址", contact.contact_address || "-"],
+    ["分機", contact.extension_no || "-"],
+    ["公務手機", contact.work_mobile || "-"],
+    ["私人信箱", contact.personal_email || "-"],
+    ["緊急聯絡人", contact.emergency_contact_name || "-"],
+    ["緊急聯絡人關係", contact.emergency_relationship || "-"],
+    ["電話(市話)", contact.emergency_home_phone || "-"],
+    ["電話(手機)", contact.emergency_mobile_phone || "-"],
+  ];
+}
+
+function ContactInformationEditDialog({ open, onClose, profile }) {
   const theme = useTheme();
   const isDialogMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const contact = profile?.contact || {};
 
   const [form, setForm] = useState({
-    tel: "",
-    mobile: "0972948684",
-    registeredAddress: "新北市三重區仁義街225巷15號四樓",
-    contactAddress: "新北市三重區仁義街225巷15號四樓",
-    extension: "",
-    officeMobile: "",
-    personalEmail: "",
-    emergencyContact: "",
-    emergencyRelation: "",
-    emergencyTel: "",
-    emergencyMobile: "",
+    tel: contact.home_phone || "",
+    mobile: contact.mobile_phone || "",
+    registeredAddress: contact.postal_address || "",
+    contactAddress: contact.contact_address || "",
+    extension: contact.extension_no || "",
+    officeMobile: contact.work_mobile || "",
+    personalEmail: contact.personal_email || "",
+    emergencyContact: contact.emergency_contact_name || "",
+    emergencyRelation: contact.emergency_relationship || "",
+    emergencyTel: contact.emergency_home_phone || "",
+    emergencyMobile: contact.emergency_mobile_phone || "",
     amendReason: "",
     attachment: null,
   });
@@ -399,10 +404,12 @@ function ContactInformationEditDialog({ open, onClose }) {
   );
 }
 
-export default function ContactInformationTab() {
+export default function ContactInformationTab({ profile }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [openEditDialog, setOpenEditDialog] = useState(false);
+
+  const rows = useMemo(() => buildContactRows(profile), [profile]);
 
   if (isMobile) {
     return (
@@ -481,6 +488,7 @@ export default function ContactInformationTab() {
         <ContactInformationEditDialog
           open={openEditDialog}
           onClose={() => setOpenEditDialog(false)}
+          profile={profile}
         />
       </Box>
     );
@@ -555,6 +563,7 @@ export default function ContactInformationTab() {
       <ContactInformationEditDialog
         open={openEditDialog}
         onClose={() => setOpenEditDialog(false)}
+        profile={profile}
       />
     </Box>
   );

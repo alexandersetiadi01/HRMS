@@ -1,10 +1,53 @@
-import { Box, InputBase, Typography } from "@mui/material";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Box,
+  ClickAwayListener,
+  InputBase,
+  Paper,
+  Typography,
+} from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
-import { Outlet } from "react-router-dom";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import { Outlet, useNavigate } from "react-router-dom";
 import Navbar from "../Components/Navbar/Navbar";
+import { getStoredAuthUser, logoutFromServer } from "../API/auth";
 
 function MainLayout() {
+  const navigate = useNavigate();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [authUser, setAuthUser] = useState(getStoredAuthUser());
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    const handleStorage = () => {
+      setAuthUser(getStoredAuthUser());
+    };
+
+    window.addEventListener("storage", handleStorage);
+
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, []);
+
+  const employeeName = useMemo(() => {
+    const employeeDisplayName = authUser?.employee?.display_name;
+    const userDisplayName = authUser?.display_name;
+    const userLogin = authUser?.user_login;
+
+    return employeeDisplayName || userDisplayName || userLogin || "帳戶";
+  }, [authUser]);
+
+  async function handleLogout() {
+    try {
+      await logoutFromServer();
+    } finally {
+      setMenuOpen(false);
+      navigate("/login", { replace: true });
+    }
+  }
+
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "#f3f4f6" }}>
       <Box
@@ -89,25 +132,91 @@ function MainLayout() {
               />
             </Box>
 
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                flexShrink: 0,
-              }}
-            >
-              <AccountCircleIcon sx={{ color: "#8b8b8b", fontSize: "28px" }} />
-              <Typography
+            <ClickAwayListener onClickAway={() => setMenuOpen(false)}>
+              <Box
+                ref={menuRef}
                 sx={{
-                  fontSize: { xs: "13px", md: "15px" },
-                  color: "#6b7280",
-                  whiteSpace: "nowrap",
+                  position: "relative",
+                  display: "flex",
+                  alignItems: "center",
+                  flexShrink: 0,
                 }}
               >
-                帳戶
-              </Typography>
-            </Box>
+                <Box
+                  onClick={() => setMenuOpen((prev) => !prev)}
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    flexShrink: 0,
+                    cursor: "pointer",
+                    userSelect: "none",
+                    px: "6px",
+                    py: "4px",
+                    borderRadius: "8px",
+                    "&:hover": {
+                      bgcolor: "#f3f4f6",
+                    },
+                  }}
+                >
+                  <AccountCircleIcon
+                    sx={{ color: "#8b8b8b", fontSize: "28px" }}
+                  />
+                  <Typography
+                    sx={{
+                      fontSize: { xs: "13px", md: "15px" },
+                      color: "#6b7280",
+                      whiteSpace: "nowrap",
+                      maxWidth: "180px",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
+                    {employeeName}
+                  </Typography>
+                  <KeyboardArrowDownIcon
+                    sx={{
+                      color: "#9ca3af",
+                      fontSize: "18px",
+                      transform: menuOpen ? "rotate(180deg)" : "rotate(0deg)",
+                      transition: "transform 0.2s ease",
+                    }}
+                  />
+                </Box>
+
+                {menuOpen ? (
+                  <Paper
+                    elevation={4}
+                    sx={{
+                      position: "absolute",
+                      top: "calc(100% + 8px)",
+                      right: 0,
+                      minWidth: "140px",
+                      py: "6px",
+                      borderRadius: "12px",
+                      overflow: "hidden",
+                      zIndex: 20,
+                    }}
+                  >
+                    <Box
+                      onClick={handleLogout}
+                      sx={{
+                        px: "14px",
+                        py: "10px",
+                        fontSize: "14px",
+                        color: "#374151",
+                        cursor: "pointer",
+                        "&:hover": {
+                          bgcolor: "#f9fafb",
+                        },
+                      }}
+                    >
+                      登出
+                    </Box>
+                  </Paper>
+                ) : null}
+              </Box>
+            </ClickAwayListener>
           </Box>
         </Box>
       </Box>

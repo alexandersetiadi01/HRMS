@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Box,
   Button,
@@ -19,29 +19,6 @@ import EditIcon from "@mui/icons-material/Edit";
 import CloseIcon from "@mui/icons-material/Close";
 import { LabelCell, renderDateField } from "../../Components/GlobalComponent";
 import Countries from "../../Components/Countries.json";
-
-const rows = [
-  ["姓", ""],
-  ["名", ""],
-  ["英文姓名", ""],
-  ["國籍", ""],
-  ["性別", ""],
-  ["兵役狀態", ""],
-  ["役別", ""],
-  ["兵役期間", "-"],
-  ["證件類型", ""],
-  ["證件號碼", ""],
-  ["證件到期日", ""],
-  ["證件類型2", ""],
-  ["證件號碼2", ""],
-  ["證件到期日2", ""],
-  ["證件類型3", ""],
-  ["證件號碼3", ""],
-  ["證件到期日3", ""],
-  ["入境時間", ""],
-  ["生日", ""],
-  ["婚姻狀態", ""],
-];
 
 const textFieldSx = {
   "& .MuiInputBase-root": {
@@ -107,32 +84,81 @@ function renderSelectOptions(options, includeEmpty = false) {
   ));
 }
 
-function BasicInformationEditDialog({ open, onClose }) {
+function formatDate(value) {
+  return value || "";
+}
+
+function buildBasicRows(profile) {
+  const employee = profile?.employee || {};
+  const military = profile?.military || {};
+  const docs = Array.isArray(profile?.identityDocuments)
+    ? profile.identityDocuments
+    : [];
+
+  const doc1 = docs[0] || {};
+  const doc2 = docs[1] || {};
+  const doc3 = docs[2] || {};
+
+  return [
+    ["姓", employee.last_name || "-"],
+    ["名", employee.first_name || "-"],
+    ["英文姓名", employee.english_name || "-"],
+    ["國籍", employee.nationality || "-"],
+    ["性別", employee.gender || "-"],
+    ["兵役狀態", military.military_status || "-"],
+    ["役別", military.service_type || "-"],
+    ["兵役期間", military.service_period || "-"],
+    ["證件類型", doc1.document_type || "-"],
+    ["證件號碼", doc1.document_no || "-"],
+    ["證件到期日", formatDate(doc1.expiry_date) || "-"],
+    ["證件類型2", doc2.document_type || "-"],
+    ["證件號碼2", doc2.document_no || "-"],
+    ["證件到期日2", formatDate(doc2.expiry_date) || "-"],
+    ["證件類型3", doc3.document_type || "-"],
+    ["證件號碼3", doc3.document_no || "-"],
+    ["證件到期日3", formatDate(doc3.expiry_date) || "-"],
+    ["入境時間", formatDate(military.entry_date) || "-"],
+    ["生日", formatDate(employee.birth_date) || "-"],
+    ["婚姻狀態", employee.marital_status || "-"],
+  ];
+}
+
+function BasicInformationEditDialog({ open, onClose, profile }) {
   const theme = useTheme();
   const isDialogMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
+  const employee = profile?.employee || {};
+  const military = profile?.military || {};
+  const docs = Array.isArray(profile?.identityDocuments)
+    ? profile.identityDocuments
+    : [];
+
+  const doc1 = docs[0] || {};
+  const doc2 = docs[1] || {};
+  const doc3 = docs[2] || {};
+
   const [form, setForm] = useState({
-    lastName: "",
-    firstName: "",
-    englishName: "",
-    nationality: "台灣",
-    gender: "",
-    militaryStatus: "",
-    militaryType: "",
-    militaryStartDate: "",
-    militaryEndDate: "",
-    idType1: "",
-    idNumber1: "",
-    idExpiry1: "",
-    idType2: "",
-    idNumber2: "",
-    idExpiry2: "",
-    idType3: "",
-    idNumber3: "",
-    idExpiry3: "",
-    entryDate: "",
-    birthday: "",
-    maritalStatus: "",
+    lastName: employee.last_name || "",
+    firstName: employee.first_name || "",
+    englishName: employee.english_name || "",
+    nationality: employee.nationality || "台灣",
+    gender: employee.gender || "",
+    militaryStatus: military.military_status || "",
+    militaryType: military.service_type || "",
+    militaryStartDate: military.service_start_date || "",
+    militaryEndDate: military.service_end_date || "",
+    idType1: doc1.document_type || "",
+    idNumber1: doc1.document_no || "",
+    idExpiry1: doc1.expiry_date || "",
+    idType2: doc2.document_type || "",
+    idNumber2: doc2.document_no || "",
+    idExpiry2: doc2.expiry_date || "",
+    idType3: doc3.document_type || "",
+    idNumber3: doc3.document_no || "",
+    idExpiry3: doc3.expiry_date || "",
+    entryDate: military.entry_date || "",
+    birthday: employee.birth_date || "",
+    maritalStatus: employee.marital_status || "",
     amendmentReason: "",
     attachment: null,
   });
@@ -416,7 +442,7 @@ function BasicInformationEditDialog({ open, onClose }) {
           <Box sx={{ width: "100%", minWidth: 0 }}>
             {renderDateField(
               form.militaryStartDate,
-              setField("militaryStartDate"),
+              setField("militaryStartDate")
             )}
           </Box>
 
@@ -655,10 +681,12 @@ function BasicInformationEditDialog({ open, onClose }) {
   );
 }
 
-export default function BasicInformationTab() {
+export default function BasicInformationTab({ profile }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [openEditDialog, setOpenEditDialog] = useState(false);
+
+  const rows = useMemo(() => buildBasicRows(profile), [profile]);
 
   if (isMobile) {
     return (
@@ -737,6 +765,7 @@ export default function BasicInformationTab() {
         <BasicInformationEditDialog
           open={openEditDialog}
           onClose={() => setOpenEditDialog(false)}
+          profile={profile}
         />
       </Box>
     );
@@ -808,6 +837,7 @@ export default function BasicInformationTab() {
       <BasicInformationEditDialog
         open={openEditDialog}
         onClose={() => setOpenEditDialog(false)}
+        profile={profile}
       />
     </Box>
   );

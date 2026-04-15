@@ -25,18 +25,42 @@ function TabPanel({ value, index, children }) {
   );
 }
 
-const sections = [
-  { label: "基本資料", content: <BasicInformationTab />, disabled: false },
-  { label: "通訊資料", content: <ContactInformationTab />, disabled: false },
-  { label: "學歷證照", content: <EducationCertificateTab />, disabled: false },
-  { label: "工作經歷", content: <JobExperienceTab />, disabled: true },
-  { label: "年資", content: <YearExperienceTab />, disabled: false },
-  { label: "職務經歷", content: <WorkExperienceTab />, disabled: false },
-];
-
-export default function AccountTabs() {
+export default function AccountTabs({ profile }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
+  const sections = [
+    {
+      label: "基本資料",
+      content: <BasicInformationTab profile={profile} />,
+      disabled: false,
+    },
+    {
+      label: "通訊資料",
+      content: <ContactInformationTab profile={profile} />,
+      disabled: false,
+    },
+    {
+      label: "學歷證照",
+      content: <EducationCertificateTab profile={profile} />,
+      disabled: false,
+    },
+    {
+      label: "工作經歷",
+      content: <JobExperienceTab profile={profile} />,
+      disabled: false,
+    },
+    {
+      label: "年資",
+      content: <YearExperienceTab profile={profile} />,
+      disabled: false,
+    },
+    {
+      label: "職務經歷",
+      content: <WorkExperienceTab profile={profile} />,
+      disabled: false,
+    },
+  ];
 
   const [tab, setTab] = useState(0);
   const [openSections, setOpenSections] = useState({
@@ -54,14 +78,11 @@ export default function AccountTabs() {
     setOpenSections((prev) => {
       const isCurrentlyOpen = !!prev[index];
 
-      // close all first
       const next = Object.keys(prev).reduce((acc, key) => {
         acc[key] = false;
         return acc;
       }, {});
 
-      // if current is closed, open only that one
-      // if current is already open, keep all closed
       if (!isCurrentlyOpen) {
         next[index] = true;
       }
@@ -174,27 +195,27 @@ export default function AccountTabs() {
       />
 
       <TabPanel value={tab} index={0}>
-        <BasicInformationTab />
+        <BasicInformationTab profile={profile} />
       </TabPanel>
 
       <TabPanel value={tab} index={1}>
-        <ContactInformationTab />
+        <ContactInformationTab profile={profile} />
       </TabPanel>
 
       <TabPanel value={tab} index={2}>
-        <EducationCertificateTab />
+        <EducationCertificateTab profile={profile} />
       </TabPanel>
 
       <TabPanel value={tab} index={3}>
-        <JobExperienceTab />
+        <JobExperienceTab profile={profile} />
       </TabPanel>
 
       <TabPanel value={tab} index={4}>
-        <YearExperienceTab />
+        <YearExperienceTab profile={profile} />
       </TabPanel>
 
       <TabPanel value={tab} index={5}>
-        <WorkExperienceTab />
+        <WorkExperienceTab profile={profile} />
       </TabPanel>
     </Box>
   );

@@ -11,38 +11,79 @@ import MenuIcon from "@mui/icons-material/Menu";
 import CloseIcon from "@mui/icons-material/Close";
 import PersonIcon from "@mui/icons-material/Person";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import MenuTile from "../MenuTile";
 import {
   getDrawerBottomItems,
   getMenuItemsByIds,
 } from "../../Utils/Menu/MenuRegistry";
 import { loadMobileDrawerShortcutIds } from "../../Utils/Menu/MobileShortcutSettings";
+import { getStoredAuthUser, logoutFromServer } from "../../API/auth";
 
 export default function MobileNavbar() {
   const [open, setOpen] = useState(false);
   const [shortcutIds, setShortcutIds] = useState(loadMobileDrawerShortcutIds());
-  const location = useLocation();
+  const [authUser, setAuthUser] = useState(getStoredAuthUser());
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleUpdate = () => {
       setShortcutIds(loadMobileDrawerShortcutIds());
     };
 
-    window.addEventListener("hrms-mobile-drawer-shortcuts-updated", handleUpdate);
+    window.addEventListener(
+      "hrms-mobile-drawer-shortcuts-updated",
+      handleUpdate,
+    );
     window.addEventListener("storage", handleUpdate);
 
     return () => {
       window.removeEventListener(
         "hrms-mobile-drawer-shortcuts-updated",
-        handleUpdate
+        handleUpdate,
       );
       window.removeEventListener("storage", handleUpdate);
     };
   }, []);
 
+  useEffect(() => {
+    const handleStorage = () => {
+      setAuthUser(getStoredAuthUser());
+    };
+
+    window.addEventListener("storage", handleStorage);
+
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, []);
+
   const primaryItems = getMenuItemsByIds(shortcutIds);
   const bottomItems = getDrawerBottomItems();
+
+  const employeeName = useMemo(() => {
+    const employeeDisplayName = authUser?.employee?.display_name;
+    const userDisplayName = authUser?.display_name;
+    const userLogin = authUser?.user_login;
+
+    return employeeDisplayName || userDisplayName || userLogin || "帳戶";
+  }, [authUser]);
+
+  const employeeEmail = useMemo(() => {
+    const employeeRowEmail = authUser?.employee?.email;
+    const userEmail = authUser?.user_email;
+
+    return employeeRowEmail || userEmail || "";
+  }, [authUser]);
+
+  async function handleLogout() {
+    try {
+      await logoutFromServer();
+    } finally {
+      setOpen(false);
+      navigate("/login", { replace: true });
+    }
+  }
 
   return (
     <>
@@ -99,25 +140,9 @@ export default function MobileNavbar() {
             </Box>
           </Box>
 
-          <Box sx={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                color: "#8c8c8c",
-              }}
-            >
-              <PersonIcon sx={{ fontSize: "28px" }} />
-              <Typography sx={{ fontSize: "15px", color: "#8c8c8c" }}>
-                帳戶
-              </Typography>
-            </Box>
-
-            <IconButton onClick={() => setOpen(true)} sx={{ color: "#b6bcc8" }}>
-              <MenuIcon sx={{ fontSize: "30px" }} />
-            </IconButton>
-          </Box>
+          <IconButton onClick={() => setOpen(true)} sx={{ color: "#b6bcc8" }}>
+            <MenuIcon sx={{ fontSize: "30px" }} />
+          </IconButton>
         </Box>
       </Box>
 
@@ -176,28 +201,32 @@ export default function MobileNavbar() {
               <PersonIcon sx={{ fontSize: "46px" }} />
             </Avatar>
 
-            <Box>
+            <Box sx={{ minWidth: 0 }}>
               <Typography
                 sx={{
-                  fontSize: "28px",
+                  fontSize: "25px",
                   fontWeight: 800,
                   color: "#2d3945",
                   lineHeight: 1.2,
                   mb: "4px",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
                 }}
               >
-                帳戶
+                {employeeName}
               </Typography>
 
               <Typography
                 sx={{
-                  fontSize: "16px",
-                  fontWeight: 600,
+                  fontSize: "15px",
+                  fontWeight: 400,
                   color: "#b0b5bf",
                   lineHeight: 1.2,
+                  wordBreak: "break-all",
                 }}
               >
-                帳戶@mizunogi.com
+                {employeeEmail}
               </Typography>
             </Box>
 
@@ -246,28 +275,56 @@ export default function MobileNavbar() {
               gap: "22px 14px",
             }}
           >
-            {bottomItems.map((item) => (
-              <MenuTile
-                key={item.id}
-                item={item}
-                iconSize={42}
-                iconColor="#1098dc"
-                onClick={() => setOpen(false)}
-                wrapperSx={{
-                  gap: "10px",
-                  minHeight: "112px",
-                }}
-                iconBoxSx={{
-                  width: "56px",
-                  height: "56px",
-                }}
-                labelSx={{
-                  fontSize: "14px",
-                  fontWeight: 700,
-                  color: "#2d3945",
-                }}
-              />
-            ))}
+            {bottomItems.map((item) => {
+              const isLogout = item.label === "登出";
+              const isDisabled = !!item.disable && !isLogout;
+
+              return (
+                <Box
+                  key={item.id}
+                  sx={{
+                    opacity: isDisabled ? 0.45 : 1,
+                  }}
+                >
+                  <MenuTile
+                    item={item}
+                    iconSize={42}
+                    iconColor={
+                      isLogout ? "#1098dc" : isDisabled ? "#cbd5e1" : "#1098dc"
+                    }
+                    onClick={() => {
+                      if (isLogout) {
+                        handleLogout();
+                        return;
+                      }
+
+                      if (!isDisabled) {
+                        setOpen(false);
+                      }
+                    }}
+                    wrapperSx={{
+                      gap: "10px",
+                      minHeight: "112px",
+                      cursor: isDisabled ? "not-allowed" : "pointer",
+                      pointerEvents: isDisabled ? "none" : "auto",
+                    }}
+                    iconBoxSx={{
+                      width: "56px",
+                      height: "56px",
+                    }}
+                    labelSx={{
+                      fontSize: "14px",
+                      fontWeight: 700,
+                      color: isLogout
+                        ? "#2d3945"
+                        : isDisabled
+                          ? "#9ca3af"
+                          : "#2d3945",
+                    }}
+                  />
+                </Box>
+              );
+            })}
           </Box>
         </Box>
       </Drawer>

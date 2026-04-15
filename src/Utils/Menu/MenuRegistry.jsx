@@ -420,7 +420,7 @@ export const MENU_ITEMS = [
     label: "登出",
     to: "/login",
     iconKey: "logout",
-    disable: true,
+    disable: false,
     groups: ["drawerBottom"],
   },
   {
