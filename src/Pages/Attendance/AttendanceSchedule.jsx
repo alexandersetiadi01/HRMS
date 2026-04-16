@@ -8,7 +8,9 @@ import {
   useMediaQuery,
   useTheme,
 } from "@mui/material";
+import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import { fetchTaiwanCalendarYear } from "../../Utils/TaiwanHolidays";
+import { apiAttendanceScheduleMonth } from "../../API/attendance";
 import {
   formatCellKey,
   formatRange,
@@ -19,11 +21,7 @@ import {
   pad2,
 } from "../../Utils/Calendar/DateHelpers";
 import { getMonthGrid } from "../../Utils/Calendar/MonthGrid";
-import {
-  getDayType,
-  getDisplayHolidayName,
-  getShiftData,
-} from "../../Utils/Calendar/DayStatus";
+import { getDisplayHolidayName } from "../../Utils/Calendar/DayStatus";
 import YearMonthPicker from "../../Utils/Calendar/YearMonthPicker";
 import MobileCalendar from "../../Utils/Calendar/MobileCalendar";
 import Breadcrumb from "../../Utils/Breadcrumb";
@@ -39,27 +37,59 @@ const SHIFT_FILTERS = [
   { key: "normal", label: "常日班", color: "#f5a04a", dotColor: "#f59a42" },
 ];
 
-function PeopleGroup({ color }) {
+const DEFAULT_DAY_DATA = {
+  schedule_id: 0,
+  employee_id: 0,
+  shift_id: 0,
+  work_date: "",
+  date: "",
+  status: "",
+  day_type: "unscheduled",
+  filter_key: "rest",
+  title: "未排班",
+  time: "",
+  expected_start: null,
+  expected_end: null,
+  break_minutes: 0,
+  block_bg: "#d9dde3",
+  text_color: "#111827",
+  people_color: "#22c55e",
+  shift_name: "",
+  employee_no: "",
+  display_name: "",
+  attendance_status: "",
+  actual_in: null,
+  actual_out: null,
+  late_minutes: 0,
+  early_leave_minutes: 0,
+  worked_hours: 0,
+  leave_hours: 0,
+  overtime_hours: 0,
+  indicator: {
+    show: true,
+    icon: "person",
+    color: "#9ca3af",
+    count: 1,
+    status: "none",
+  },
+};
+
+function AttendanceIndicator({ indicator, fallbackColor = "#22c55e" }) {
+  const safeIndicator = indicator || {};
+  const show = safeIndicator.show !== false;
+  const color = safeIndicator.color || fallbackColor;
+
+  if (!show) {
+    return null;
+  }
+
   return (
-    <Box
+    <PersonRoundedIcon
       sx={{
-        display: "flex",
-        alignItems: "center",
-        gap: { xs: "2px", sm: "4px" },
+        fontSize: { xs: "14px", sm: "18px" },
+        color,
       }}
-    >
-      {[0, 1, 2].map((item) => (
-        <Box
-          key={item}
-          sx={{
-            width: { xs: "8px", sm: "14px" },
-            height: { xs: "8px", sm: "14px" },
-            borderRadius: "50%",
-            bgcolor: color,
-          }}
-        />
-      ))}
-    </Box>
+    />
   );
 }
 
@@ -101,7 +131,50 @@ function SidebarCard({ title, children }) {
   );
 }
 
-function CalendarDayCell({ date, today, holidayMap }) {
+function getScheduleDayMap(days) {
+  const map = {};
+
+  if (!Array.isArray(days)) {
+    return map;
+  }
+
+  days.forEach((item) => {
+    const key = item?.work_date;
+    if (typeof key === "string" && key !== "") {
+      map[key] = item;
+    }
+  });
+
+  return map;
+}
+
+function getScheduleDayData(date, scheduleDayMap) {
+  if (!date) {
+    return null;
+  }
+
+  const key = `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(
+    date.getDate(),
+  )}`;
+  return scheduleDayMap[key] || null;
+}
+
+function shouldDisplayDay(selectedFilter, dayData) {
+  if (selectedFilter === "all") {
+    return true;
+  }
+
+  const filterKey = dayData?.filter_key || "";
+  return filterKey === selectedFilter;
+}
+
+function CalendarDayCell({
+  date,
+  today,
+  holidayMap,
+  scheduleDayMap,
+  selectedFilter,
+}) {
   if (!date) {
     return (
       <Box
@@ -115,9 +188,12 @@ function CalendarDayCell({ date, today, holidayMap }) {
     );
   }
 
-  const shift = getShiftData(date, holidayMap);
-  const holidayName = getDisplayHolidayName(date, holidayMap);
+  const scheduleDay = getScheduleDayData(date, scheduleDayMap);
+  const dayData = scheduleDay || DEFAULT_DAY_DATA;
+  const fallbackHolidayName = getDisplayHolidayName(date, holidayMap);
+  const displayTitle = dayData?.title || fallbackHolidayName || "-";
   const isToday = isSameDate(date, today);
+  const isVisible = shouldDisplayDay(selectedFilter, dayData);
 
   return (
     <Box
@@ -130,6 +206,7 @@ function CalendarDayCell({ date, today, holidayMap }) {
         flexDirection: "column",
         outline: isToday ? "2px solid #0c93d4" : "none",
         outlineOffset: "-2px",
+        opacity: isVisible ? 1 : 0.22,
       }}
     >
       <Box
@@ -152,8 +229,8 @@ function CalendarDayCell({ date, today, holidayMap }) {
         <Box
           sx={{
             flex: 1,
-            bgcolor: shift.blockBg,
-            color: shift.textColor,
+            bgcolor: dayData.block_bg || "#d9dde3",
+            color: dayData.text_color || "#111827",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
@@ -173,10 +250,10 @@ function CalendarDayCell({ date, today, holidayMap }) {
               wordBreak: "break-word",
             }}
           >
-            {holidayName || shift.title}
+            {displayTitle}
           </Typography>
 
-          {shift.time ? (
+          {dayData.time ? (
             <Typography
               sx={{
                 fontSize: { xs: "9px", sm: "15px" },
@@ -186,7 +263,7 @@ function CalendarDayCell({ date, today, holidayMap }) {
                 wordBreak: "break-word",
               }}
             >
-              {shift.time}
+              {dayData.time}
             </Typography>
           ) : null}
         </Box>
@@ -200,7 +277,10 @@ function CalendarDayCell({ date, today, holidayMap }) {
             bgcolor: "#ffffff",
           }}
         >
-          <PeopleGroup color={shift.peopleColor} />
+          <AttendanceIndicator
+            indicator={dayData.indicator}
+            fallbackColor={dayData.people_color || "#22c55e"}
+          />
         </Box>
       </Box>
     </Box>
@@ -219,8 +299,22 @@ export default function AttendanceSchedule() {
   const [holidayMap, setHolidayMap] = useState({});
   const [holidayLoading, setHolidayLoading] = useState(false);
   const [holidaySourceNote, setHolidaySourceNote] = useState("");
-  const [selectedFilter, setSelectedFilter] = useState("normal");
+  const [selectedFilter, setSelectedFilter] = useState("all");
   const [selectedDate, setSelectedDate] = useState(null);
+  const [scheduleDays, setScheduleDays] = useState([]);
+  const [scheduleLoading, setScheduleLoading] = useState(false);
+  const [scheduleError, setScheduleError] = useState("");
+  const [scheduleSummary, setScheduleSummary] = useState({
+    work_minutes: 0,
+    leave_minutes: 0,
+    rest_minutes: 0,
+    work_hours: 0,
+    work_remaining_minutes: 0,
+    leave_hours: 0,
+    leave_remaining_minutes: 0,
+    rest_hours: 0,
+    rest_remaining_minutes: 0,
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -262,9 +356,77 @@ export default function AttendanceSchedule() {
     };
   }, [selectedYear]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadScheduleMonth() {
+      setScheduleLoading(true);
+      setScheduleError("");
+
+      try {
+        const res = await apiAttendanceScheduleMonth({
+          year: selectedYear,
+          month: selectedMonth,
+        });
+
+        const payload = res?.data || {};
+        const days = Array.isArray(payload?.days) ? payload.days : [];
+        const summary = payload?.summary || {
+          work_minutes: 0,
+          leave_minutes: 0,
+          rest_minutes: 0,
+          work_hours: 0,
+          work_remaining_minutes: 0,
+          leave_hours: 0,
+          leave_remaining_minutes: 0,
+          rest_hours: 0,
+          rest_remaining_minutes: 0,
+        };
+
+        if (!cancelled) {
+          setScheduleDays(days);
+          setScheduleSummary(summary);
+        }
+      } catch (error) {
+        console.error("Failed to load attendance schedule month:", error);
+
+        if (!cancelled) {
+          setScheduleDays([]);
+          setScheduleSummary({
+            work_minutes: 0,
+            leave_minutes: 0,
+            rest_minutes: 0,
+            work_hours: 0,
+            work_remaining_minutes: 0,
+            leave_hours: 0,
+            leave_remaining_minutes: 0,
+            rest_hours: 0,
+            rest_remaining_minutes: 0,
+          });
+          setScheduleError("班表資料載入失敗。");
+        }
+      } finally {
+        if (!cancelled) {
+          setScheduleLoading(false);
+        }
+      }
+    }
+
+    loadScheduleMonth();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedYear, selectedMonth]);
+
   const monthGrid = useMemo(
     () => getMonthGrid(selectedYear, selectedMonth),
     [selectedYear, selectedMonth],
+  );
+
+  const scheduleDayMap = useMemo(
+    () => getScheduleDayMap(scheduleDays),
+    [scheduleDays],
   );
 
   useEffect(() => {
@@ -274,43 +436,28 @@ export default function AttendanceSchedule() {
     const todayInView = currentMonthDates.find((date) =>
       isSameDate(date, today),
     );
+
     setSelectedDate(
       todayInView || currentMonthDates[currentMonthDates.length - 1],
     );
   }, [selectedYear, selectedMonth]);
 
-  const totalWorkMinutes = useMemo(() => {
-    let count = 0;
+  const selectedDayData = useMemo(() => {
+    if (!selectedDate) {
+      return null;
+    }
 
-    monthGrid.flat().forEach((date) => {
-      if (!date) return;
-      if (getDayType(date, holidayMap) === "normal") {
-        count += 9 * 60;
-      }
-    });
+    return getScheduleDayData(selectedDate, scheduleDayMap) || DEFAULT_DAY_DATA;
+  }, [selectedDate, scheduleDayMap]);
 
-    return count;
-  }, [monthGrid, holidayMap]);
-
-  const totalHours = Math.floor(totalWorkMinutes / 60);
-  const totalMinutes = totalWorkMinutes % 60;
-
-  const leaveHours = 0;
-  const leaveMinutes = 0;
-  const restHours = 216;
-  const restMinutes = 0;
-
-  const selectedShift = selectedDate
-    ? getShiftData(selectedDate, holidayMap)
-    : null;
   const selectedHolidayName = selectedDate
     ? getDisplayHolidayName(selectedDate, holidayMap)
     : "";
 
   const selectedDateDisplay = selectedDate
-    ? `${selectedDate.getFullYear()}/${pad2(selectedDate.getMonth() + 1)}/${pad2(
-        selectedDate.getDate(),
-      )}`
+    ? `${selectedDate.getFullYear()}/${pad2(
+        selectedDate.getMonth() + 1,
+      )}/${pad2(selectedDate.getDate())}`
     : "";
 
   const monthTitle = useMemo(() => {
@@ -345,14 +492,15 @@ export default function AttendanceSchedule() {
             monthTitle={monthTitle}
             monthGrid={monthGrid}
             holidayMap={holidayMap}
+            scheduleDayMap={scheduleDayMap}
             selectedDate={selectedDate}
             onSelectDate={setSelectedDate}
-            workHours={totalHours}
-            workMinutes={totalMinutes}
-            leaveHours={leaveHours}
-            leaveMinutes={leaveMinutes}
-            restHours={restHours}
-            restMinutes={restMinutes}
+            workHours={scheduleSummary.work_hours}
+            workMinutes={scheduleSummary.work_remaining_minutes}
+            leaveHours={scheduleSummary.leave_hours}
+            leaveMinutes={scheduleSummary.leave_remaining_minutes}
+            restHours={scheduleSummary.rest_hours}
+            restMinutes={scheduleSummary.rest_remaining_minutes}
             onPrevMonth={() => {
               const prev = getPrevMonthYear(selectedYear, selectedMonth);
               setSelectedYear(prev.year);
@@ -403,7 +551,7 @@ export default function AttendanceSchedule() {
                       lineHeight: 1.2,
                     }}
                   >
-                    {selectedHolidayName || selectedShift?.title || "-"}
+                    {selectedDayData?.title || selectedHolidayName || "-"}
                   </Typography>
 
                   <Typography
@@ -414,7 +562,7 @@ export default function AttendanceSchedule() {
                       lineHeight: 1.2,
                     }}
                   >
-                    {selectedShift?.time?.replace("~", " ~ ") || ""}
+                    {selectedDayData?.time?.replace("~", " ~ ") || ""}
                   </Typography>
                 </Box>
 
@@ -455,24 +603,24 @@ export default function AttendanceSchedule() {
                 <Typography
                   sx={{
                     fontSize: "14px",
-                    color: "#f5a04a",
+                    color: selectedDayData?.block_bg || "#e6a252",
                     fontWeight: 700,
                     lineHeight: 1.2,
                   }}
                 >
-                  • {selectedHolidayName || selectedShift?.title || "常日班"}
+                  • {selectedDayData?.title || selectedHolidayName || "未排班"}
                 </Typography>
 
                 <Typography
                   sx={{
                     fontSize: "14px",
-                    color: "#f5a04a",
+                    color: selectedDayData?.block_bg || "#e6a252",
                     fontWeight: 700,
                     lineHeight: 1.2,
                     mb: "6px",
                   }}
                 >
-                  {selectedShift?.time?.replace("~", " ~ ") || "09:00 ~ 18:00"}
+                  {selectedDayData?.time?.replace("~", " ~ ") || ""}
                 </Typography>
 
                 <Typography
@@ -482,13 +630,21 @@ export default function AttendanceSchedule() {
                     lineHeight: 1.5,
                   }}
                 >
-                  王穎傑、錢敏雯、張亨灝
+                  {selectedDayData?.display_name || "－"}
                 </Typography>
               </Box>
             </Paper>
           ) : null}
 
-          {holidayLoading ? (
+          {scheduleLoading ? (
+            <Typography sx={{ fontSize: "14px", color: "#6b7280", mt: "12px" }}>
+              載入班表資料中...
+            </Typography>
+          ) : scheduleError ? (
+            <Typography sx={{ fontSize: "14px", color: "#b91c1c", mt: "12px" }}>
+              {scheduleError}
+            </Typography>
+          ) : holidayLoading ? (
             <Typography sx={{ fontSize: "14px", color: "#6b7280", mt: "12px" }}>
               載入台灣行事曆中...
             </Typography>
@@ -598,7 +754,15 @@ export default function AttendanceSchedule() {
             </Button>
           </Box>
 
-          {holidayLoading ? (
+          {scheduleLoading ? (
+            <Typography sx={{ fontSize: "14px", color: "#6b7280", mb: "16px" }}>
+              載入班表資料中...
+            </Typography>
+          ) : scheduleError ? (
+            <Typography sx={{ fontSize: "14px", color: "#b91c1c", mb: "16px" }}>
+              {scheduleError}
+            </Typography>
+          ) : holidayLoading ? (
             <Typography sx={{ fontSize: "14px", color: "#6b7280", mb: "16px" }}>
               載入台灣行事曆中...
             </Typography>
@@ -676,6 +840,8 @@ export default function AttendanceSchedule() {
                         date={date}
                         today={today}
                         holidayMap={holidayMap}
+                        scheduleDayMap={scheduleDayMap}
+                        selectedFilter={selectedFilter}
                       />
                     ))}
                   </Box>
@@ -706,7 +872,8 @@ export default function AttendanceSchedule() {
                 </Typography>
 
                 <Typography sx={{ fontSize: "16px", color: "#374151" }}>
-                  上班時數：{totalHours} 時 {totalMinutes} 分
+                  上班時數：{scheduleSummary.work_hours} 時{" "}
+                  {scheduleSummary.work_remaining_minutes} 分
                 </Typography>
               </Paper>
 
@@ -714,8 +881,15 @@ export default function AttendanceSchedule() {
                 <Box
                   sx={{ display: "flex", flexDirection: "column", gap: "8px" }}
                 >
-                  <Box sx={{ display: "flex", alignItems: "center" }}>
-                    <Checkbox checked size="small" sx={{ p: "4px" }} />
+                  <Box
+                    sx={{ display: "flex", alignItems: "center", cursor: "pointer" }}
+                    onClick={() => setSelectedFilter("all")}
+                  >
+                    <Checkbox
+                      checked={selectedFilter === "all"}
+                      size="small"
+                      sx={{ p: "4px" }}
+                    />
                     <Typography sx={{ fontSize: "15px" }}>全選</Typography>
                   </Box>
 
@@ -728,9 +902,14 @@ export default function AttendanceSchedule() {
                   ].map((item) => (
                     <Box
                       key={item.key}
-                      sx={{ display: "flex", alignItems: "center" }}
+                      sx={{ display: "flex", alignItems: "center", cursor: "pointer" }}
+                      onClick={() => setSelectedFilter(item.key)}
                     >
-                      <Checkbox checked size="small" sx={{ p: "4px" }} />
+                      <Checkbox
+                        checked={selectedFilter === item.key}
+                        size="small"
+                        sx={{ p: "4px" }}
+                      />
                       <Box
                         sx={{
                           px: "8px",

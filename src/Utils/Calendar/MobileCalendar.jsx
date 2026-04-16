@@ -2,8 +2,8 @@ import { Box, Button, Paper, Typography } from "@mui/material";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
-import { formatCellKey, isSameDate } from "./DateHelpers";
-import { getDayType } from "./DayStatus";
+import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
+import { formatCellKey, isSameDate, pad2 } from "./DateHelpers";
 
 const MOBILE_WEEK_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -12,18 +12,21 @@ function MobileFilterChip({ item, active, onClick }) {
     <Box
       onClick={onClick}
       sx={{
-        flex: "0 0 auto",
-        minWidth: "fit-content",
-        height: "38px",
-        px: "14px",
+        width: "100%",
+        minWidth: 0,
+        minHeight: "38px",
+        px: "10px",
+        py: "6px",
         borderRadius: "20px",
         border: active ? "1px solid #2d3945" : "1px solid #d9d9de",
         bgcolor: active ? "#2d3945" : "#ffffff",
         color: active ? "#ffffff" : "#2d3945",
-        display: "flex",
+        display: "grid",
+        gridTemplateColumns: "12px minmax(0, 1fr)",
         alignItems: "center",
-        gap: "8px",
+        columnGap: "8px",
         cursor: "pointer",
+        boxSizing: "border-box",
       }}
     >
       <Box
@@ -33,15 +36,22 @@ function MobileFilterChip({ item, active, onClick }) {
           borderRadius: "50%",
           bgcolor: active ? "#ffffff" : item.dotColor,
           border: active && item.key === "all" ? "1px solid #ffffff" : "none",
+          justifySelf: "center",
+          alignSelf: "center",
+          flexShrink: 0,
         }}
       />
 
       <Typography
         sx={{
+          minWidth: 0,
           fontSize: "14px",
           fontWeight: 700,
-          whiteSpace: "nowrap",
-          lineHeight: 1,
+          lineHeight: 1.2,
+          textAlign: "center",
+          whiteSpace: "normal",
+          wordBreak: "break-word",
+          overflowWrap: "anywhere",
         }}
       >
         {item.label}
@@ -50,29 +60,61 @@ function MobileFilterChip({ item, active, onClick }) {
   );
 }
 
-function getMobileDayVisual(date, holidayMap) {
+function getScheduleDayData(date, scheduleDayMap) {
+  if (!date) {
+    return null;
+  }
+
+  const key = `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(
+    date.getDate(),
+  )}`;
+
+  return scheduleDayMap?.[key] || null;
+}
+
+function shouldDisplayDay(selectedFilter, dayData) {
+  if (selectedFilter === "all") {
+    return true;
+  }
+
+  return (dayData?.filter_key || "") === selectedFilter;
+}
+
+function getMobileDayVisual(date, scheduleDayMap, selectedFilter) {
   if (!date) {
     return {
       bg: "transparent",
       text: "#b8bec8",
       border: "none",
+      opacity: 1,
+      indicator: null,
     };
   }
 
-  const dayType = getDayType(date, holidayMap);
+  const dayData = getScheduleDayData(date, scheduleDayMap);
 
-  if (dayType === "normal") {
+  if (!dayData) {
     return {
-      bg: "#f5a04a",
-      text: "#ffffff",
+      bg: "#d9dde3",
+      text: "#111827",
       border: "2px solid transparent",
+      opacity: selectedFilter === "all" || selectedFilter === "rest" ? 1 : 0.22,
+      indicator: {
+        show: true,
+        icon: "person",
+        color: "#9ca3af",
+        count: 1,
+        status: "none",
+      },
     };
   }
 
   return {
-    bg: "#a9a9ad",
-    text: "#ffffff",
+    bg: dayData.block_bg || "#d9dde3",
+    text: dayData.text_color || "#111827",
     border: "2px solid transparent",
+    opacity: shouldDisplayDay(selectedFilter, dayData) ? 1 : 0.22,
+    indicator: dayData.indicator || null,
   };
 }
 
@@ -123,6 +165,25 @@ function CounterItem({ hours, minutes, label }) {
   );
 }
 
+function MobileAttendanceIndicator({ indicator }) {
+  const safeIndicator = indicator || {};
+  const show = safeIndicator.show !== false;
+  const color = safeIndicator.color || "#9ca3af";
+
+  if (!show) {
+    return null;
+  }
+
+  return (
+    <PersonRoundedIcon
+      sx={{
+        fontSize: "14px",
+        color,
+      }}
+    />
+  );
+}
+
 export default function MobileCalendar({
   filters,
   selectedFilter,
@@ -130,6 +191,7 @@ export default function MobileCalendar({
   monthTitle,
   monthGrid,
   holidayMap,
+  scheduleDayMap,
   selectedDate,
   onSelectDate,
   onPrevMonth,
@@ -187,10 +249,9 @@ export default function MobileCalendar({
       >
         <Box
           sx={{
-            display: "flex",
+            display: "grid",
+            gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
             gap: "10px",
-            overflowX: "auto",
-            pb: "6px",
             mb: "14px",
           }}
         >
@@ -310,7 +371,11 @@ export default function MobileCalendar({
           }}
         >
           {monthGrid.flat().map((date, index) => {
-            const visual = getMobileDayVisual(date, holidayMap);
+            const visual = getMobileDayVisual(
+              date,
+              scheduleDayMap,
+              selectedFilter,
+            );
             const isSelected =
               date && selectedDate && isSameDate(date, selectedDate);
 
@@ -331,6 +396,7 @@ export default function MobileCalendar({
                   alignItems: "center",
                   justifyContent: "flex-start",
                   minHeight: "48px",
+                  opacity: visual.opacity,
                 }}
               >
                 <Box
@@ -355,7 +421,21 @@ export default function MobileCalendar({
                   {date ? date.getDate() : ""}
                 </Box>
 
-                <Box sx={{ height: "8px", mt: "4px" }}>
+                <Box
+                  sx={{
+                    height: "14px",
+                    mt: "4px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  {date ? (
+                    <MobileAttendanceIndicator indicator={visual.indicator} />
+                  ) : null}
+                </Box>
+
+                <Box sx={{ height: "8px", mt: "2px" }}>
                   {isSelected && date ? (
                     <Box
                       sx={{

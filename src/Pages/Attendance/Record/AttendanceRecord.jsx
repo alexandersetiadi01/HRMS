@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -26,27 +26,17 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import AttendanceRecordTable from "./AttendanceRecordTable";
 import AttendanceAbnormalTable from "./AttendanceAbnormalTable";
 import Breadcrumb from "../../../Utils/Breadcrumb";
+import { apiAttendanceRecords } from "../../../API/attendance";
 
-const LOCATION_OPTIONS = ["全部"];
-const METHOD_OPTIONS = ["全部"];
+const DEFAULT_LOCATION_OPTIONS = ["全部"];
+const DEFAULT_METHOD_OPTIONS = ["全部"];
 const ABNORMAL_REASON_OPTIONS = ["全部", "遲到", "早退", "忘打卡"];
 
-const MOCK_DATA = [
-  {
-    date: "2026/03/31",
-    start: "08:53 / 台灣永禾",
-    startMethod: "定位打卡",
-    end: "-",
-    endMethod: "-",
-  },
-  {
-    date: "2026/03/30",
-    start: "08:58 / 台灣永禾",
-    startMethod: "定位打卡",
-    end: "18:01 / 台灣永禾",
-    endMethod: "定位打卡",
-  },
-];
+const RECORD_TYPE_MAP = {
+  上下班: "clock",
+  休息: "break",
+  外出: "outing",
+};
 
 const ABNORMAL_DATA = [
   {
@@ -59,12 +49,105 @@ const ABNORMAL_DATA = [
 export default function AttendanceRecord() {
   const [tab, setTab] = useState(0);
   const [recordType, setRecordType] = useState("上下班");
-  const [startDate, setStartDate] = useState("2026-03-01");
-  const [endDate, setEndDate] = useState("2026-03-31");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [location, setLocation] = useState("全部");
   const [method, setMethod] = useState("全部");
+  const [locationOptions, setLocationOptions] = useState(
+    DEFAULT_LOCATION_OPTIONS,
+  );
+  const [methodOptions, setMethodOptions] = useState(DEFAULT_METHOD_OPTIONS);
+  const [recordRows, setRecordRows] = useState([]);
+  const [recordLoading, setRecordLoading] = useState(false);
   const [abnormalReason, setAbnormalReason] = useState("全部");
   const [showOnlyPending, setShowOnlyPending] = useState(false);
+
+  const fetchRecordData = async ({
+    nextRecordType = recordType,
+    nextStartDate = startDate,
+    nextEndDate = endDate,
+    nextLocation = location,
+    nextMethod = method,
+  } = {}) => {
+    try {
+      setRecordLoading(true);
+
+      const res = await apiAttendanceRecords({
+        record_type: RECORD_TYPE_MAP[nextRecordType] || "clock",
+        date_from: nextStartDate,
+        date_to: nextEndDate,
+        location: nextLocation,
+        method: nextMethod,
+      });
+
+      const payload = res?.data || {};
+      const items = Array.isArray(payload?.items) ? payload.items : [];
+
+      const formattedRows = items.map((item) => ({
+        date: item?.date || "-",
+        start: item?.start_display || "-",
+        startMethod: item?.start_method || "-",
+        end: item?.end_display || "-",
+        endMethod: item?.end_method || "-",
+      }));
+
+      const nextLocationOptions =
+        Array.isArray(payload?.filters?.locations) &&
+        payload.filters.locations.length > 0
+          ? payload.filters.locations
+          : DEFAULT_LOCATION_OPTIONS;
+
+      const nextMethodOptions =
+        Array.isArray(payload?.filters?.methods) &&
+        payload.filters.methods.length > 0
+          ? payload.filters.methods
+          : DEFAULT_METHOD_OPTIONS;
+
+      setRecordRows(formattedRows);
+      setLocationOptions(nextLocationOptions);
+      setMethodOptions(nextMethodOptions);
+
+      if (!nextLocationOptions.includes(nextLocation)) {
+        setLocation("全部");
+      }
+
+      if (!nextMethodOptions.includes(nextMethod)) {
+        setMethod("全部");
+      }
+    } catch (error) {
+      console.error("Failed to fetch attendance records:", error);
+      setRecordRows([]);
+      setLocationOptions(DEFAULT_LOCATION_OPTIONS);
+      setMethodOptions(DEFAULT_METHOD_OPTIONS);
+    } finally {
+      setRecordLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (tab !== 0) {
+      return;
+    }
+
+    fetchRecordData();
+  }, [tab, recordType]);
+
+  const handleSearchRecord = () => {
+    fetchRecordData();
+  };
+
+  const handleResetRecord = () => {
+    const resetLocation = "全部";
+    const resetMethod = "全部";
+
+    setLocation(resetLocation);
+    setMethod(resetMethod);
+
+    fetchRecordData({
+      nextLocation: resetLocation,
+      nextMethod: resetMethod,
+    });
+  };
 
   return (
     <Box
@@ -193,6 +276,7 @@ export default function AttendanceRecord() {
 
                     <Button
                       variant="contained"
+                      onClick={handleSearchRecord}
                       sx={{
                         minWidth: "64px",
                         height: "40px",
@@ -205,6 +289,7 @@ export default function AttendanceRecord() {
 
                     <Button
                       variant="outlined"
+                      onClick={handleResetRecord}
                       sx={{
                         minWidth: "64px",
                         height: "40px",
@@ -231,7 +316,7 @@ export default function AttendanceRecord() {
                         onChange={(e) => setLocation(e.target.value)}
                         sx={{ height: "40px" }}
                       >
-                        {LOCATION_OPTIONS.map((item) => (
+                        {locationOptions.map((item) => (
                           <MenuItem key={item} value={item}>
                             {item}
                           </MenuItem>
@@ -249,7 +334,7 @@ export default function AttendanceRecord() {
                         onChange={(e) => setMethod(e.target.value)}
                         sx={{ height: "40px" }}
                       >
-                        {METHOD_OPTIONS.map((item) => (
+                        {methodOptions.map((item) => (
                           <MenuItem key={item} value={item}>
                             {item}
                           </MenuItem>
@@ -394,6 +479,7 @@ export default function AttendanceRecord() {
                     <Button
                       variant="contained"
                       fullWidth
+                      onClick={handleSearchRecord}
                       sx={{
                         height: "40px",
                         bgcolor: "#1976d2",
@@ -406,6 +492,7 @@ export default function AttendanceRecord() {
                     <Button
                       variant="outlined"
                       fullWidth
+                      onClick={handleResetRecord}
                       sx={{
                         height: "40px",
                       }}
@@ -424,7 +511,7 @@ export default function AttendanceRecord() {
                         onChange={(e) => setLocation(e.target.value)}
                         sx={{ height: "40px" }}
                       >
-                        {LOCATION_OPTIONS.map((item) => (
+                        {locationOptions.map((item) => (
                           <MenuItem key={item} value={item}>
                             {item}
                           </MenuItem>
@@ -443,7 +530,7 @@ export default function AttendanceRecord() {
                         onChange={(e) => setMethod(e.target.value)}
                         sx={{ height: "40px" }}
                       >
-                        {METHOD_OPTIONS.map((item) => (
+                        {methodOptions.map((item) => (
                           <MenuItem key={item} value={item}>
                             {item}
                           </MenuItem>
@@ -787,7 +874,10 @@ export default function AttendanceRecord() {
         >
           {tab === 0 ? (
             <>
-              <AttendanceRecordTable rows={MOCK_DATA} />
+              <AttendanceRecordTable
+                rows={recordRows}
+                loading={recordLoading}
+              />
 
               <Stack spacing={1.5} sx={{ mt: 2 }}>
                 <Stack

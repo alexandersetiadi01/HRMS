@@ -36,8 +36,27 @@ export function getDisplayHolidayName(date, holidayMap) {
   return "";
 }
 
-export function getShiftData(date, holidayMap) {
+export function getShiftData(date, holidayMap, scheduleDayMap = {}) {
   if (!date) return null;
+
+  const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+    2,
+    "0",
+  )}-${String(date.getDate()).padStart(2, "0")}`;
+
+  const scheduleDay = scheduleDayMap?.[key] || null;
+
+  if (scheduleDay) {
+    return {
+      title: scheduleDay.title || "常日班",
+      time: scheduleDay.time || "",
+      blockBg: scheduleDay.block_bg || "#f2ac6d",
+      textColor: scheduleDay.text_color || "#ffffff",
+      peopleColor: scheduleDay.people_color || "#f29a4a",
+      filterKey: scheduleDay.filter_key || "normal",
+      dayType: scheduleDay.day_type || "normal",
+    };
+  }
 
   if (getDayType(date, holidayMap) === "holiday") {
     return {
@@ -46,6 +65,8 @@ export function getShiftData(date, holidayMap) {
       blockBg: "#9e9ea3",
       textColor: "#ffffff",
       peopleColor: "#a9a9a9",
+      filterKey: "rest",
+      dayType: "holiday",
     };
   }
 
@@ -55,5 +76,7 @@ export function getShiftData(date, holidayMap) {
     blockBg: "#f2ac6d",
     textColor: "#ffffff",
     peopleColor: "#f29a4a",
+    filterKey: "normal",
+    dayType: "normal",
   };
 }

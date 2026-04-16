@@ -13,25 +13,32 @@ import { getTodayYearMonth } from "../../Utils/Calendar/DateHelpers";
 
 const MONTH_OPTIONS = Array.from({ length: 12 }, (_, index) => index + 1);
 
+function getPageStartFromYear(year) {
+  const safeYear = Number.isFinite(year) ? year : new Date().getFullYear();
+  return safeYear - (safeYear % 10);
+}
+
 export default function YearMonthPicker({ valueYear, valueMonth, onConfirm }) {
   const currentYear = new Date().getFullYear();
 
   const [open, setOpen] = useState(false);
   const [draftYear, setDraftYear] = useState(valueYear);
   const [draftMonth, setDraftMonth] = useState(valueMonth);
-  const [yearPageStart, setYearPageStart] = useState(currentYear);
+  const [yearPageStart, setYearPageStart] = useState(
+    getPageStartFromYear(valueYear || currentYear),
+  );
 
   useEffect(() => {
     if (!open) {
       setDraftYear(valueYear);
       setDraftMonth(valueMonth);
-      setYearPageStart(currentYear);
+      setYearPageStart(getPageStartFromYear(valueYear || currentYear));
     }
   }, [open, valueYear, valueMonth, currentYear]);
 
   const yearOptions = useMemo(
     () => Array.from({ length: 10 }, (_, index) => yearPageStart + index),
-    [yearPageStart]
+    [yearPageStart],
   );
 
   return (
@@ -41,7 +48,7 @@ export default function YearMonthPicker({ valueYear, valueMonth, onConfirm }) {
           onClick={() => {
             setDraftYear(valueYear);
             setDraftMonth(valueMonth);
-            setYearPageStart(currentYear);
+            setYearPageStart(getPageStartFromYear(valueYear || currentYear));
             setOpen(true);
           }}
           sx={{
@@ -225,7 +232,7 @@ export default function YearMonthPicker({ valueYear, valueMonth, onConfirm }) {
                   const today = getTodayYearMonth();
                   setDraftYear(today.year);
                   setDraftMonth(today.month);
-                  setYearPageStart(today.year);
+                  setYearPageStart(getPageStartFromYear(today.year));
                 }}
                 sx={{
                   minWidth: "52px",
@@ -250,7 +257,7 @@ export default function YearMonthPicker({ valueYear, valueMonth, onConfirm }) {
                 onClick={() => {
                   setDraftYear(valueYear);
                   setDraftMonth(valueMonth);
-                  setYearPageStart(currentYear);
+                  setYearPageStart(getPageStartFromYear(valueYear || currentYear));
                   setOpen(false);
                 }}
                 sx={{

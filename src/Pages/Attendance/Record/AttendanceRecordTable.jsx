@@ -10,7 +10,9 @@ import {
 } from "@mui/material";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 
-export default function AttendanceRecordTable({ rows }) {
+export default function AttendanceRecordTable({ rows = [], loading = false }) {
+  const safeRows = Array.isArray(rows) ? rows : [];
+
   return (
     <>
       <Box
@@ -109,102 +111,143 @@ export default function AttendanceRecordTable({ rows }) {
           </TableHead>
 
           <TableBody>
-            {rows.map((row, i) => (
-              <TableRow key={i}>
-                <TableCell
-                  sx={{
-                    whiteSpace: "normal",
-                    lineHeight: 1.4,
-                  }}
-                >
-                  {row.date.slice(2)}
-                </TableCell>
-
-                <TableCell
-                  sx={{
-                    whiteSpace: "normal",
-                    lineHeight: 1.4,
-                  }}
-                >
-                  {row.start}
-                </TableCell>
-
-                <TableCell
-                  sx={{
-                    color: "#2563eb",
-                  }}
-                >
-                  <Box
-                    sx={{
-                      display: "flex",
-                      flexDirection: "column",
-                      justifyContent: "center",
-                      height: "100%",
-                      lineHeight: 1.4,
-                    }}
-                  >
-                    <Typography sx={{ fontSize: { xs: "11px", sm: "14px" } }}>
-                      {row.startMethod}
-                    </Typography>
-                    <Typography sx={{ fontSize: { xs: "11px", sm: "14px" } }}>
-                      查看地點
-                    </Typography>
-                  </Box>
-                </TableCell>
-
-                <TableCell
-                  sx={{
-                    whiteSpace: "normal",
-                    lineHeight: 1.4,
-                  }}
-                >
-                  {row.end}
-                </TableCell>
-
-                <TableCell
-                  sx={{
-                    color: "#2563eb",
-                    whiteSpace: "normal",
-                    lineHeight: 1.4,
-                  }}
-                >
-                  <Box
-                    sx={{
-                      display: "flex",
-                      flexDirection: "column",
-                      justifyContent: "center",
-                      height: "100%",
-                      lineHeight: 1.4,
-                    }}
-                  >
-                    <Typography sx={{ fontSize: { xs: "11px", sm: "14px" } }}>
-                      {row.endMethod}
-                    </Typography>
-                    <Typography sx={{ fontSize: { xs: "11px", sm: "14px" } }}>
-                      查看地點
-                    </Typography>
-                  </Box>
-                </TableCell>
-
-                <TableCell
-                  align="center"
-                  sx={{
-                    verticalAlign: "middle",
-                  }}
-                >
-                  <IconButton
-                    size="small"
-                    sx={{
-                      p: { xs: "2px", sm: "4px" },
-                    }}
-                  >
-                    <DeleteOutlineIcon
-                      sx={{ fontSize: { xs: "18px", sm: "20px" } }}
-                    />
-                  </IconButton>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={6} align="center">
+                  讀取中
                 </TableCell>
               </TableRow>
-            ))}
+            ) : safeRows.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} align="center">
+                  查無資料
+                </TableCell>
+              </TableRow>
+            ) : (
+              safeRows.map((row, i) => {
+                const dateText =
+                  typeof row?.date === "string" && row.date !== ""
+                    ? row.date
+                    : "-";
+
+                const startText =
+                  typeof row?.start === "string" && row.start !== ""
+                    ? row.start
+                    : "-";
+
+                const startMethodText =
+                  typeof row?.startMethod === "string" && row.startMethod !== ""
+                    ? row.startMethod
+                    : "-";
+
+                const endText =
+                  typeof row?.end === "string" && row.end !== ""
+                    ? row.end
+                    : "-";
+
+                const endMethodText =
+                  typeof row?.endMethod === "string" && row.endMethod !== ""
+                    ? row.endMethod
+                    : "-";
+
+                return (
+                  <TableRow key={i}>
+                    <TableCell
+                      sx={{
+                        whiteSpace: "normal",
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      {dateText}
+                    </TableCell>
+
+                    <TableCell
+                      sx={{
+                        whiteSpace: "normal",
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      {startText}
+                    </TableCell>
+
+                    <TableCell
+                      sx={{
+                        color: "#2563eb",
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "center",
+                          height: "100%",
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        <Typography sx={{ fontSize: { xs: "11px", sm: "14px" } }}>
+                          {startMethodText}
+                        </Typography>
+                        <Typography sx={{ fontSize: { xs: "11px", sm: "14px" } }}>
+                          查看地點
+                        </Typography>
+                      </Box>
+                    </TableCell>
+
+                    <TableCell
+                      sx={{
+                        whiteSpace: "normal",
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      {endText}
+                    </TableCell>
+
+                    <TableCell
+                      sx={{
+                        color: "#2563eb",
+                        whiteSpace: "normal",
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "center",
+                          height: "100%",
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        <Typography sx={{ fontSize: { xs: "11px", sm: "14px" } }}>
+                          {endMethodText}
+                        </Typography>
+                        <Typography sx={{ fontSize: { xs: "11px", sm: "14px" } }}>
+                          查看地點
+                        </Typography>
+                      </Box>
+                    </TableCell>
+
+                    <TableCell
+                      align="center"
+                      sx={{
+                        verticalAlign: "middle",
+                      }}
+                    >
+                      <IconButton
+                        size="small"
+                        sx={{
+                          p: { xs: "2px", sm: "4px" },
+                        }}
+                      >
+                        <DeleteOutlineIcon
+                          sx={{ fontSize: { xs: "18px", sm: "20px" } }}
+                        />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
           </TableBody>
         </Table>
       </Box>
