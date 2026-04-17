@@ -172,7 +172,7 @@ export const MENU_ITEMS = [
     to: "/attendance/clock",
     iconKey: "attendance-clock",
     disable: false,
-    groups: ["mobileDrawer"],
+    groups: ["mobileDrawer", "attendance"],
     defaultInMobileDrawer: true,
   },
   {
