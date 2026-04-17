@@ -1,7 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
+  Alert,
   Box,
   Button,
+  CircularProgress,
   Dialog,
   IconButton,
   MenuItem,
@@ -22,48 +24,78 @@ import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import KeyboardDoubleArrowRightIcon from "@mui/icons-material/KeyboardDoubleArrowRight";
 import CloseIcon from "@mui/icons-material/Close";
 import Breadcrumb from "../../Utils/Breadcrumb";
+import { apiLeaveBalances } from "../../API/attendance";
 
-const leaveBalanceData = [
-  {
-    id: "annual",
-    name: "特休",
-    available: "56 時 0 分",
-    used: "0 時 0 分",
-    remaining: "56 時 0 分",
-    details: [
-      {
-        validPeriod: "2026/08/18~2028/08/17",
-        remaining: "56 時 0 分",
-      },
-    ],
-  },
-  {
-    id: "personal",
-    name: "事假",
-    available: "112 時 0 分",
-    used: "24 時 0 分",
-    remaining: "88 時 0 分",
-    details: [
-      {
-        validPeriod: "2026/01/01~2026/12/31",
-        remaining: "88 時 0 分",
-      },
-    ],
-  },
-  {
-    id: "sick",
-    name: "有薪病假",
-    available: "240 時 0 分",
-    used: "0 時 0 分",
-    remaining: "240 時 0 分",
-    details: [
-      {
-        validPeriod: "2026/01/01~2026/12/31",
-        remaining: "240 時 0 分",
-      },
-    ],
-  },
-];
+function formatHoursText(value) {
+  const num = Number(value || 0);
+
+  if (!Number.isFinite(num) || num <= 0) {
+    return "0 時 0 分";
+  }
+
+  const totalMinutes = Math.round(num * 60);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  return `${hours} 時 ${minutes} 分`;
+}
+
+function formatDateText(value) {
+  if (!value) {
+    return "-";
+  }
+
+  const text = String(value).trim();
+  if (!text) {
+    return "-";
+  }
+
+  return text.replaceAll("-", "/");
+}
+
+function buildValidPeriod(validFrom, validTo) {
+  const from = formatDateText(validFrom);
+  const to = formatDateText(validTo);
+
+  if (from === "-" && to === "-") {
+    return "-";
+  }
+
+  if (from === "-") {
+    return `~${to}`;
+  }
+
+  if (to === "-") {
+    return `${from}~`;
+  }
+
+  return `${from}~${to}`;
+}
+
+function normalizeLeaveBalanceRows(payload) {
+  const list = payload?.data?.data || payload?.data || payload || [];
+  const rows = Array.isArray(list) ? list : [];
+
+  return rows.map((row, index) => {
+    const grantedHours = Number(row?.granted_hours || 0);
+    const usedHours = Number(row?.used_hours || 0);
+    const remainingHours = Number(row?.remaining_hours || 0);
+
+    return {
+      id: row?.leave_balance_id || row?.leave_type_id || `balance-${index}`,
+      name: row?.leave_name || row?.name || row?.leave_type_name || "-",
+      available: formatHoursText(grantedHours),
+      used: formatHoursText(usedHours),
+      remaining: formatHoursText(remainingHours),
+      details: [
+        {
+          validPeriod: buildValidPeriod(row?.valid_from, row?.valid_to),
+          remaining: formatHoursText(remainingHours),
+        },
+      ],
+    };
+  });
+}
 
 function LeaveDetailDialog({ open, onClose, leaveItem }) {
   const theme = useTheme();
@@ -112,7 +144,7 @@ function LeaveDetailDialog({ open, onClose, leaveItem }) {
     >
       <Box
         sx={{
-          height: isMobile ? "36px" : "36px",
+          height: "36px",
           px: isMobile ? "12px" : "18px",
           display: "flex",
           alignItems: "center",
@@ -123,7 +155,7 @@ function LeaveDetailDialog({ open, onClose, leaveItem }) {
       >
         <Typography
           sx={{
-            fontSize: isMobile ? "14px" : "14px",
+            fontSize: "14px",
             fontWeight: 700,
           }}
         >
@@ -558,6 +590,53 @@ export default function AttendanceLeaveBalance() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [selectedLeave, setSelectedLeave] = useState(null);
+  const [leaveBalanceData, setLeaveBalanceData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [errorText, setErrorText] = useState("");
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadBalances() {
+      try {
+        setLoading(true);
+        setErrorText("");
+
+        const response = await apiLeaveBalances();
+        const rows = normalizeLeaveBalanceRows(response);
+
+        if (!active) {
+          return;
+        }
+
+        setLeaveBalanceData(rows);
+      } catch (error) {
+        console.error("Failed to load leave balances:", error);
+
+        if (!active) {
+          return;
+        }
+
+        const message =
+          error?.response?.data?.message ||
+          error?.response?.data?.data?.message ||
+          "載入剩餘假別資料失敗，請稍後再試。";
+
+        setErrorText(String(message));
+        setLeaveBalanceData([]);
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadBalances();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleOpenDetail = (leave) => {
     setSelectedLeave(leave);
@@ -582,15 +661,46 @@ export default function AttendanceLeaveBalance() {
         剩餘假別
       </Typography>
 
+      {errorText ? (
+        <Alert severity="error" sx={{ mb: "16px" }}>
+          {errorText}
+        </Alert>
+      ) : null}
+
       <Box
         sx={{
           border: "1px solid #9ca3af",
           bgcolor: "#ffffff",
           p: isMobile ? "12px" : "16px",
           minHeight: isMobile ? "auto" : "690px",
+          position: "relative",
         }}
       >
-        {isMobile ? (
+        {loading ? (
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              minHeight: isMobile ? "180px" : "220px",
+            }}
+          >
+            <CircularProgress size={28} />
+          </Box>
+        ) : leaveBalanceData.length === 0 ? (
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              minHeight: isMobile ? "180px" : "220px",
+            }}
+          >
+            <Typography sx={{ fontSize: "16px", color: "#6b7280" }}>
+              查無資料
+            </Typography>
+          </Box>
+        ) : isMobile ? (
           <Box sx={{ display: "grid", gap: "12px" }}>
             {leaveBalanceData.map((item) => (
               <MobileLeaveCard

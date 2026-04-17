@@ -194,3 +194,17 @@ export async function apiCreateLeaveRequest(payload = {}) {
 
   return res.data;
 }
+
+export async function apiLeaveBalances(params = {}) {
+  const { employee_id, leave_type_id } = params;
+  const employeeId = Number(employee_id || getCurrentEmployeeId() || 0);
+
+  const res = await http.get("/leave-balances", {
+    params: {
+      employee_id: employeeId || undefined,
+      leave_type_id,
+    },
+  });
+
+  return res.data;
+}
