@@ -141,28 +141,6 @@ export default function Absent() {
     };
   }, [employeeId]);
 
-  async function refreshTodayStatus(successMessage = "") {
-    const result = await apiTodayStatus({ employee_id: employeeId });
-
-    if (result?.isCompleted) {
-      setIsClockedIn(true);
-      setIsCompleted(true);
-      setStatusText(successMessage || "今日已完成上下班打卡。");
-      return;
-    }
-
-    if (result?.hasClockIn) {
-      setIsClockedIn(true);
-      setIsCompleted(false);
-      setStatusText(successMessage || "今日已上班，可進行下班打卡。");
-      return;
-    }
-
-    setIsClockedIn(false);
-    setIsCompleted(false);
-    setStatusText(successMessage || "");
-  }
-
   async function handleClock() {
     if (!employeeId || actionLoading || statusLoading || isCompleted) {
       return;
@@ -207,10 +185,34 @@ export default function Absent() {
 
       if (isClockedIn) {
         await apiClockOut(payload);
-        await refreshTodayStatus(`✅ 下班成功 (${Math.round(distance)}m)`);
+
+        setIsClockedIn(true);
+        setIsCompleted(true);
+        setStatusText(`✅ 下班成功 (${Math.round(distance)}m)`);
       } else {
         await apiClockIn(payload);
-        await refreshTodayStatus(`✅ 上班成功 (${Math.round(distance)}m)`);
+
+        setIsClockedIn(true);
+        setIsCompleted(false);
+        setStatusText(`✅ 上班成功 (${Math.round(distance)}m)`);
+      }
+
+      try {
+        const latest = await apiTodayStatus({ employee_id: employeeId });
+
+        if (latest?.isCompleted) {
+          setIsClockedIn(true);
+          setIsCompleted(true);
+        } else if (latest?.hasClockIn) {
+          setIsClockedIn(true);
+          setIsCompleted(false);
+        } else {
+          setIsClockedIn(false);
+          setIsCompleted(false);
+        }
+      } catch {
+        // Do nothing here.
+        // The optimistic UI state above is already enough to keep the button correct.
       }
     } catch (error) {
       setStatusText(getErrorMessage(error, "取得位置失敗"));
