@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Box,
   Typography,
@@ -19,7 +19,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Grid,
 } from "@mui/material";
 import AttendanceRecordTable from "./AttendanceRecordTable";
 import AttendanceAbnormalTable from "./AttendanceAbnormalTable";
@@ -32,7 +31,7 @@ const ABNORMAL_REASON_OPTIONS = ["全部", "遲到", "早退", "忘打卡"];
 
 const RECORD_TYPE_MAP = {
   上下班: "punch",
-  休息: "punch",
+  請假: "leave",
   外出: "punch",
 };
 
@@ -53,26 +52,108 @@ function safeText(value, fallback = "-") {
   return text !== "" ? text : fallback;
 }
 
-function buildCombinedText(timeText, locationText) {
-  const time = safeText(timeText, "");
-  const location = safeText(locationText, "");
-
-  if (time && location) {
-    return `${time}\n${location}`;
+function formatDateOnly(value) {
+  if (!value) {
+    return "-";
   }
 
-  if (time) {
-    return time;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return safeText(value);
   }
 
-  if (location) {
-    return location;
-  }
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
 
-  return "-";
+  return `${year}/${month}/${day}`;
 }
 
-function normalizeItems(items = [], currentLocation = "全部", currentMethod = "全部") {
+function formatDateTime(value) {
+  if (!value) {
+    return "-";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return safeText(value);
+  }
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+
+  return `${year}/${month}/${day} ${hours}:${minutes}`;
+}
+
+function getLeaveType(detail = {}) {
+  return (
+    detail?.leave_type ||
+    detail?.type ||
+    detail?.raw?.leave_type ||
+    detail?.raw?.type ||
+    "-"
+  );
+}
+
+function formatHours(value) {
+  if (value === null || value === undefined || value === "") {
+    return "-";
+  }
+
+  const num = Number(value);
+
+  if (Number.isNaN(num)) {
+    return String(value);
+  }
+
+  // remove .00, keep .5
+  return Number.isInteger(num) ? String(num) : String(parseFloat(num.toFixed(2)));
+}
+
+function getLeaveHours(detail = {}) {
+  const value =
+    detail?.display_hours ??
+    detail?.approved_hours ??
+    detail?.requested_hours ??
+    detail?.hours ??
+    detail?.raw?.approved_hours ??
+    detail?.raw?.requested_hours ??
+    detail?.raw?.hours;
+
+  return formatHours(value);
+}
+
+function getLeaveReason(detail = {}) {
+  return (
+    detail?.reason ||
+    detail?.leave_reason ||
+    detail?.remark ||
+    detail?.description ||
+    detail?.notes ||
+    detail?.raw?.reason ||
+    detail?.raw?.leave_reason ||
+    detail?.raw?.remark ||
+    detail?.raw?.description ||
+    detail?.raw?.notes ||
+    "-"
+  );
+}
+
+function getLeaveCreatedAt(item = {}) {
+  return (
+    item?.detail?.created_at ||
+    item?.detail?.raw?.created_at ||
+    item?.created_at ||
+    item?.raw?.created_at ||
+    item?.attendance_date ||
+    ""
+  );
+}
+
+function normalizePunchItems(items = [], currentLocation = "全部", currentMethod = "全部") {
   const nextLocationOptions = new Set(["全部"]);
   const nextMethodOptions = new Set(["全部"]);
 
@@ -101,9 +182,10 @@ function normalizeItems(items = [], currentLocation = "全部", currentMethod = 
 
       return {
         id: `${item?.attendance_date || ""}-${item?.clock_in_time || ""}-${item?.clock_out_time || ""}`,
+        mode: "punch",
         date: safeText(item?.attendance_date_display),
-        start: buildCombinedText(item?.clock_in_display, item?.clock_in_location_label),
-        end: buildCombinedText(item?.clock_out_display, item?.clock_out_location_label),
+        start: safeText(item?.clock_in_display),
+        end: safeText(item?.clock_out_display),
         paidHours: safeText(item?.payable_hours, "0"),
         lateMinutes: safeText(item?.late_minutes, "0"),
         status: safeText(item?.status_label || item?.status),
@@ -135,39 +217,76 @@ function normalizeItems(items = [], currentLocation = "全部", currentMethod = 
   };
 }
 
-function DetailItem({ label, value }) {
+function normalizeLeaveItems(items = []) {
+  const rows = (Array.isArray(items) ? items : []).map((item, index) => {
+    const detail = item?.detail || item || {};
+    const createdAt = getLeaveCreatedAt(item);
+    const startAt =
+      detail?.start_datetime ||
+      detail?.start_time ||
+      detail?.raw?.start_datetime ||
+      detail?.raw?.start_time ||
+      "";
+    const endAt =
+      detail?.end_datetime ||
+      detail?.end_time ||
+      detail?.raw?.end_datetime ||
+      detail?.raw?.end_time ||
+      "";
+
+    return {
+      id: item?.id || detail?.leave_request_id || detail?.raw?.leave_request_id || `leave-${index}`,
+      mode: "leave",
+      date: formatDateOnly(createdAt),
+      start: formatDateTime(startAt),
+      end: formatDateTime(endAt),
+      appliedHours: getLeaveHours(detail),
+      leaveType: safeText(getLeaveType(detail)),
+      reason: safeText(getLeaveReason(detail)),
+      detail,
+    };
+  });
+
+  return {
+    rows,
+    locationOptions: DEFAULT_LOCATION_OPTIONS,
+    methodOptions: DEFAULT_METHOD_OPTIONS,
+  };
+}
+
+function DetailRow({ label, value }) {
   return (
-    <Grid size={{ xs: 12, sm: 6 }}>
-      <Box
+    <Box
+      sx={{
+        display: "grid",
+        gridTemplateColumns: { xs: "100px 1fr", sm: "140px 1fr" },
+        columnGap: "12px",
+        rowGap: "4px",
+        py: "10px",
+        borderBottom: "1px solid #e5e7eb",
+      }}
+    >
+      <Typography
         sx={{
-          border: "1px solid #e5e7eb",
-          px: "12px",
-          py: "10px",
-          borderRadius: "6px",
-          height: "100%",
+          fontSize: "14px",
+          color: "#6b7280",
+          fontWeight: 700,
         }}
       >
-        <Typography
-          sx={{
-            fontSize: "13px",
-            color: "#6b7280",
-            mb: "4px",
-          }}
-        >
-          {label}
-        </Typography>
-        <Typography
-          sx={{
-            fontSize: "15px",
-            color: "#111827",
-            fontWeight: 600,
-            wordBreak: "break-word",
-          }}
-        >
-          {safeText(value)}
-        </Typography>
-      </Box>
-    </Grid>
+        {label}
+      </Typography>
+
+      <Typography
+        sx={{
+          fontSize: "14px",
+          color: "#111827",
+          whiteSpace: "pre-wrap",
+          wordBreak: "break-word",
+        }}
+      >
+        {safeText(value)}
+      </Typography>
+    </Box>
   );
 }
 
@@ -185,6 +304,8 @@ export default function AttendanceRecord() {
   const [abnormalReason, setAbnormalReason] = useState("全部");
   const [showOnlyPending, setShowOnlyPending] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
+
+  const isLeaveMode = recordType === "請假";
 
   const fetchRecordData = async ({
     nextRecordType = recordType,
@@ -205,25 +326,20 @@ export default function AttendanceRecord() {
       const payload = response?.data?.data || response?.data || response || {};
       const items = Array.isArray(payload?.items) ? payload.items : [];
 
-      const normalized = normalizeItems(items, nextLocation, nextMethod);
+      const normalized =
+        nextRecordType === "請假"
+          ? normalizeLeaveItems(items)
+          : normalizePunchItems(items, nextLocation, nextMethod);
 
       setRecordRows(normalized.rows);
-      setLocationOptions(
-        normalized.locationOptions.length > 0
-          ? normalized.locationOptions
-          : DEFAULT_LOCATION_OPTIONS,
-      );
-      setMethodOptions(
-        normalized.methodOptions.length > 0
-          ? normalized.methodOptions
-          : DEFAULT_METHOD_OPTIONS,
-      );
+      setLocationOptions(normalized.locationOptions || DEFAULT_LOCATION_OPTIONS);
+      setMethodOptions(normalized.methodOptions || DEFAULT_METHOD_OPTIONS);
 
-      if (!normalized.locationOptions.includes(nextLocation)) {
+      if (!(normalized.locationOptions || []).includes(nextLocation)) {
         setLocation("全部");
       }
 
-      if (!normalized.methodOptions.includes(nextMethod)) {
+      if (!(normalized.methodOptions || []).includes(nextMethod)) {
         setMethod("全部");
       }
     } catch (error) {
@@ -267,7 +383,7 @@ export default function AttendanceRecord() {
     });
   };
 
-  const detail = selectedRow?.detail || {};
+  const detail = useMemo(() => selectedRow?.detail || {}, [selectedRow]);
 
   return (
     <>
@@ -315,7 +431,7 @@ export default function AttendanceRecord() {
               },
             }}
           >
-            <Tab label="上下班/休息/外出" />
+            <Tab label="上下班/請假/外出" />
             <Tab label="異常" />
           </Tabs>
 
@@ -340,7 +456,7 @@ export default function AttendanceRecord() {
                         value={recordType}
                         onChange={(e) => setRecordType(e.target.value)}
                       >
-                        {["上下班", "休息", "外出"].map((item) => (
+                        {["上下班", "請假", "外出"].map((item) => (
                           <FormControlLabel
                             key={item}
                             value={item}
@@ -359,6 +475,7 @@ export default function AttendanceRecord() {
                                   recordType === item ? "#1976d2" : "#374151",
                               },
                             }}
+                            disabled = {item === "外出"}
                           />
                         ))}
                       </RadioGroup>
@@ -427,41 +544,45 @@ export default function AttendanceRecord() {
                       flexWrap="wrap"
                       useFlexGap
                     >
-                      <Typography sx={{ fontSize: "14px", whiteSpace: "nowrap" }}>
-                        地點
-                      </Typography>
+                      {!isLeaveMode && (
+                        <>
+                          <Typography sx={{ fontSize: "14px", whiteSpace: "nowrap" }}>
+                            地點
+                          </Typography>
 
-                      <FormControl size="small" sx={{ minWidth: "120px" }}>
-                        <Select
-                          value={location}
-                          onChange={(e) => setLocation(e.target.value)}
-                          sx={{ height: "40px" }}
-                        >
-                          {locationOptions.map((item) => (
-                            <MenuItem key={item} value={item}>
-                              {item}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
+                          <FormControl size="small" sx={{ minWidth: "120px" }}>
+                            <Select
+                              value={location}
+                              onChange={(e) => setLocation(e.target.value)}
+                              sx={{ height: "40px" }}
+                            >
+                              {locationOptions.map((item) => (
+                                <MenuItem key={item} value={item}>
+                                  {item}
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
 
-                      <Typography sx={{ fontSize: "14px", whiteSpace: "nowrap" }}>
-                        打卡方式
-                      </Typography>
+                          <Typography sx={{ fontSize: "14px", whiteSpace: "nowrap" }}>
+                            打卡方式
+                          </Typography>
 
-                      <FormControl size="small" sx={{ minWidth: "160px" }}>
-                        <Select
-                          value={method}
-                          onChange={(e) => setMethod(e.target.value)}
-                          sx={{ height: "40px" }}
-                        >
-                          {methodOptions.map((item) => (
-                            <MenuItem key={item} value={item}>
-                              {item}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
+                          <FormControl size="small" sx={{ minWidth: "160px" }}>
+                            <Select
+                              value={method}
+                              onChange={(e) => setMethod(e.target.value)}
+                              sx={{ height: "40px" }}
+                            >
+                              {methodOptions.map((item) => (
+                                <MenuItem key={item} value={item}>
+                                  {item}
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                        </>
+                      )}
 
                       <Box sx={{ flex: 1 }} />
 
@@ -496,7 +617,7 @@ export default function AttendanceRecord() {
                           gap: 0.5,
                         }}
                       >
-                        {["上下班", "休息", "外出"].map((item) => (
+                        {["上下班", "請假", "外出"].map((item) => (
                           <FormControlLabel
                             key={item}
                             value={item}
@@ -599,43 +720,47 @@ export default function AttendanceRecord() {
                       </Button>
                     </Stack>
 
-                    <Box>
-                      <Typography sx={{ fontSize: "14px", mb: 1 }}>
-                        地點
-                      </Typography>
-                      <FormControl size="small" fullWidth>
-                        <Select
-                          value={location}
-                          onChange={(e) => setLocation(e.target.value)}
-                          sx={{ height: "40px" }}
-                        >
-                          {locationOptions.map((item) => (
-                            <MenuItem key={item} value={item}>
-                              {item}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    </Box>
+                    {!isLeaveMode && (
+                      <>
+                        <Box>
+                          <Typography sx={{ fontSize: "14px", mb: 1 }}>
+                            地點
+                          </Typography>
+                          <FormControl size="small" fullWidth>
+                            <Select
+                              value={location}
+                              onChange={(e) => setLocation(e.target.value)}
+                              sx={{ height: "40px" }}
+                            >
+                              {locationOptions.map((item) => (
+                                <MenuItem key={item} value={item}>
+                                  {item}
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                        </Box>
 
-                    <Box>
-                      <Typography sx={{ fontSize: "14px", mb: 1 }}>
-                        打卡方式
-                      </Typography>
-                      <FormControl size="small" fullWidth>
-                        <Select
-                          value={method}
-                          onChange={(e) => setMethod(e.target.value)}
-                          sx={{ height: "40px" }}
-                        >
-                          {methodOptions.map((item) => (
-                            <MenuItem key={item} value={item}>
-                              {item}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    </Box>
+                        <Box>
+                          <Typography sx={{ fontSize: "14px", mb: 1 }}>
+                            打卡方式
+                          </Typography>
+                          <FormControl size="small" fullWidth>
+                            <Select
+                              value={method}
+                              onChange={(e) => setMethod(e.target.value)}
+                              sx={{ height: "40px" }}
+                            >
+                              {methodOptions.map((item) => (
+                                <MenuItem key={item} value={item}>
+                                  {item}
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                        </Box>
+                      </>
+                    )}
 
                     <Button
                       variant="contained"
@@ -948,6 +1073,7 @@ export default function AttendanceRecord() {
                 <AttendanceRecordTable
                   rows={recordRows}
                   loading={recordLoading}
+                  mode={isLeaveMode ? "leave" : "punch"}
                   onRowClick={(row) => setSelectedRow(row)}
                 />
 
@@ -1065,30 +1191,38 @@ export default function AttendanceRecord() {
         maxWidth="md"
       >
         <DialogTitle sx={{ fontSize: "22px", fontWeight: 700 }}>
-          打卡紀錄明細
+          {isLeaveMode ? "請假紀錄明細" : "打卡紀錄明細"}
         </DialogTitle>
 
         <DialogContent dividers>
-          <Grid container spacing={2}>
-            <DetailItem label="日期" value={detail?.attendance_date_display} />
-            <DetailItem label="狀態" value={detail?.status_label || detail?.status} />
-
-            <DetailItem label="上班時間" value={detail?.clock_in_display} />
-            <DetailItem label="上班地點" value={detail?.clock_in_location_label} />
-            <DetailItem label="上班方式" value={detail?.clock_in_method_label} />
-
-            <DetailItem label="下班時間" value={detail?.clock_out_display} />
-            <DetailItem label="下班地點" value={detail?.clock_out_location_label} />
-            <DetailItem label="下班方式" value={detail?.clock_out_method_label} />
-
-            <DetailItem label="工時" value={detail?.worked_hours} />
-            <DetailItem label="請假時數" value={detail?.leave_hours} />
-            <DetailItem label="加班時數" value={detail?.overtime_hours} />
-            <DetailItem label="曠職時數" value={detail?.absent_hours} />
-            <DetailItem label="計薪時數" value={detail?.payable_hours} />
-            <DetailItem label="遲到分鐘" value={detail?.late_minutes} />
-            <DetailItem label="早退分鐘" value={detail?.early_leave_minutes} />
-          </Grid>
+          {isLeaveMode ? (
+            <Box>
+              <DetailRow label="日期" value={selectedRow?.date} />
+              <DetailRow label="開始時間" value={selectedRow?.start} />
+              <DetailRow label="結束時間" value={selectedRow?.end} />
+              <DetailRow label="申請時數" value={selectedRow?.appliedHours} />
+              <DetailRow label="假別" value={selectedRow?.leaveType} />
+              <DetailRow label="事由" value={selectedRow?.reason} />
+            </Box>
+          ) : (
+            <Box>
+              <DetailRow label="日期" value={detail?.attendance_date_display} />
+              <DetailRow label="狀態" value={detail?.status_label || detail?.status} />
+              <DetailRow label="上班時間" value={detail?.clock_in_display} />
+              <DetailRow label="上班地點" value={detail?.clock_in_location_label} />
+              <DetailRow label="上班方式" value={detail?.clock_in_method_label} />
+              <DetailRow label="下班時間" value={detail?.clock_out_display} />
+              <DetailRow label="下班地點" value={detail?.clock_out_location_label} />
+              <DetailRow label="下班方式" value={detail?.clock_out_method_label} />
+              <DetailRow label="工時" value={detail?.worked_hours} />
+              <DetailRow label="請假時數" value={detail?.leave_hours} />
+              <DetailRow label="加班時數" value={detail?.overtime_hours} />
+              <DetailRow label="曠職時數" value={detail?.absent_hours} />
+              <DetailRow label="計薪時數" value={detail?.payable_hours} />
+              <DetailRow label="遲到分鐘" value={detail?.late_minutes} />
+              <DetailRow label="早退分鐘" value={detail?.early_leave_minutes} />
+            </Box>
+          )}
         </DialogContent>
 
         <DialogActions>

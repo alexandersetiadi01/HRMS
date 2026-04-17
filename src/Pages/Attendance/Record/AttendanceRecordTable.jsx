@@ -8,13 +8,13 @@ import {
   TableBody,
 } from "@mui/material";
 
-function safeText(value) {
+function safeText(value, fallback = "-") {
   if (value === null || value === undefined) {
-    return "-";
+    return fallback;
   }
 
   const text = String(value).trim();
-  return text !== "" ? text : "-";
+  return text !== "" ? text : fallback;
 }
 
 function renderMultilineText(value) {
@@ -43,8 +43,10 @@ export default function AttendanceRecordTable({
   rows = [],
   loading = false,
   onRowClick,
+  mode = "punch",
 }) {
   const safeRows = Array.isArray(rows) ? rows : [];
+  const isLeaveMode = mode === "leave";
 
   return (
     <Box
@@ -71,75 +73,147 @@ export default function AttendanceRecordTable({
       >
         <TableHead>
           <TableRow sx={{ backgroundColor: "#f3f4f6" }}>
-            <TableCell
-              sx={{
-                fontWeight: 700,
-                width: { xs: "16%", md: "110px" },
-                whiteSpace: "normal",
-                lineHeight: 1.3,
-              }}
-            >
-              日期
-            </TableCell>
+            {isLeaveMode ? (
+              <>
+                <TableCell
+                  sx={{
+                    fontWeight: 700,
+                    width: { xs: "14%", md: "120px" },
+                    whiteSpace: "normal",
+                    lineHeight: 1.3,
+                  }}
+                >
+                  日期
+                </TableCell>
 
-            <TableCell
-              sx={{
-                fontWeight: 700,
-                width: { xs: "22%", md: "180px" },
-                whiteSpace: "normal",
-                lineHeight: 1.3,
-              }}
-            >
-              上班時間/
-              <br />
-              地點
-            </TableCell>
+                <TableCell
+                  sx={{
+                    fontWeight: 700,
+                    width: { xs: "22%", md: "190px" },
+                    whiteSpace: "normal",
+                    lineHeight: 1.3,
+                  }}
+                >
+                  開始時間
+                </TableCell>
 
-            <TableCell
-              sx={{
-                fontWeight: 700,
-                width: { xs: "22%", md: "180px" },
-                whiteSpace: "normal",
-                lineHeight: 1.3,
-              }}
-            >
-              下班時間/
-              <br />
-              地點
-            </TableCell>
+                <TableCell
+                  sx={{
+                    fontWeight: 700,
+                    width: { xs: "22%", md: "190px" },
+                    whiteSpace: "normal",
+                    lineHeight: 1.3,
+                  }}
+                >
+                  結束時間
+                </TableCell>
 
-            <TableCell
-              sx={{
-                fontWeight: 700,
-                width: { xs: "14%", md: "120px" },
-                whiteSpace: "normal",
-                lineHeight: 1.3,
-              }}
-            >
-              計薪時數
-            </TableCell>
+                <TableCell
+                  sx={{
+                    fontWeight: 700,
+                    width: { xs: "12%", md: "110px" },
+                    whiteSpace: "normal",
+                    lineHeight: 1.3,
+                  }}
+                >
+                  申請時數
+                </TableCell>
 
-            <TableCell
-              sx={{
-                fontWeight: 700,
-                width: { xs: "12%", md: "110px" },
-                whiteSpace: "normal",
-                lineHeight: 1.3,
-              }}
-            >
-              遲到分鐘
-            </TableCell>
+                <TableCell
+                  sx={{
+                    fontWeight: 700,
+                    width: { xs: "14%", md: "140px" },
+                    whiteSpace: "normal",
+                    lineHeight: 1.3,
+                  }}
+                >
+                  假別
+                </TableCell>
 
-            <TableCell
-              sx={{
-                fontWeight: 700,
-                width: { xs: "14%", md: "130px" },
-                whiteSpace: "normal",
-                lineHeight: 1.3,
-              }}
-            >
-              狀態
-            </TableCell>
+                <TableCell
+                  sx={{
+                    fontWeight: 700,
+                    width: { xs: "16%", md: "1fr" },
+                    whiteSpace: "normal",
+                    lineHeight: 1.3,
+                  }}
+                >
+                  事由
+                </TableCell>
+              </>
+            ) : (
+              <>
+                <TableCell
+                  sx={{
+                    fontWeight: 700,
+                    width: { xs: "16%", md: "110px" },
+                    whiteSpace: "normal",
+                    lineHeight: 1.3,
+                  }}
+                >
+                  日期
+                </TableCell>
+
+                <TableCell
+                  sx={{
+                    fontWeight: 700,
+                    width: { xs: "22%", md: "180px" },
+                    whiteSpace: "normal",
+                    lineHeight: 1.3,
+                  }}
+                >
+                  上班時間/
+                  <br />
+                  地點
+                </TableCell>
+
+                <TableCell
+                  sx={{
+                    fontWeight: 700,
+                    width: { xs: "22%", md: "180px" },
+                    whiteSpace: "normal",
+                    lineHeight: 1.3,
+                  }}
+                >
+                  下班時間/
+                  <br />
+                  地點
+                </TableCell>
+
+                <TableCell
+                  sx={{
+                    fontWeight: 700,
+                    width: { xs: "14%", md: "120px" },
+                    whiteSpace: "normal",
+                    lineHeight: 1.3,
+                  }}
+                >
+                  計薪時數
+                </TableCell>
+
+                <TableCell
+                  sx={{
+                    fontWeight: 700,
+                    width: { xs: "12%", md: "110px" },
+                    whiteSpace: "normal",
+                    lineHeight: 1.3,
+                  }}
+                >
+                  遲到分鐘
+                </TableCell>
+
+                <TableCell
+                  sx={{
+                    fontWeight: 700,
+                    width: { xs: "14%", md: "130px" },
+                    whiteSpace: "normal",
+                    lineHeight: 1.3,
+                  }}
+                >
+                  狀態
+                </TableCell>
+              </>
+            )}
           </TableRow>
         </TableHead>
 
@@ -158,21 +232,30 @@ export default function AttendanceRecordTable({
             </TableRow>
           ) : (
             safeRows.map((row, i) => {
-              const dateText = safeText(row?.date);
-              const startText = safeText(row?.start);
-              const endText = safeText(row?.end);
-              const paidHoursText = safeText(row?.paidHours, "0");
-              const lateMinutesText = safeText(row?.lateMinutes, "0");
-              const statusText = safeText(row?.status);
+              if (isLeaveMode) {
+                return (
+                  <TableRow
+                    key={row?.id || i}
+                    hover
+                    onClick={() => onRowClick?.(row)}
+                    sx={{ cursor: "pointer" }}
+                  >
+                    <TableCell>{safeText(row?.date)}</TableCell>
+                    <TableCell>{safeText(row?.start)}</TableCell>
+                    <TableCell>{safeText(row?.end)}</TableCell>
+                    <TableCell>{safeText(row?.appliedHours)}</TableCell>
+                    <TableCell>{safeText(row?.leaveType)}</TableCell>
+                    <TableCell>{safeText(row?.reason)}</TableCell>
+                  </TableRow>
+                );
+              }
 
               return (
                 <TableRow
                   key={row?.id || i}
                   hover
                   onClick={() => onRowClick?.(row)}
-                  sx={{
-                    cursor: "pointer",
-                  }}
+                  sx={{ cursor: "pointer" }}
                 >
                   <TableCell
                     sx={{
@@ -180,7 +263,7 @@ export default function AttendanceRecordTable({
                       lineHeight: 1.4,
                     }}
                   >
-                    {dateText}
+                    {safeText(row?.date)}
                   </TableCell>
 
                   <TableCell
@@ -198,7 +281,7 @@ export default function AttendanceRecordTable({
                         lineHeight: 1.4,
                       }}
                     >
-                      {renderMultilineText(startText)}
+                      {renderMultilineText(row?.start)}
                     </Box>
                   </TableCell>
 
@@ -217,13 +300,13 @@ export default function AttendanceRecordTable({
                         lineHeight: 1.4,
                       }}
                     >
-                      {renderMultilineText(endText)}
+                      {renderMultilineText(row?.end)}
                     </Box>
                   </TableCell>
 
-                  <TableCell>{paidHoursText}</TableCell>
-                  <TableCell>{lateMinutesText}</TableCell>
-                  <TableCell>{statusText}</TableCell>
+                  <TableCell>{safeText(row?.paidHours, "0")}</TableCell>
+                  <TableCell>{safeText(row?.lateMinutes, "0")}</TableCell>
+                  <TableCell>{safeText(row?.status)}</TableCell>
                 </TableRow>
               );
             })
