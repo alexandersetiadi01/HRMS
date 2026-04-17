@@ -1,3 +1,4 @@
+// src/api/attendance
 import http from "./http";
 import { getCurrentEmployeeId } from "./account";
 
@@ -125,6 +126,70 @@ export async function apiAttendanceScheduleMonth(params = {}) {
       year,
       month,
     },
+  });
+
+  return res.data;
+}
+
+/**
+ * =========================
+ * Leave
+ * =========================
+ */
+
+export async function apiLeaveTypes(params = {}) {
+  const { employee_id } = params;
+  const employeeId = Number(employee_id || getCurrentEmployeeId() || 0);
+
+  const res = await http.get("/leave-types", {
+    params: {
+      employee_id: employeeId || undefined,
+    },
+  });
+
+  return res.data;
+}
+
+export async function apiLeaveRequestFormMeta(params = {}) {
+  const { employee_id } = params;
+  const employeeId = Number(employee_id || getCurrentEmployeeId() || 0);
+
+  const res = await http.get("/leave-request-form-meta", {
+    params: {
+      employee_id: employeeId || undefined,
+    },
+  });
+
+  return res.data;
+}
+
+export async function apiLeaveRequests(params = {}) {
+  const { employee_id, status, date_from, date_to } = params;
+  const employeeId = Number(employee_id || getCurrentEmployeeId() || 0);
+
+  const res = await http.get("/leave-requests", {
+    params: {
+      employee_id: employeeId || undefined,
+      status,
+      date_from,
+      date_to,
+    },
+  });
+
+  return res.data;
+}
+
+export async function apiCreateLeaveRequest(payload = {}) {
+  const employeeId = Number(
+    payload.employee_id || getCurrentEmployeeId() || 0,
+  );
+
+  const res = await http.post("/leave-requests", {
+    employee_id: employeeId,
+    leave_type_id: payload.leave_type_id,
+    start_datetime: payload.start_datetime,
+    end_datetime: payload.end_datetime,
+    reason: payload.reason,
   });
 
   return res.data;
