@@ -100,7 +100,7 @@ function getMobileDayVisual(date, scheduleDayMap, selectedFilter) {
       border: "2px solid transparent",
       opacity: selectedFilter === "all" || selectedFilter === "rest" ? 1 : 0.22,
       indicator: {
-        show: true,
+        show: false,
         icon: "person",
         color: "#9ca3af",
         count: 1,

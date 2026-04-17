@@ -12,6 +12,7 @@ import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import { Outlet, useNavigate } from "react-router-dom";
 import Navbar from "../Components/Navbar/Navbar";
 import { getStoredAuthUser, logoutFromServer } from "../API/auth";
+import LocationConsentDialog from "../Components/LocationConsentDialog";
 
 function MainLayout() {
   const navigate = useNavigate();
@@ -50,6 +51,7 @@ function MainLayout() {
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "#f3f4f6" }}>
+      <LocationConsentDialog />
       <Box
         sx={{
           display: { xs: "none", md: "block" },

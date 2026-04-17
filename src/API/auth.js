@@ -1,4 +1,5 @@
 import http from "./http";
+import { clearLocationConsent } from "../Utils/LocationConsent";
 
 export const HRMS_AUTH_TOKEN_KEY = "hrms_auth_token";
 export const HRMS_AUTH_USER_KEY = "hrms_auth_user";
@@ -29,6 +30,7 @@ export function setStoredAuth(token, user) {
 export function clearStoredAuth() {
   localStorage.removeItem(HRMS_AUTH_TOKEN_KEY);
   localStorage.removeItem(HRMS_AUTH_USER_KEY);
+  clearLocationConsent();
 }
 
 export async function loginWithPassword(username, password) {

@@ -3,12 +3,18 @@ import {
   Box,
   Button,
   Checkbox,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  IconButton,
   Paper,
   Typography,
   useMediaQuery,
   useTheme,
 } from "@mui/material";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import { fetchTaiwanCalendarYear } from "../../Utils/TaiwanHolidays";
 import { apiAttendanceScheduleMonth } from "../../API/attendance";
 import {
@@ -48,6 +54,9 @@ const DEFAULT_DAY_DATA = {
   filter_key: "rest",
   title: "未排班",
   time: "",
+  display_title: "未排班",
+  display_subtitle: "",
+  display_time: "",
   expected_start: null,
   expected_end: null,
   break_minutes: 0,
@@ -65,8 +74,23 @@ const DEFAULT_DAY_DATA = {
   worked_hours: 0,
   leave_hours: 0,
   overtime_hours: 0,
+  has_clock_in: false,
+  has_clock_out: false,
+  is_overtime_day: false,
+  is_attendance_ready: false,
+  has_approved_overtime: false,
+  overtime_request_ids: [],
+  overtime_approved_hours: 0,
+  overtime_requested_hours: 0,
+  leave_request_id: 0,
+  leave_type_id: 0,
+  leave_code: "",
+  leave_name: "",
+  leave_request_status: "",
+  leave_reason: "",
+  leave_requested_hours: 0,
   indicator: {
-    show: true,
+    show: false,
     icon: "person",
     color: "#9ca3af",
     count: 1,
@@ -131,6 +155,191 @@ function SidebarCard({ title, children }) {
   );
 }
 
+function DetailField({ label, value, valueColor = "#111827" }) {
+  return (
+    <Box
+      sx={{
+        display: "grid",
+        gridTemplateColumns: { xs: "92px 1fr", sm: "110px 1fr" },
+        gap: "12px",
+        alignItems: "start",
+      }}
+    >
+      <Typography
+        sx={{
+          fontSize: { xs: "14px", sm: "15px" },
+          fontWeight: 700,
+          color: "#6b7280",
+          lineHeight: 1.5,
+        }}
+      >
+        {label}
+      </Typography>
+
+      <Typography
+        sx={{
+          fontSize: { xs: "14px", sm: "15px" },
+          fontWeight: 700,
+          color: valueColor,
+          lineHeight: 1.5,
+          wordBreak: "break-word",
+        }}
+      >
+        {value || "－"}
+      </Typography>
+    </Box>
+  );
+}
+
+function formatDateDisplay(date) {
+  if (!date) {
+    return "";
+  }
+
+  return `${date.getFullYear()}/${pad2(date.getMonth() + 1)}/${pad2(
+    date.getDate(),
+  )}`;
+}
+
+function formatDateTimeDisplay(value) {
+  if (!value || typeof value !== "string") {
+    return "－";
+  }
+
+  const normalized = value.trim();
+  if (!normalized) {
+    return "－";
+  }
+
+  if (normalized.length >= 16) {
+    return normalized.slice(0, 16).replace("T", " ");
+  }
+
+  return normalized.replace("T", " ");
+}
+
+function formatExpectedTime(dayData) {
+  const start = dayData?.expected_start;
+  const end = dayData?.expected_end;
+
+  if (!start || !end) {
+    return "－";
+  }
+
+  const startTime = String(start).slice(11, 16);
+  const endTime = String(end).slice(11, 16);
+
+  if (!startTime || !endTime) {
+    return "－";
+  }
+
+  return `${startTime} ~ ${endTime}`;
+}
+
+function formatActualTime(dayData) {
+  const displayTime = dayData?.display_time || dayData?.time || "";
+
+  if (!displayTime) {
+    return "－";
+  }
+
+  return displayTime.replace("~", " ~ ");
+}
+
+function formatHoursText(value) {
+  const numeric = Number(value || 0);
+
+  if (!Number.isFinite(numeric) || numeric <= 0) {
+    return "0 小時";
+  }
+
+  return `${numeric} 小時`;
+}
+
+function formatMinutesText(value) {
+  const numeric = Number(value || 0);
+
+  if (!Number.isFinite(numeric) || numeric <= 0) {
+    return "0 分鐘";
+  }
+
+  return `${numeric} 分鐘`;
+}
+
+function getDisplayTitle(dayData, fallbackHolidayName = "") {
+  return (
+    dayData?.display_title ||
+    dayData?.title ||
+    fallbackHolidayName ||
+    DEFAULT_DAY_DATA.display_title
+  );
+}
+
+function getDetailStatusLabel(dayData) {
+  const attendanceStatus = String(dayData?.attendance_status || "").toLowerCase();
+  const indicatorStatus = String(dayData?.indicator?.status || "").toLowerCase();
+
+  if (dayData?.day_type === "leave") {
+    return "請假";
+  }
+
+  if (dayData?.day_type === "rest") {
+    return "休假";
+  }
+
+  if (dayData?.day_type === "unscheduled") {
+    return "未排班";
+  }
+
+  if (indicatorStatus === "overtime" || dayData?.is_overtime_day) {
+    return "已出勤（含加班）";
+  }
+
+  if (indicatorStatus === "warning") {
+    return "異常出勤";
+  }
+
+  if (indicatorStatus === "problem") {
+    return "缺卡 / 異常";
+  }
+
+  if (indicatorStatus === "clocked_in") {
+    return "已上班，尚未下班";
+  }
+
+  if (indicatorStatus === "on_time") {
+    return "正常出勤";
+  }
+
+  if (attendanceStatus === "leave") {
+    return "請假";
+  }
+
+  if (
+    ["missing_clock_in", "missing_clock_out", "absent"].includes(attendanceStatus)
+  ) {
+    return "缺卡 / 異常";
+  }
+
+  if (["late", "early_leave", "late_early_leave"].includes(attendanceStatus)) {
+    return "異常出勤";
+  }
+
+  if (dayData?.has_clock_in) {
+    return "已出勤";
+  }
+
+  return "尚未打卡";
+}
+
+function getStatusColor(dayData) {
+  if (dayData?.indicator?.show === false) {
+    return "#6b7280";
+  }
+
+  return dayData?.indicator?.color || "#111827";
+}
+
 function getScheduleDayMap(days) {
   const map = {};
 
@@ -156,6 +365,7 @@ function getScheduleDayData(date, scheduleDayMap) {
   const key = `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(
     date.getDate(),
   )}`;
+
   return scheduleDayMap[key] || null;
 }
 
@@ -168,12 +378,326 @@ function shouldDisplayDay(selectedFilter, dayData) {
   return filterKey === selectedFilter;
 }
 
+function AttendanceDetailDialog({
+  open,
+  onClose,
+  selectedDate,
+  dayData,
+  holidayMap,
+  isMobile,
+}) {
+  const fallbackHolidayName = selectedDate
+    ? getDisplayHolidayName(selectedDate, holidayMap)
+    : "";
+  const displayTitle = getDisplayTitle(dayData, fallbackHolidayName);
+  const displaySubtitle = dayData?.display_subtitle || "";
+  const statusLabel = getDetailStatusLabel(dayData);
+  const statusColor = getStatusColor(dayData);
+  const leaveLabel =
+    dayData?.leave_name ||
+    dayData?.leave_code ||
+    (dayData?.day_type === "leave" ? "請假" : "－");
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      fullWidth
+      maxWidth="sm"
+      fullScreen={isMobile}
+      PaperProps={{
+        sx: {
+          borderRadius: isMobile ? 0 : "16px",
+          overflow: "hidden",
+        },
+      }}
+    >
+      <DialogTitle
+        sx={{
+          px: { xs: "16px", sm: "22px" },
+          py: { xs: "14px", sm: "18px" },
+          borderBottom: "1px solid #e5e7eb",
+        }}
+      >
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            gap: "12px",
+          }}
+        >
+          <Box sx={{ minWidth: 0 }}>
+            <Typography
+              sx={{
+                fontSize: { xs: "18px", sm: "22px" },
+                fontWeight: 800,
+                color: "#111827",
+                lineHeight: 1.2,
+                mb: "4px",
+              }}
+            >
+              出勤明細
+            </Typography>
+
+            <Typography
+              sx={{
+                fontSize: { xs: "13px", sm: "14px" },
+                color: "#6b7280",
+                lineHeight: 1.4,
+              }}
+            >
+              {formatDateDisplay(selectedDate)}
+            </Typography>
+          </Box>
+
+          <IconButton onClick={onClose} sx={{ mt: "-4px", mr: "-6px" }}>
+            <CloseRoundedIcon />
+          </IconButton>
+        </Box>
+      </DialogTitle>
+
+      <DialogContent sx={{ p: 0 }}>
+        <Box sx={{ p: { xs: "16px", sm: "22px" } }}>
+          <Box
+            sx={{
+              borderRadius: "16px",
+              bgcolor: dayData?.block_bg || "#d9dde3",
+              color: dayData?.text_color || "#111827",
+              px: { xs: "14px", sm: "18px" },
+              py: { xs: "14px", sm: "18px" },
+              mb: "18px",
+            }}
+          >
+            <Typography
+              sx={{
+                fontSize: { xs: "20px", sm: "24px" },
+                fontWeight: 800,
+                lineHeight: 1.2,
+              }}
+            >
+              {displayTitle}
+            </Typography>
+
+            {displaySubtitle ? (
+              <Typography
+                sx={{
+                  fontSize: { xs: "14px", sm: "16px" },
+                  fontWeight: 700,
+                  lineHeight: 1.35,
+                  mt: "6px",
+                }}
+              >
+                {displaySubtitle}
+              </Typography>
+            ) : null}
+
+            {dayData?.display_time ? (
+              <Typography
+                sx={{
+                  fontSize: { xs: "14px", sm: "16px" },
+                  fontWeight: 700,
+                  lineHeight: 1.35,
+                  mt: "6px",
+                }}
+              >
+                {formatActualTime(dayData)}
+              </Typography>
+            ) : null}
+
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                mt: "12px",
+              }}
+            >
+              <AttendanceIndicator
+                indicator={dayData?.indicator}
+                fallbackColor={dayData?.people_color || "#22c55e"}
+              />
+
+              <Typography
+                sx={{
+                  fontSize: { xs: "14px", sm: "15px" },
+                  fontWeight: 700,
+                  color: dayData?.indicator?.show === false ? "#ffffff" : statusColor,
+                }}
+              >
+                {statusLabel}
+              </Typography>
+            </Box>
+          </Box>
+
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "14px",
+            }}
+          >
+            <DetailField label="班次名稱" value={displayTitle} />
+            <DetailField label="班表時間" value={formatExpectedTime(dayData)} />
+            <DetailField
+              label="實際上班"
+              value={formatDateTimeDisplay(dayData?.actual_in)}
+            />
+            <DetailField
+              label="實際下班"
+              value={formatDateTimeDisplay(dayData?.actual_out)}
+            />
+            <DetailField label="出勤狀態" value={statusLabel} valueColor={statusColor} />
+            <DetailField
+              label="遲到分鐘"
+              value={formatMinutesText(dayData?.late_minutes)}
+            />
+            <DetailField
+              label="早退分鐘"
+              value={formatMinutesText(dayData?.early_leave_minutes)}
+            />
+            <DetailField label="工時" value={formatHoursText(dayData?.worked_hours)} />
+            <DetailField
+              label="加班時數"
+              value={
+                dayData?.overtime_hours > 0
+                  ? formatHoursText(dayData?.overtime_hours)
+                  : dayData?.overtime_approved_hours > 0
+                    ? formatHoursText(dayData?.overtime_approved_hours)
+                    : "0 小時"
+              }
+              valueColor={dayData?.is_overtime_day ? "#2563eb" : "#111827"}
+            />
+            <DetailField label="請假類別" value={leaveLabel} />
+            <DetailField
+              label="請假時數"
+              value={
+                dayData?.leave_requested_hours > 0
+                  ? formatHoursText(dayData?.leave_requested_hours)
+                  : "0 小時"
+              }
+            />
+            <DetailField
+              label="備註"
+              value={dayData?.leave_reason || fallbackHolidayName || "－"}
+            />
+          </Box>
+
+          <Divider sx={{ my: "18px" }} />
+
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+              gap: "12px",
+            }}
+          >
+            <Paper
+              elevation={0}
+              sx={{
+                border: "1px solid #e5e7eb",
+                borderRadius: "14px",
+                p: "14px",
+                bgcolor: "#ffffff",
+              }}
+            >
+              <Typography
+                sx={{
+                  fontSize: "13px",
+                  fontWeight: 700,
+                  color: "#6b7280",
+                  mb: "8px",
+                }}
+              >
+                員工資訊
+              </Typography>
+
+              <Typography
+                sx={{
+                  fontSize: "15px",
+                  fontWeight: 700,
+                  color: "#111827",
+                  lineHeight: 1.5,
+                }}
+              >
+                {dayData?.display_name || "－"}
+              </Typography>
+
+              <Typography
+                sx={{
+                  fontSize: "14px",
+                  color: "#6b7280",
+                  lineHeight: 1.5,
+                }}
+              >
+                工號：{dayData?.employee_no || "－"}
+              </Typography>
+            </Paper>
+
+            <Paper
+              elevation={0}
+              sx={{
+                border: "1px solid #e5e7eb",
+                borderRadius: "14px",
+                p: "14px",
+                bgcolor: "#ffffff",
+              }}
+            >
+              <Typography
+                sx={{
+                  fontSize: "13px",
+                  fontWeight: 700,
+                  color: "#6b7280",
+                  mb: "8px",
+                }}
+              >
+                打卡概況
+              </Typography>
+
+              <Typography
+                sx={{
+                  fontSize: "14px",
+                  color: "#111827",
+                  lineHeight: 1.6,
+                }}
+              >
+                已上班：{dayData?.has_clock_in ? "是" : "否"}
+              </Typography>
+
+              <Typography
+                sx={{
+                  fontSize: "14px",
+                  color: "#111827",
+                  lineHeight: 1.6,
+                }}
+              >
+                已下班：{dayData?.has_clock_out ? "是" : "否"}
+              </Typography>
+
+              <Typography
+                sx={{
+                  fontSize: "14px",
+                  color: "#111827",
+                  lineHeight: 1.6,
+                }}
+              >
+                加班日：{dayData?.is_overtime_day ? "是" : "否"}
+              </Typography>
+            </Paper>
+          </Box>
+        </Box>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function CalendarDayCell({
   date,
   today,
   holidayMap,
   scheduleDayMap,
   selectedFilter,
+  onClickDate,
 }) {
   if (!date) {
     return (
@@ -191,12 +715,15 @@ function CalendarDayCell({
   const scheduleDay = getScheduleDayData(date, scheduleDayMap);
   const dayData = scheduleDay || DEFAULT_DAY_DATA;
   const fallbackHolidayName = getDisplayHolidayName(date, holidayMap);
-  const displayTitle = dayData?.title || fallbackHolidayName || "-";
+  const displayTitle = getDisplayTitle(dayData, fallbackHolidayName);
+  const displaySubtitle = dayData?.display_subtitle || "";
+  const displayTime = dayData?.display_time || dayData?.time || "";
   const isToday = isSameDate(date, today);
   const isVisible = shouldDisplayDay(selectedFilter, dayData);
 
   return (
     <Box
+      onClick={() => onClickDate?.(date)}
       sx={{
         minHeight: { xs: "82px", sm: "160px" },
         borderRight: "1px solid #303030",
@@ -207,6 +734,11 @@ function CalendarDayCell({
         outline: isToday ? "2px solid #0c93d4" : "none",
         outlineOffset: "-2px",
         opacity: isVisible ? 1 : 0.22,
+        cursor: "pointer",
+        transition: "0.2s ease",
+        "&:hover": {
+          boxShadow: "inset 0 0 0 2px #0c93d4",
+        },
       }}
     >
       <Box
@@ -253,17 +785,31 @@ function CalendarDayCell({
             {displayTitle}
           </Typography>
 
-          {dayData.time ? (
+          {displaySubtitle ? (
             <Typography
               sx={{
-                fontSize: { xs: "9px", sm: "15px" },
+                fontSize: { xs: "8px", sm: "13px" },
+                fontWeight: 700,
+                mt: { xs: "2px", sm: "4px" },
+                lineHeight: { xs: 1.15, sm: 1.3 },
+                wordBreak: "break-word",
+              }}
+            >
+              {displaySubtitle}
+            </Typography>
+          ) : null}
+
+          {displayTime ? (
+            <Typography
+              sx={{
+                fontSize: { xs: "8px", sm: "14px" },
                 fontWeight: 700,
                 mt: { xs: "2px", sm: "6px" },
                 lineHeight: { xs: 1.15, sm: 1.35 },
                 wordBreak: "break-word",
               }}
             >
-              {dayData.time}
+              {displayTime}
             </Typography>
           ) : null}
         </Box>
@@ -301,6 +847,7 @@ export default function AttendanceSchedule() {
   const [holidaySourceNote, setHolidaySourceNote] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
   const [selectedDate, setSelectedDate] = useState(null);
+  const [detailOpen, setDetailOpen] = useState(false);
   const [scheduleDays, setScheduleDays] = useState([]);
   const [scheduleLoading, setScheduleLoading] = useState(false);
   const [scheduleError, setScheduleError] = useState("");
@@ -308,12 +855,15 @@ export default function AttendanceSchedule() {
     work_minutes: 0,
     leave_minutes: 0,
     rest_minutes: 0,
+    overtime_minutes: 0,
     work_hours: 0,
     work_remaining_minutes: 0,
     leave_hours: 0,
     leave_remaining_minutes: 0,
     rest_hours: 0,
     rest_remaining_minutes: 0,
+    overtime_hours: 0,
+    overtime_remaining_minutes: 0,
   });
 
   useEffect(() => {
@@ -375,12 +925,15 @@ export default function AttendanceSchedule() {
           work_minutes: 0,
           leave_minutes: 0,
           rest_minutes: 0,
+          overtime_minutes: 0,
           work_hours: 0,
           work_remaining_minutes: 0,
           leave_hours: 0,
           leave_remaining_minutes: 0,
           rest_hours: 0,
           rest_remaining_minutes: 0,
+          overtime_hours: 0,
+          overtime_remaining_minutes: 0,
         };
 
         if (!cancelled) {
@@ -396,12 +949,15 @@ export default function AttendanceSchedule() {
             work_minutes: 0,
             leave_minutes: 0,
             rest_minutes: 0,
+            overtime_minutes: 0,
             work_hours: 0,
             work_remaining_minutes: 0,
             leave_hours: 0,
             leave_remaining_minutes: 0,
             rest_hours: 0,
             rest_remaining_minutes: 0,
+            overtime_hours: 0,
+            overtime_remaining_minutes: 0,
           });
           setScheduleError("班表資料載入失敗。");
         }
@@ -431,7 +987,9 @@ export default function AttendanceSchedule() {
 
   useEffect(() => {
     const currentMonthDates = monthGrid.flat().filter(Boolean);
-    if (currentMonthDates.length === 0) return;
+    if (currentMonthDates.length === 0) {
+      return;
+    }
 
     const todayInView = currentMonthDates.find((date) =>
       isSameDate(date, today),
@@ -444,21 +1002,11 @@ export default function AttendanceSchedule() {
 
   const selectedDayData = useMemo(() => {
     if (!selectedDate) {
-      return null;
+      return DEFAULT_DAY_DATA;
     }
 
     return getScheduleDayData(selectedDate, scheduleDayMap) || DEFAULT_DAY_DATA;
   }, [selectedDate, scheduleDayMap]);
-
-  const selectedHolidayName = selectedDate
-    ? getDisplayHolidayName(selectedDate, holidayMap)
-    : "";
-
-  const selectedDateDisplay = selectedDate
-    ? `${selectedDate.getFullYear()}/${pad2(
-        selectedDate.getMonth() + 1,
-      )}/${pad2(selectedDate.getDate())}`
-    : "";
 
   const monthTitle = useMemo(() => {
     const date = new Date(selectedYear, selectedMonth - 1, 1);
@@ -467,6 +1015,19 @@ export default function AttendanceSchedule() {
       year: "numeric",
     });
   }, [selectedYear, selectedMonth]);
+
+  function handleOpenDateDetail(date) {
+    if (!date) {
+      return;
+    }
+
+    setSelectedDate(date);
+    setDetailOpen(true);
+  }
+
+  function handleCloseDateDetail() {
+    setDetailOpen(false);
+  }
 
   return (
     <Box>
@@ -483,6 +1044,15 @@ export default function AttendanceSchedule() {
         個人班表
       </Typography>
 
+      <AttendanceDetailDialog
+        open={detailOpen}
+        onClose={handleCloseDateDetail}
+        selectedDate={selectedDate}
+        dayData={selectedDayData}
+        holidayMap={holidayMap}
+        isMobile={isMobile}
+      />
+
       {isMobile ? (
         <>
           <MobileCalendar
@@ -494,7 +1064,7 @@ export default function AttendanceSchedule() {
             holidayMap={holidayMap}
             scheduleDayMap={scheduleDayMap}
             selectedDate={selectedDate}
-            onSelectDate={setSelectedDate}
+            onSelectDate={handleOpenDateDetail}
             workHours={scheduleSummary.work_hours}
             workMinutes={scheduleSummary.work_remaining_minutes}
             leaveHours={scheduleSummary.leave_hours}
@@ -512,129 +1082,6 @@ export default function AttendanceSchedule() {
               setSelectedMonth(next.month);
             }}
           />
-
-          {selectedDate ? (
-            <Paper
-              elevation={0}
-              sx={{
-                borderRadius: "10px",
-                bgcolor: "#ffffff",
-                p: "12px 14px",
-                mb: "12px",
-              }}
-            >
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "flex-start",
-                  justifyContent: "space-between",
-                  gap: "12px",
-                }}
-              >
-                <Box>
-                  <Typography
-                    sx={{
-                      fontSize: "12px",
-                      color: "#a4a9b2",
-                      lineHeight: 1.2,
-                      mb: "2px",
-                    }}
-                  >
-                    {selectedDateDisplay}
-                  </Typography>
-
-                  <Typography
-                    sx={{
-                      fontSize: "14px",
-                      fontWeight: 700,
-                      color: "#2d3945",
-                      lineHeight: 1.2,
-                    }}
-                  >
-                    {selectedDayData?.title || selectedHolidayName || "-"}
-                  </Typography>
-
-                  <Typography
-                    sx={{
-                      fontSize: "14px",
-                      fontWeight: 700,
-                      color: "#2d3945",
-                      lineHeight: 1.2,
-                    }}
-                  >
-                    {selectedDayData?.time?.replace("~", " ~ ") || ""}
-                  </Typography>
-                </Box>
-
-                <Box
-                  sx={{
-                    color: "#8fd0ef",
-                    fontSize: "28px",
-                    lineHeight: 1,
-                    fontWeight: 700,
-                  }}
-                >
-                  +
-                </Box>
-              </Box>
-            </Paper>
-          ) : null}
-
-          {selectedDate ? (
-            <Paper
-              elevation={0}
-              sx={{
-                borderRadius: "10px",
-                bgcolor: "#ffffff",
-                p: "14px",
-              }}
-            >
-              <Typography
-                sx={{
-                  fontSize: "12px",
-                  color: "#b0b5bf",
-                  mb: "8px",
-                }}
-              >
-                部門資訊
-              </Typography>
-
-              <Box sx={{ borderTop: "1px solid #e6e8ed", pt: "12px" }}>
-                <Typography
-                  sx={{
-                    fontSize: "14px",
-                    color: selectedDayData?.block_bg || "#e6a252",
-                    fontWeight: 700,
-                    lineHeight: 1.2,
-                  }}
-                >
-                  • {selectedDayData?.title || selectedHolidayName || "未排班"}
-                </Typography>
-
-                <Typography
-                  sx={{
-                    fontSize: "14px",
-                    color: selectedDayData?.block_bg || "#e6a252",
-                    fontWeight: 700,
-                    lineHeight: 1.2,
-                    mb: "6px",
-                  }}
-                >
-                  {selectedDayData?.time?.replace("~", " ~ ") || ""}
-                </Typography>
-
-                <Typography
-                  sx={{
-                    fontSize: "12px",
-                    color: "#2d3945",
-                    lineHeight: 1.5,
-                  }}
-                >
-                  {selectedDayData?.display_name || "－"}
-                </Typography>
-              </Box>
-            </Paper>
-          ) : null}
 
           {scheduleLoading ? (
             <Typography sx={{ fontSize: "14px", color: "#6b7280", mt: "12px" }}>
@@ -842,6 +1289,7 @@ export default function AttendanceSchedule() {
                         holidayMap={holidayMap}
                         scheduleDayMap={scheduleDayMap}
                         selectedFilter={selectedFilter}
+                        onClickDate={handleOpenDateDetail}
                       />
                     ))}
                   </Box>
@@ -871,9 +1319,19 @@ export default function AttendanceSchedule() {
                   統計
                 </Typography>
 
-                <Typography sx={{ fontSize: "16px", color: "#374151" }}>
+                <Typography sx={{ fontSize: "16px", color: "#374151", mb: "6px" }}>
                   上班時數：{scheduleSummary.work_hours} 時{" "}
                   {scheduleSummary.work_remaining_minutes} 分
+                </Typography>
+
+                <Typography sx={{ fontSize: "16px", color: "#374151", mb: "6px" }}>
+                  請假時數：{scheduleSummary.leave_hours} 時{" "}
+                  {scheduleSummary.leave_remaining_minutes} 分
+                </Typography>
+
+                <Typography sx={{ fontSize: "16px", color: "#374151" }}>
+                  加班時數：{scheduleSummary.overtime_hours || 0} 時{" "}
+                  {scheduleSummary.overtime_remaining_minutes || 0} 分
                 </Typography>
               </Paper>
 

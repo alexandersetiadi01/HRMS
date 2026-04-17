@@ -1,37 +1,103 @@
 import http from "./http";
+import { getCurrentEmployeeId } from "./account";
 
-export async function apiClockIn(payload) {
-  const res = await http.post("/clock-in", payload);
+function getTaiwanDateParts() {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Taipei",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+
+  const parts = formatter.formatToParts(new Date());
+  const year = parts.find((part) => part.type === "year")?.value || "";
+  const month = parts.find((part) => part.type === "month")?.value || "";
+  const day = parts.find((part) => part.type === "day")?.value || "";
+
+  return {
+    year: Number(year || 0),
+    month: Number(month || 0),
+    day: Number(day || 0),
+    date: `${year}-${month}-${day}`,
+  };
+}
+
+function unwrapData(response, fallback = null) {
+  return response?.data?.data ?? fallback;
+}
+
+export async function apiAttendanceClock(payload) {
+  const res = await http.post("/attendance/clock", payload);
   return res.data;
 }
 
-export async function apiClockOut(payload) {
-  const res = await http.post("/clock-out", payload);
-  return res.data;
+export async function apiClockIn(payload = {}) {
+  const employeeId = Number(payload.employee_id || getCurrentEmployeeId() || 0);
+
+  return apiAttendanceClock({
+    ...payload,
+    employee_id: employeeId,
+    action_type: "in",
+  });
 }
 
-export async function apiTodayStatus() {
-  const res = await http.get("/today-status");
-  return res.data;
+export async function apiClockOut(payload = {}) {
+  const employeeId = Number(payload.employee_id || getCurrentEmployeeId() || 0);
+
+  return apiAttendanceClock({
+    ...payload,
+    employee_id: employeeId,
+    action_type: "out",
+  });
+}
+
+export async function apiTodayStatus(params = {}) {
+  const employeeId = Number(params.employee_id || getCurrentEmployeeId() || 0);
+  const today = getTaiwanDateParts();
+
+  const res = await http.get("/attendance/frontend-schedule-month", {
+    params: {
+      employee_id: employeeId || undefined,
+      year: today.year,
+      month: today.month,
+    },
+  });
+
+  const payload = unwrapData(res, {});
+  const days = Array.isArray(payload?.days) ? payload.days : [];
+  const day =
+    days.find((item) => String(item?.work_date || "") === today.date) || null;
+
+  const hasClockIn = !!day?.actual_in;
+  const hasClockOut = !!day?.actual_out;
+  const isCompleted = hasClockIn && hasClockOut;
+
+  return {
+    employee_id: employeeId,
+    today: today.date,
+    day,
+    hasClockIn,
+    hasClockOut,
+    isCompleted,
+    nextAction: isCompleted ? "done" : hasClockIn ? "out" : "in",
+  };
 }
 
 /**
  * =========================
- * NEW: Attendance Record (Frontend)
+ * Attendance Record (Frontend)
  * =========================
  */
 
 export async function apiAttendanceRecords(params = {}) {
-  const {
-    date_from,
-    date_to,
-    record_type,
-    location,
-    method,
-  } = params;
+  const { date_from, date_to, record_type, location, method, employee_id } =
+    params;
+
+  const employeeId = Number(employee_id || getCurrentEmployeeId() || 0);
 
   const res = await http.get("/attendance/frontend-records", {
     params: {
+      employee_id: employeeId,
       date_from,
       date_to,
       record_type,
@@ -45,15 +111,17 @@ export async function apiAttendanceRecords(params = {}) {
 
 /**
  * =========================
- * NEW: Attendance Schedule (Calendar)
+ * Attendance Schedule (Calendar)
  * =========================
  */
 
 export async function apiAttendanceScheduleMonth(params = {}) {
-  const { year, month } = params;
+  const { year, month, employee_id } = params;
+  const employeeId = Number(employee_id || getCurrentEmployeeId() || 0);
 
   const res = await http.get("/attendance/frontend-schedule-month", {
     params: {
+      employee_id: employeeId || undefined,
       year,
       month,
     },
