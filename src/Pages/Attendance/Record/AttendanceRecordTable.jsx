@@ -6,251 +6,230 @@ import {
   TableRow,
   TableCell,
   TableBody,
-  IconButton,
 } from "@mui/material";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 
-export default function AttendanceRecordTable({ rows = [], loading = false }) {
+function safeText(value) {
+  if (value === null || value === undefined) {
+    return "-";
+  }
+
+  const text = String(value).trim();
+  return text !== "" ? text : "-";
+}
+
+function renderMultilineText(value) {
+  const text = safeText(value);
+
+  if (text === "-") {
+    return (
+      <Typography sx={{ fontSize: { xs: "11px", sm: "14px" } }}>-</Typography>
+    );
+  }
+
+  return text.split("\n").map((line, index) => (
+    <Typography
+      key={`${line}-${index}`}
+      sx={{
+        fontSize: { xs: "11px", sm: "14px" },
+        lineHeight: 1.4,
+      }}
+    >
+      {line}
+    </Typography>
+  ));
+}
+
+export default function AttendanceRecordTable({
+  rows = [],
+  loading = false,
+  onRowClick,
+}) {
   const safeRows = Array.isArray(rows) ? rows : [];
 
   return (
-    <>
-      <Box
+    <Box
+      sx={{
+        width: "100%",
+        overflowX: "hidden",
+      }}
+    >
+      <Table
+        size="small"
         sx={{
           width: "100%",
-          overflowX: "hidden",
+          tableLayout: "fixed",
+          "& .MuiTableCell-root": {
+            fontSize: { xs: "11px", sm: "14px" },
+            px: { xs: "4px", sm: "16px" },
+            py: { xs: "8px", sm: "12px" },
+            verticalAlign: "middle",
+            wordBreak: "break-word",
+            overflowWrap: "anywhere",
+            borderBottom: "1px solid #e5e7eb",
+          },
         }}
       >
-        <Table
-          size="small"
-          sx={{
-            width: "100%",
-            tableLayout: "fixed",
-            "& .MuiTableCell-root": {
-              fontSize: { xs: "11px", sm: "14px" },
-              px: { xs: "4px", sm: "16px" },
-              py: { xs: "8px", sm: "12px" },
-              verticalAlign: "middle",
-              wordBreak: "break-word",
-              overflowWrap: "anywhere",
-              borderBottom: "1px solid #e5e7eb",
-            },
-          }}
-        >
-          <TableHead>
-            <TableRow sx={{ backgroundColor: "#f3f4f6" }}>
-              <TableCell
-                sx={{
-                  fontWeight: 700,
-                  width: { xs: "19%", md: "110px" },
-                  whiteSpace: "normal",
-                  lineHeight: 1.3,
-                }}
-              >
-                日期
-              </TableCell>
+        <TableHead>
+          <TableRow sx={{ backgroundColor: "#f3f4f6" }}>
+            <TableCell
+              sx={{
+                fontWeight: 700,
+                width: { xs: "16%", md: "110px" },
+                whiteSpace: "normal",
+                lineHeight: 1.3,
+              }}
+            >
+              日期
+            </TableCell>
 
-              <TableCell
-                sx={{
-                  fontWeight: 700,
-                  width: { xs: "23%", md: "150px" },
-                  whiteSpace: "normal",
-                  lineHeight: 1.3,
-                }}
-              >
-                上班時間/
-                <br />
-                地點
-              </TableCell>
+            <TableCell
+              sx={{
+                fontWeight: 700,
+                width: { xs: "22%", md: "180px" },
+                whiteSpace: "normal",
+                lineHeight: 1.3,
+              }}
+            >
+              上班時間/
+              <br />
+              地點
+            </TableCell>
 
-              <TableCell
-                sx={{
-                  fontWeight: 700,
-                  width: { xs: "18%", md: "120px" },
-                  whiteSpace: "normal",
-                  lineHeight: 1.3,
-                }}
-              >
-                打卡
-                <br />
-                方式
-              </TableCell>
+            <TableCell
+              sx={{
+                fontWeight: 700,
+                width: { xs: "22%", md: "180px" },
+                whiteSpace: "normal",
+                lineHeight: 1.3,
+              }}
+            >
+              下班時間/
+              <br />
+              地點
+            </TableCell>
 
-              <TableCell
-                sx={{
-                  fontWeight: 700,
-                  width: { xs: "23%", md: "150px" },
-                  whiteSpace: "normal",
-                  lineHeight: 1.3,
-                }}
-              >
-                下班時間/
-                <br />
-                地點
-              </TableCell>
+            <TableCell
+              sx={{
+                fontWeight: 700,
+                width: { xs: "14%", md: "120px" },
+                whiteSpace: "normal",
+                lineHeight: 1.3,
+              }}
+            >
+              計薪時數
+            </TableCell>
 
-              <TableCell
-                sx={{
-                  fontWeight: 700,
-                  width: { xs: "17%", md: "120px" },
-                  whiteSpace: "normal",
-                  lineHeight: 1.3,
-                }}
-              >
-                打卡
-                <br />
-                方式
-              </TableCell>
+            <TableCell
+              sx={{
+                fontWeight: 700,
+                width: { xs: "12%", md: "110px" },
+                whiteSpace: "normal",
+                lineHeight: 1.3,
+              }}
+            >
+              遲到分鐘
+            </TableCell>
 
-              <TableCell
-                sx={{
-                  width: { xs: "32px", md: "48px" },
-                }}
-              />
+            <TableCell
+              sx={{
+                fontWeight: 700,
+                width: { xs: "14%", md: "130px" },
+                whiteSpace: "normal",
+                lineHeight: 1.3,
+              }}
+            >
+              狀態
+            </TableCell>
+          </TableRow>
+        </TableHead>
+
+        <TableBody>
+          {loading ? (
+            <TableRow>
+              <TableCell colSpan={6} align="center">
+                讀取中
+              </TableCell>
             </TableRow>
-          </TableHead>
+          ) : safeRows.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={6} align="center">
+                查無資料
+              </TableCell>
+            </TableRow>
+          ) : (
+            safeRows.map((row, i) => {
+              const dateText = safeText(row?.date);
+              const startText = safeText(row?.start);
+              const endText = safeText(row?.end);
+              const paidHoursText = safeText(row?.paidHours, "0");
+              const lateMinutesText = safeText(row?.lateMinutes, "0");
+              const statusText = safeText(row?.status);
 
-          <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={6} align="center">
-                  讀取中
-                </TableCell>
-              </TableRow>
-            ) : safeRows.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} align="center">
-                  查無資料
-                </TableCell>
-              </TableRow>
-            ) : (
-              safeRows.map((row, i) => {
-                const dateText =
-                  typeof row?.date === "string" && row.date !== ""
-                    ? row.date
-                    : "-";
+              return (
+                <TableRow
+                  key={row?.id || i}
+                  hover
+                  onClick={() => onRowClick?.(row)}
+                  sx={{
+                    cursor: "pointer",
+                  }}
+                >
+                  <TableCell
+                    sx={{
+                      whiteSpace: "normal",
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    {dateText}
+                  </TableCell>
 
-                const startText =
-                  typeof row?.start === "string" && row.start !== ""
-                    ? row.start
-                    : "-";
-
-                const startMethodText =
-                  typeof row?.startMethod === "string" && row.startMethod !== ""
-                    ? row.startMethod
-                    : "-";
-
-                const endText =
-                  typeof row?.end === "string" && row.end !== ""
-                    ? row.end
-                    : "-";
-
-                const endMethodText =
-                  typeof row?.endMethod === "string" && row.endMethod !== ""
-                    ? row.endMethod
-                    : "-";
-
-                return (
-                  <TableRow key={i}>
-                    <TableCell
+                  <TableCell
+                    sx={{
+                      whiteSpace: "normal",
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    <Box
                       sx={{
-                        whiteSpace: "normal",
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "center",
+                        minHeight: "100%",
                         lineHeight: 1.4,
                       }}
                     >
-                      {dateText}
-                    </TableCell>
+                      {renderMultilineText(startText)}
+                    </Box>
+                  </TableCell>
 
-                    <TableCell
+                  <TableCell
+                    sx={{
+                      whiteSpace: "normal",
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    <Box
                       sx={{
-                        whiteSpace: "normal",
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "center",
+                        minHeight: "100%",
                         lineHeight: 1.4,
                       }}
                     >
-                      {startText}
-                    </TableCell>
+                      {renderMultilineText(endText)}
+                    </Box>
+                  </TableCell>
 
-                    <TableCell
-                      sx={{
-                        color: "#2563eb",
-                      }}
-                    >
-                      <Box
-                        sx={{
-                          display: "flex",
-                          flexDirection: "column",
-                          justifyContent: "center",
-                          height: "100%",
-                          lineHeight: 1.4,
-                        }}
-                      >
-                        <Typography sx={{ fontSize: { xs: "11px", sm: "14px" } }}>
-                          {startMethodText}
-                        </Typography>
-                        <Typography sx={{ fontSize: { xs: "11px", sm: "14px" } }}>
-                          查看地點
-                        </Typography>
-                      </Box>
-                    </TableCell>
-
-                    <TableCell
-                      sx={{
-                        whiteSpace: "normal",
-                        lineHeight: 1.4,
-                      }}
-                    >
-                      {endText}
-                    </TableCell>
-
-                    <TableCell
-                      sx={{
-                        color: "#2563eb",
-                        whiteSpace: "normal",
-                        lineHeight: 1.4,
-                      }}
-                    >
-                      <Box
-                        sx={{
-                          display: "flex",
-                          flexDirection: "column",
-                          justifyContent: "center",
-                          height: "100%",
-                          lineHeight: 1.4,
-                        }}
-                      >
-                        <Typography sx={{ fontSize: { xs: "11px", sm: "14px" } }}>
-                          {endMethodText}
-                        </Typography>
-                        <Typography sx={{ fontSize: { xs: "11px", sm: "14px" } }}>
-                          查看地點
-                        </Typography>
-                      </Box>
-                    </TableCell>
-
-                    <TableCell
-                      align="center"
-                      sx={{
-                        verticalAlign: "middle",
-                      }}
-                    >
-                      <IconButton
-                        size="small"
-                        sx={{
-                          p: { xs: "2px", sm: "4px" },
-                        }}
-                      >
-                        <DeleteOutlineIcon
-                          sx={{ fontSize: { xs: "18px", sm: "20px" } }}
-                        />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-      </Box>
-    </>
+                  <TableCell>{paidHoursText}</TableCell>
+                  <TableCell>{lateMinutesText}</TableCell>
+                  <TableCell>{statusText}</TableCell>
+                </TableRow>
+              );
+            })
+          )}
+        </TableBody>
+      </Table>
+    </Box>
   );
 }
