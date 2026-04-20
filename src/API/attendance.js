@@ -208,3 +208,57 @@ export async function apiLeaveBalances(params = {}) {
 
   return res.data;
 }
+
+/**
+ * =========================
+ * Overtime
+ * =========================
+ */
+
+export async function apiOvertimeRequestMeta(params = {}) {
+  const { employee_id, work_date, year, request_id } = params;
+  const employeeId = Number(employee_id || getCurrentEmployeeId() || 0);
+
+  const res = await http.get("/overtime/request-meta", {
+    params: {
+      employee_id: employeeId || undefined,
+      work_date,
+      year,
+      request_id,
+    },
+  });
+
+  return res.data;
+}
+
+export async function apiOvertimeRequests(params = {}) {
+  const { employee_id, schedule_id, request_status } = params;
+  const employeeId = Number(employee_id || getCurrentEmployeeId() || 0);
+
+  const res = await http.get("/overtime-requests", {
+    params: {
+      employee_id: employeeId || undefined,
+      schedule_id,
+      request_status,
+    },
+  });
+
+  return res.data;
+}
+
+export async function apiCreateOvertimeRequest(payload = {}) {
+  const employeeId = Number(
+    payload.employee_id || getCurrentEmployeeId() || 0,
+  );
+
+  const res = await http.post("/overtime-requests", {
+    employee_id: employeeId,
+    overtime_type: payload.overtime_type,
+    pay_method: payload.pay_method,
+    start_datetime: payload.start_datetime,
+    end_datetime: payload.end_datetime,
+    reason: payload.reason,
+  });
+
+  return res.data;
+}

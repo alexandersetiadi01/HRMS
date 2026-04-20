@@ -9,7 +9,7 @@ import AttendanceMissedPunch from "../Pages/Attendance/AttendanceMissedPunch";
 import AttendanceRecord from "../Pages/Attendance/Record/AttendanceRecord";
 import AttendanceSpecialLeave from "../Pages/Attendance/AttendanceSpecialLeave";
 import AttendanceLeave from "../Pages/Attendance/Leave/AttendanceLeave";
-import AttendanceOvertime from "../Pages/Attendance/AttendanceOverTime";
+import AttendanceOvertime from "../Pages/Attendance/Overtime/AttendanceOverTime";
 import AttendanceLeaveBalance from "../Pages/Attendance/AttendanceLeaveBalance";
 import AttendancePendingApproval from "../Pages/Attendance/AttendancePendingApproval";
 import Absent from "../Pages/Attendance/Absent";
