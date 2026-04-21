@@ -11,7 +11,7 @@ import AttendanceSpecialLeave from "../Pages/Attendance/AttendanceSpecialLeave";
 import AttendanceLeave from "../Pages/Attendance/Leave/AttendanceLeave";
 import AttendanceOvertime from "../Pages/Attendance/Overtime/AttendanceOverTime";
 import AttendanceLeaveBalance from "../Pages/Attendance/AttendanceLeaveBalance";
-import AttendancePendingApproval from "../Pages/Attendance/AttendancePendingApproval";
+import AttendancePendingApproval from "../Pages/Attendance/PendingApproval/AttendancePendingApproval";
 import Absent from "../Pages/Attendance/Absent";
 import AttendanceBusinessTrip from "../Pages/Attendance/AttendanceBusinessTrip";
 import AccountLayout from "../Layouts/AccountLayout";

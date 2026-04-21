@@ -27,10 +27,11 @@ export function SelectField({
   required = false,
   value,
   onChange,
-  options,
+  options = [],
   minWidth = "186px",
   displayEmpty = false,
   menuProps = COMMON_SELECT_MENU_PROPS,
+  disabled = false,
 }) {
   return (
     <Box
@@ -65,20 +66,36 @@ export function SelectField({
         onChange={(event) => onChange(event.target.value)}
         displayEmpty={displayEmpty}
         MenuProps={menuProps}
+        disabled={disabled}
         sx={{
           minWidth: { xs: "100%", sm: minWidth },
           width: { xs: "100%", sm: "auto" },
           ...COMMON_SELECT_SX,
         }}
       >
-        {options.map((item) => (
-          <MenuItem
-            key={`${label}-${item.value}-${item.label}`}
-            value={item.value}
-          >
-            {item.label}
-          </MenuItem>
-        ))}
+        {options.map((item) => {
+          const optionValue = item?.value ?? "";
+          const optionLabel = item?.label ?? "";
+          const optionDisabled = !!item?.disabled;
+
+          return (
+            <MenuItem
+              key={`${label}-${optionValue}-${optionLabel}`}
+              value={optionValue}
+              disabled={optionDisabled}
+              sx={
+                optionDisabled
+                  ? {
+                      color: "#9ca3af",
+                      opacity: 1,
+                    }
+                  : undefined
+              }
+            >
+              {optionLabel}
+            </MenuItem>
+          );
+        })}
       </Select>
     </Box>
   );
@@ -184,10 +201,10 @@ export function FilterActions({ children }) {
   );
 }
 
-export function ActionButtons({ onClear }) {
+export function ActionButtons({ onClear, onSearch }) {
   return (
     <FilterActions>
-      <Button variant="outlined" sx={ACTION_BUTTON_SX}>
+      <Button variant="outlined" onClick={onSearch} sx={ACTION_BUTTON_SX}>
         搜尋
       </Button>
 

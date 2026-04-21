@@ -1,4 +1,3 @@
-// src/API/attendance
 import http from "./http";
 import { getCurrentEmployeeId } from "./account";
 
@@ -98,7 +97,7 @@ export async function apiAttendanceRecords(params = {}) {
 
   const res = await http.get("/attendance/frontend-records", {
     params: {
-      employee_id: employeeId,
+      employee_id: employeeId || undefined,
       date_from,
       date_to,
       record_type,
@@ -195,6 +194,59 @@ export async function apiCreateLeaveRequest(payload = {}) {
   return res.data;
 }
 
+export async function apiUpdateLeaveRequest(requestId, payload = {}) {
+  const employeeId = Number(
+    payload.employee_id || getCurrentEmployeeId() || 0,
+  );
+
+  const res = await http.put(`/leave-requests/${requestId}`, {
+    employee_id: employeeId,
+    leave_type_id: payload.leave_type_id,
+    start_datetime: payload.start_datetime,
+    end_datetime: payload.end_datetime,
+    reason: payload.reason,
+    request_status: payload.request_status,
+  });
+
+  return res.data;
+}
+
+export async function apiDeleteLeaveRequest(requestId, params = {}) {
+  const employeeId = Number(params.employee_id || getCurrentEmployeeId() || 0);
+
+  const res = await http.delete(`/leave-requests/${requestId}`, {
+    data: {
+      employee_id: employeeId,
+    },
+  });
+
+  return res.data;
+}
+
+export async function apiApproveLeaveRequest(requestId, payload = {}) {
+  const employeeId = Number(
+    payload.employee_id || getCurrentEmployeeId() || 0,
+  );
+
+  const res = await http.post(`/leave-requests/${requestId}/approve`, {
+    employee_id: employeeId,
+  });
+
+  return res.data;
+}
+
+export async function apiRejectLeaveRequest(requestId, payload = {}) {
+  const employeeId = Number(
+    payload.employee_id || getCurrentEmployeeId() || 0,
+  );
+
+  const res = await http.post(`/leave-requests/${requestId}/reject`, {
+    employee_id: employeeId,
+  });
+
+  return res.data;
+}
+
 export async function apiLeaveBalances(params = {}) {
   const { employee_id, leave_type_id } = params;
   const employeeId = Number(employee_id || getCurrentEmployeeId() || 0);
@@ -263,6 +315,60 @@ export async function apiCreateOvertimeRequest(payload = {}) {
   return res.data;
 }
 
+export async function apiUpdateOvertimeRequest(requestId, payload = {}) {
+  const employeeId = Number(
+    payload.employee_id || getCurrentEmployeeId() || 0,
+  );
+
+  const res = await http.put(`/overtime-requests/${requestId}`, {
+    employee_id: employeeId,
+    overtime_type: payload.overtime_type,
+    pay_method: payload.pay_method,
+    start_datetime: payload.start_datetime,
+    end_datetime: payload.end_datetime,
+    reason: payload.reason,
+    request_status: payload.request_status,
+  });
+
+  return res.data;
+}
+
+export async function apiDeleteOvertimeRequest(requestId, params = {}) {
+  const employeeId = Number(params.employee_id || getCurrentEmployeeId() || 0);
+
+  const res = await http.delete(`/overtime-requests/${requestId}`, {
+    data: {
+      employee_id: employeeId,
+    },
+  });
+
+  return res.data;
+}
+
+export async function apiApproveOvertimeRequest(requestId, payload = {}) {
+  const employeeId = Number(
+    payload.employee_id || getCurrentEmployeeId() || 0,
+  );
+
+  const res = await http.post(`/overtime-requests/${requestId}/approve`, {
+    employee_id: employeeId,
+  });
+
+  return res.data;
+}
+
+export async function apiRejectOvertimeRequest(requestId, payload = {}) {
+  const employeeId = Number(
+    payload.employee_id || getCurrentEmployeeId() || 0,
+  );
+
+  const res = await http.post(`/overtime-requests/${requestId}/reject`, {
+    employee_id: employeeId,
+  });
+
+  return res.data;
+}
+
 /**
  * =========================
  * Missed Punch
@@ -311,6 +417,97 @@ export async function apiCreateMissedPunchRequest(payload = {}) {
     latitude: payload.latitude,
     longitude: payload.longitude,
     reason: payload.reason,
+  });
+
+  return res.data;
+}
+
+export async function apiUpdateMissedPunchRequest(requestId, payload = {}) {
+  const employeeId = Number(
+    payload.employee_id || getCurrentEmployeeId() || 0,
+  );
+
+  const res = await http.put(`/missed-punch-requests/${requestId}`, {
+    employee_id: employeeId,
+    request_punch_type: payload.request_punch_type,
+    request_datetime: payload.request_datetime,
+    location_label: payload.location_label,
+    location_note: payload.location_note,
+    latitude: payload.latitude,
+    longitude: payload.longitude,
+    reason: payload.reason,
+    request_status: payload.request_status,
+  });
+
+  return res.data;
+}
+
+export async function apiDeleteMissedPunchRequest(requestId, params = {}) {
+  const employeeId = Number(params.employee_id || getCurrentEmployeeId() || 0);
+
+  const res = await http.delete(`/missed-punch-requests/${requestId}`, {
+    data: {
+      employee_id: employeeId,
+    },
+  });
+
+  return res.data;
+}
+
+export async function apiApproveMissedPunchRequest(requestId, payload = {}) {
+  const employeeId = Number(
+    payload.employee_id || getCurrentEmployeeId() || 0,
+  );
+
+  const res = await http.post(`/missed-punch-requests/${requestId}/approve`, {
+    employee_id: employeeId,
+  });
+
+  return res.data;
+}
+
+export async function apiRejectMissedPunchRequest(requestId, payload = {}) {
+  const employeeId = Number(
+    payload.employee_id || getCurrentEmployeeId() || 0,
+  );
+
+  const res = await http.post(`/missed-punch-requests/${requestId}/reject`, {
+    employee_id: employeeId,
+  });
+
+  return res.data;
+}
+
+/**
+ * =========================
+ * Unified Pending Approval
+ * =========================
+ */
+
+export async function apiGetPendingApprovalActor() {
+  const res = await http.get("/approval/actor");
+  return res.data;
+}
+
+export async function apiGetPendingApprovals(params = {}) {
+  const { type, employee_id } = params;
+  const employeeId = Number(employee_id || getCurrentEmployeeId() || 0);
+
+  const res = await http.get("/approval/pending", {
+    params: {
+      type,
+      employee_id: employeeId || undefined,
+    },
+  });
+
+  return res.data;
+}
+
+export async function apiApprovalAction(payload = {}) {
+  const res = await http.post("/approval/action", {
+    type: payload.type,
+    id: payload.id,
+    action: payload.action,
   });
 
   return res.data;
