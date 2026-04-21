@@ -98,6 +98,49 @@ const DEFAULT_DAY_DATA = {
   },
 };
 
+function getNormalizedAttendanceStatus(value) {
+  const raw = String(value || "").trim().toLowerCase();
+
+  if (!raw) {
+    return {
+      raw,
+      base: "",
+      hasMissedClockIn: false,
+      hasMissedClockOut: false,
+    };
+  }
+
+  const hasMissedClockIn = raw.includes("missed clock-in");
+  const hasMissedClockOut = raw.includes("missed clock-out");
+
+  const base = raw.replace(/\s*\(missed clock-in\/out\)\s*/g, "").trim();
+
+  return {
+    raw,
+    base,
+    hasMissedClockIn,
+    hasMissedClockOut,
+  };
+}
+
+function getMissedPunchDetailSuffix(dayData) {
+  const parsed = getNormalizedAttendanceStatus(dayData?.attendance_status);
+
+  if (parsed.hasMissedClockIn && parsed.hasMissedClockOut) {
+    return "（忘打卡【上/下班】）";
+  }
+
+  if (parsed.hasMissedClockIn) {
+    return "（忘打卡【上班】）";
+  }
+
+  if (parsed.hasMissedClockOut) {
+    return "（忘打卡【下班】）";
+  }
+
+  return "";
+}
+
 function AttendanceIndicator({ indicator, fallbackColor = "#22c55e" }) {
   const safeIndicator = indicator || {};
   const show = safeIndicator.show !== false;
@@ -276,60 +319,48 @@ function getDisplayTitle(dayData, fallbackHolidayName = "") {
 }
 
 function getDetailStatusLabel(dayData) {
-  const attendanceStatus = String(dayData?.attendance_status || "").toLowerCase();
+  const parsed = getNormalizedAttendanceStatus(dayData?.attendance_status);
+  const attendanceStatus = parsed.base;
   const indicatorStatus = String(dayData?.indicator?.status || "").toLowerCase();
+  const missedPunchSuffix = getMissedPunchDetailSuffix(dayData);
+
+  let baseLabel = "";
 
   if (dayData?.day_type === "leave") {
-    return "請假";
-  }
-
-  if (dayData?.day_type === "rest") {
-    return "休假";
-  }
-
-  if (dayData?.day_type === "unscheduled") {
-    return "未排班";
-  }
-
-  if (indicatorStatus === "overtime" || dayData?.is_overtime_day) {
-    return "已出勤（含加班）";
-  }
-
-  if (indicatorStatus === "warning") {
-    return "異常出勤";
-  }
-
-  if (indicatorStatus === "problem") {
-    return "缺卡 / 異常";
-  }
-
-  if (indicatorStatus === "clocked_in") {
-    return "已上班，尚未下班";
-  }
-
-  if (indicatorStatus === "on_time") {
-    return "正常出勤";
-  }
-
-  if (attendanceStatus === "leave") {
-    return "請假";
-  }
-
-  if (
+    baseLabel = "請假";
+  } else if (dayData?.day_type === "rest") {
+    baseLabel = "休假";
+  } else if (dayData?.day_type === "unscheduled") {
+    baseLabel = "未排班";
+  } else if (
+    indicatorStatus === "overtime" ||
+    dayData?.is_overtime_day ||
+    attendanceStatus === "overtime"
+  ) {
+    baseLabel = "已出勤（含加班）";
+  } else if (indicatorStatus === "warning") {
+    baseLabel = "異常出勤";
+  } else if (indicatorStatus === "problem") {
+    baseLabel = "缺卡 / 異常";
+  } else if (indicatorStatus === "clocked_in") {
+    baseLabel = "已上班，尚未下班";
+  } else if (indicatorStatus === "on_time") {
+    baseLabel = "正常出勤";
+  } else if (attendanceStatus === "leave") {
+    baseLabel = "請假";
+  } else if (
     ["missing_clock_in", "missing_clock_out", "absent"].includes(attendanceStatus)
   ) {
-    return "缺卡 / 異常";
+    baseLabel = "缺卡 / 異常";
+  } else if (["late", "early_leave", "late_early_leave"].includes(attendanceStatus)) {
+    baseLabel = "異常出勤";
+  } else if (dayData?.has_clock_in) {
+    baseLabel = "已出勤";
+  } else {
+    baseLabel = "尚未打卡";
   }
 
-  if (["late", "early_leave", "late_early_leave"].includes(attendanceStatus)) {
-    return "異常出勤";
-  }
-
-  if (dayData?.has_clock_in) {
-    return "已出勤";
-  }
-
-  return "尚未打卡";
+  return `${baseLabel}${missedPunchSuffix}`;
 }
 
 function getStatusColor(dayData) {

@@ -1,4 +1,4 @@
-// src/api/attendance
+// src/API/attendance
 import http from "./http";
 import { getCurrentEmployeeId } from "./account";
 
@@ -257,6 +257,59 @@ export async function apiCreateOvertimeRequest(payload = {}) {
     pay_method: payload.pay_method,
     start_datetime: payload.start_datetime,
     end_datetime: payload.end_datetime,
+    reason: payload.reason,
+  });
+
+  return res.data;
+}
+
+/**
+ * =========================
+ * Missed Punch
+ * =========================
+ */
+
+export async function apiMissedPunchRequests(params = {}) {
+  const {
+    employee_id,
+    request_status,
+    request_punch_type,
+    date_from,
+    date_to,
+    limit,
+    offset,
+  } = params;
+
+  const employeeId = Number(employee_id || getCurrentEmployeeId() || 0);
+
+  const res = await http.get("/missed-punch-requests", {
+    params: {
+      employee_id: employeeId || undefined,
+      request_status,
+      request_punch_type,
+      date_from,
+      date_to,
+      limit,
+      offset,
+    },
+  });
+
+  return res.data;
+}
+
+export async function apiCreateMissedPunchRequest(payload = {}) {
+  const employeeId = Number(
+    payload.employee_id || getCurrentEmployeeId() || 0,
+  );
+
+  const res = await http.post("/missed-punch-requests", {
+    employee_id: employeeId,
+    request_punch_type: payload.request_punch_type,
+    request_datetime: payload.request_datetime,
+    location_label: payload.location_label,
+    location_note: payload.location_note,
+    latitude: payload.latitude,
+    longitude: payload.longitude,
     reason: payload.reason,
   });
 
