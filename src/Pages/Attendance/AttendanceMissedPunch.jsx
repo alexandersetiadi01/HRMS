@@ -41,8 +41,8 @@ import {
 } from "./Leave/LeaveUtils";
 
 const OFFICE = {
-  value: "office",
-  label: "Office",
+  value: "公司",
+  label: "公司",
   lat: 25.0729,
   lng: 121.3615,
 };

@@ -22,8 +22,13 @@ function SidebarMenuItem({
   onCloseMobileSidebar,
 }) {
   const isActive = activeMenu === item.key;
+  const isDisabled = !!item.disabled;
 
   const handleClick = () => {
+    if (isDisabled) {
+      return;
+    }
+
     if (item.children) {
       onToggleOvertime();
       return;
@@ -33,8 +38,12 @@ function SidebarMenuItem({
     onCloseMobileSidebar?.();
   };
 
-  const handleChildClick = (key) => {
-    onOvertimeMenuClick(key);
+  const handleChildClick = (child) => {
+    if (child?.disabled) {
+      return;
+    }
+
+    onOvertimeMenuClick(child.key);
     onCloseMobileSidebar?.();
   };
 
@@ -52,45 +61,53 @@ function SidebarMenuItem({
           justifyContent: "space-between",
           fontSize: "15px",
           fontWeight: isActive ? 700 : 500,
-          color: isActive ? "#ffffff" : "#d1d5db",
-          cursor: "pointer",
-          bgcolor: isActive ? "#2b2b2b" : "transparent",
+          color: isDisabled
+            ? "rgba(255,255,255,0.35)"
+            : isActive
+              ? "#ffffff"
+              : "#d1d5db",
+          cursor: isDisabled ? "not-allowed" : "pointer",
+          bgcolor: isActive && !isDisabled ? "#2b2b2b" : "transparent",
           transition: "all 0.2s ease",
-          "&:hover": {
-            bgcolor: isActive ? "#2b2b2b" : "rgba(255,255,255,0.04)",
-            color: "#ffffff",
-          },
-          ...(isActive && {
-            ...(onCloseMobileSidebar
-              ? {
-                  "&::before": {
-                    content: '""',
-                    position: "absolute",
-                    left: "6px",
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    width: 0,
-                    height: 0,
-                    borderTop: "5px solid transparent",
-                    borderBottom: "5px solid transparent",
-                    borderLeft: "8px solid #ffffff",
-                  },
-                }
-              : {
-                  "&::after": {
-                    content: '""',
-                    position: "absolute",
-                    top: "50%",
-                    right: "0",
-                    transform: "translateY(-50%)",
-                    width: 0,
-                    height: 0,
-                    borderTop: "5px solid transparent",
-                    borderBottom: "5px solid transparent",
-                    borderRight: "8px solid #ffffff",
-                  },
-                }),
-          }),
+          "&:hover": isDisabled
+            ? {}
+            : {
+                bgcolor: isActive ? "#2b2b2b" : "rgba(255,255,255,0.04)",
+                color: "#ffffff",
+              },
+          ...(isActive && !isDisabled
+            ? {
+                ...(onCloseMobileSidebar
+                  ? {
+                      "&::before": {
+                        content: '""',
+                        position: "absolute",
+                        left: "6px",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        width: 0,
+                        height: 0,
+                        borderTop: "5px solid transparent",
+                        borderBottom: "5px solid transparent",
+                        borderLeft: "8px solid #ffffff",
+                      },
+                    }
+                  : {
+                      "&::after": {
+                        content: '""',
+                        position: "absolute",
+                        top: "50%",
+                        right: "0",
+                        transform: "translateY(-50%)",
+                        width: 0,
+                        height: 0,
+                        borderTop: "5px solid transparent",
+                        borderBottom: "5px solid transparent",
+                        borderRight: "8px solid #ffffff",
+                      },
+                    }),
+              }
+            : {}),
         }}
       >
         <Box component="span">{item.label}</Box>
@@ -102,7 +119,7 @@ function SidebarMenuItem({
               alignItems: "center",
               transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
               transition: "transform 0.2s ease",
-              color: "#b8923f",
+              color: isDisabled ? "#6b7280" : "#b8923f",
             }}
           >
             {item.icon || <KeyboardArrowDownIcon sx={{ fontSize: "18px" }} />}
@@ -116,10 +133,12 @@ function SidebarMenuItem({
             const isChildActive =
               activeMenu === "overtime" && activeOvertimeMenu === child.key;
 
+            const isChildDisabled = !!child.disabled;
+
             return (
               <Box
                 key={child.key}
-                onClick={() => handleChildClick(child.key)}
+                onClick={() => handleChildClick(child)}
                 sx={{
                   pl: "40px",
                   pr: "20px",
@@ -127,12 +146,18 @@ function SidebarMenuItem({
                   display: "flex",
                   alignItems: "center",
                   fontSize: "15px",
-                  color: isChildActive ? "#ffffff" : "#c9c9c9",
+                  color: isChildDisabled
+                    ? "rgba(255,255,255,0.35)"
+                    : isChildActive
+                      ? "#ffffff"
+                      : "#c9c9c9",
                   fontWeight: isChildActive ? 700 : 500,
-                  cursor: "pointer",
-                  "&:hover": {
-                    color: "#ffffff",
-                  },
+                  cursor: isChildDisabled ? "not-allowed" : "pointer",
+                  "&:hover": isChildDisabled
+                    ? {}
+                    : {
+                        color: "#ffffff",
+                      },
                 }}
               >
                 {child.label}

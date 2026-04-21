@@ -26,6 +26,187 @@ function unwrapData(response, fallback = null) {
   return response?.data?.data ?? fallback;
 }
 
+function toNumber(value, fallback = 0) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function formatDateSlash(value) {
+  const raw = String(value || "").trim();
+  if (!raw) {
+    return "";
+  }
+
+  const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) {
+    return `${match[1]}/${match[2]}/${match[3]}`;
+  }
+
+  return raw.replace(/-/g, "/");
+}
+
+function formatDateTimeMinute(value) {
+  const raw = String(value || "").trim();
+  if (!raw) {
+    return "";
+  }
+
+  const match = raw.match(
+    /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::\d{2})?$/,
+  );
+
+  if (match) {
+    return `${match[1]}/${match[2]}/${match[3]} ${match[4]}:${match[5]}`;
+  }
+
+  return raw;
+}
+
+function formatDateTimeRangeShort(startValue, endValue) {
+  const startRaw = String(startValue || "").trim();
+  const endRaw = String(endValue || "").trim();
+
+  if (!startRaw && !endRaw) {
+    return "";
+  }
+
+  if (!startRaw || !endRaw) {
+    return formatDateTimeMinute(startRaw || endRaw);
+  }
+
+  const startDate = formatDateSlash(startRaw);
+  const endDate = formatDateSlash(endRaw);
+
+  const startTimeMatch = startRaw.match(/(\d{2}):(\d{2})/);
+  const endTimeMatch = endRaw.match(/(\d{2}):(\d{2})/);
+
+  const startTime = startTimeMatch
+    ? `${startTimeMatch[1]}:${startTimeMatch[2]}`
+    : "";
+  const endTime = endTimeMatch ? `${endTimeMatch[1]}:${endTimeMatch[2]}` : "";
+
+  if (startDate && endDate && startDate === endDate) {
+    if (startTime && endTime) {
+      return `${startDate} ${startTime} - ${endTime}`;
+    }
+
+    return `${startDate} ${startTime || endTime}`.trim();
+  }
+
+  return `${formatDateTimeMinute(startRaw)} - ${formatDateTimeMinute(endRaw)}`;
+}
+
+function formatMissedPunchType(value) {
+  const type = String(value || "").trim().toLowerCase();
+
+  if (type === "in") {
+    return "上班";
+  }
+
+  if (type === "out") {
+    return "下班";
+  }
+
+  return value || "";
+}
+
+function formatRequestStatus(value) {
+  const status = String(value || "").trim().toLowerCase();
+
+  const map = {
+    draft: "草稿",
+    pending: "待審核",
+    approved: "已核准",
+    rejected: "已駁回",
+    cancelled: "已取消",
+  };
+
+  return map[status] || value || "";
+}
+
+function normalizeMissedPunchItem(item = {}) {
+  return {
+    ...item,
+    id: item.missed_punch_request_id || item.id || 0,
+    request_id: item.missed_punch_request_id || item.id || 0,
+    request_date: formatDateSlash(
+      item.request_date || item.created_at || item.request_datetime || "",
+    ),
+    applicant_name: item.display_name || item.employee_name || "",
+    maintenance_type: "忘打卡",
+    datetime_text: formatDateTimeMinute(item.request_datetime),
+    request_type_label: formatMissedPunchType(item.request_punch_type),
+    location_label: item.location_label || "",
+    status_label: formatRequestStatus(item.request_status),
+    reason: item.reason || "",
+  };
+}
+
+function normalizeLeaveItem(item = {}) {
+  return {
+    ...item,
+    id: item.leave_request_id || item.id || 0,
+    request_id: item.leave_request_id || item.id || 0,
+    request_date: formatDateSlash(
+      item.request_date || item.created_at || item.start_datetime || "",
+    ),
+    applicant_name: item.display_name || item.employee_name || "",
+    leave_label: item.leave_name || item.leave_type_name || item.leave_label || "",
+    datetime_text: formatDateTimeRangeShort(
+      item.start_datetime,
+      item.end_datetime,
+    ),
+    status_label: formatRequestStatus(item.request_status),
+    reason: item.reason || "",
+  };
+}
+
+function normalizeOvertimeItem(item = {}) {
+  return {
+    ...item,
+    id: item.overtime_request_id || item.id || 0,
+    request_id: item.overtime_request_id || item.id || 0,
+    request_date: formatDateSlash(
+      item.request_date || item.created_at || item.start_datetime || "",
+    ),
+    applicant_name: item.display_name || item.employee_name || "",
+    overtime_type_label: item.overtime_type_label || item.overtime_type || "",
+    pay_method_label: item.pay_method_label || item.pay_method || "",
+    datetime_text: formatDateTimeRangeShort(
+      item.start_datetime,
+      item.end_datetime,
+    ),
+    requested_hours:
+      toNumber(item.requested_hours, NaN) ||
+      toNumber(item.overtime_hours, NaN) ||
+      toNumber(item.hours, 0),
+    requested_minutes:
+      toNumber(item.requested_minutes, NaN) ||
+      toNumber(item.overtime_minutes, NaN) ||
+      Math.round(
+        (toNumber(item.requested_hours, NaN) ||
+          toNumber(item.overtime_hours, NaN) ||
+          toNumber(item.hours, 0)) * 60,
+      ),
+    status_label: formatRequestStatus(item.request_status),
+    reason: item.reason || "",
+  };
+}
+
+function sumHours(items = [], predicate = null) {
+  return items.reduce((sum, item) => {
+    if (predicate && !predicate(item)) {
+      return sum;
+    }
+
+    return sum + toNumber(item.requested_hours, 0);
+  }, 0);
+}
+
+function roundHours(value) {
+  return Math.round(toNumber(value, 0) * 100) / 100;
+}
+
 export async function apiAttendanceClock(payload) {
   const res = await http.post("/attendance/clock", payload);
   return res.data;
@@ -163,13 +344,14 @@ export async function apiLeaveRequestFormMeta(params = {}) {
 }
 
 export async function apiLeaveRequests(params = {}) {
-  const { employee_id, status, date_from, date_to } = params;
+  const { employee_id, status, request_status, date_from, date_to } = params;
   const employeeId = Number(employee_id || getCurrentEmployeeId() || 0);
 
   const res = await http.get("/leave-requests", {
     params: {
       employee_id: employeeId || undefined,
       status,
+      request_status,
       date_from,
       date_to,
     },
@@ -511,4 +693,231 @@ export async function apiApprovalAction(payload = {}) {
   });
 
   return res.data;
+}
+
+/**
+ * =========================
+ * Attendance Form Page
+ * =========================
+ */
+
+export async function apiMissedPunchRecordList(params = {}) {
+  const { employee_id, year, month, request_status } = params;
+  const employeeId = Number(employee_id || getCurrentEmployeeId() || 0);
+
+  let date_from;
+  let date_to;
+
+  if (year && month) {
+    const y = Number(year);
+    const m = Number(month);
+    const lastDay = new Date(y, m, 0).getDate();
+
+    date_from = `${y}-${String(m).padStart(2, "0")}-01`;
+    date_to = `${y}-${String(m).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+  }
+
+  const res = await apiMissedPunchRequests({
+    employee_id: employeeId,
+    request_status:
+      request_status && request_status !== "all" ? request_status : "approved",
+    date_from,
+    date_to,
+  });
+
+  const payload = unwrapData({ data: res }, {});
+  const items = Array.isArray(payload?.items)
+    ? payload.items
+    : Array.isArray(payload)
+      ? payload
+      : [];
+
+  return {
+    ...res,
+    data: {
+      ...(res?.data || {}),
+      items: items.map(normalizeMissedPunchItem),
+    },
+  };
+}
+
+export async function apiLeaveRecordList(params = {}) {
+  const { employee_id, year, month, status } = params;
+  const employeeId = Number(employee_id || getCurrentEmployeeId() || 0);
+
+  let date_from;
+  let date_to;
+
+  if (year && month) {
+    const y = Number(year);
+    const m = Number(month);
+    const lastDay = new Date(y, m, 0).getDate();
+
+    date_from = `${y}-${String(m).padStart(2, "0")}-01`;
+    date_to = `${y}-${String(m).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+  } else if (year) {
+    const y = Number(year);
+    date_from = `${y}-01-01`;
+    date_to = `${y}-12-31`;
+  }
+
+  const res = await apiLeaveRequests({
+    employee_id: employeeId,
+    request_status: status && status !== "all" ? status : undefined,
+    date_from,
+    date_to,
+  });
+
+  const payload = unwrapData({ data: res }, {});
+  const items = Array.isArray(payload?.items)
+    ? payload.items
+    : Array.isArray(payload)
+      ? payload
+      : [];
+
+  return {
+    ...res,
+    data: {
+      ...(res?.data || {}),
+      items: items.map(normalizeLeaveItem),
+    },
+  };
+}
+
+export async function apiOvertimeApplicationRecords(params = {}) {
+  const { employee_id, year, month, request_status } = params;
+  const employeeId = Number(employee_id || getCurrentEmployeeId() || 0);
+
+  let date_from;
+  let date_to;
+
+  if (year && month) {
+    const y = Number(year);
+    const m = Number(month);
+    const lastDay = new Date(y, m, 0).getDate();
+
+    date_from = `${y}-${String(m).padStart(2, "0")}-01`;
+    date_to = `${y}-${String(m).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+  } else if (year) {
+    const y = Number(year);
+    date_from = `${y}-01-01`;
+    date_to = `${y}-12-31`;
+  }
+
+  const res = await apiOvertimeRequests({
+    employee_id: employeeId,
+    request_status:
+      request_status && request_status !== "all" ? request_status : undefined,
+  });
+
+  const payload = unwrapData({ data: res }, {});
+  let items = Array.isArray(payload?.items)
+    ? payload.items
+    : Array.isArray(payload)
+      ? payload
+      : [];
+
+  if (date_from || date_to) {
+    items = items.filter((item) => {
+      const start = String(item?.start_datetime || "").slice(0, 10);
+
+      if (!start) {
+        return true;
+      }
+
+      if (date_from && start < date_from) {
+        return false;
+      }
+
+      if (date_to && start > date_to) {
+        return false;
+      }
+
+      return true;
+    });
+  }
+
+  return {
+    ...res,
+    data: {
+      ...(res?.data || {}),
+      items: items.map(normalizeOvertimeItem),
+    },
+  };
+}
+
+export async function apiOvertimeStatistics(params = {}) {
+  const { employee_id, date_from, date_to } = params;
+  const employeeId = Number(employee_id || getCurrentEmployeeId() || 0);
+
+  const res = await apiOvertimeRequests({
+    employee_id: employeeId,
+  });
+
+  const payload = unwrapData({ data: res }, {});
+  let items = Array.isArray(payload?.items)
+    ? payload.items
+    : Array.isArray(payload)
+      ? payload
+      : [];
+
+  if (date_from || date_to) {
+    items = items.filter((item) => {
+      const start = String(item?.start_datetime || "").slice(0, 10);
+
+      if (!start) {
+        return true;
+      }
+
+      if (date_from && start < date_from) {
+        return false;
+      }
+
+      if (date_to && start > date_to) {
+        return false;
+      }
+
+      return true;
+    });
+  }
+
+  const normalizedItems = items.map(normalizeOvertimeItem);
+
+  const requested_pending = roundHours(
+    sumHours(normalizedItems, (item) => item.request_status === "pending"),
+  );
+
+  const requested_approved = roundHours(
+    sumHours(normalizedItems, (item) => item.request_status === "approved"),
+  );
+
+  const requested_rejected = roundHours(
+    sumHours(normalizedItems, (item) => item.request_status === "rejected"),
+  );
+
+  const requested_draft = roundHours(
+    sumHours(normalizedItems, (item) => item.request_status === "draft"),
+  );
+
+  const payable_hours = roundHours(
+    sumHours(normalizedItems, (item) => item.request_status === "approved"),
+  );
+
+  const actual_paid_hours = payable_hours;
+
+  return {
+    success: true,
+    data: {
+      items: normalizedItems,
+      summary: {
+        requested_pending,
+        requested_approved,
+        requested_rejected,
+        requested_draft,
+        waiting_confirmation: 0,
+        payable_hours,
+        actual_paid_hours,
+      },
+    },
+  };
 }

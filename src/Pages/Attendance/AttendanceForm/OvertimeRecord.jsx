@@ -1,390 +1,295 @@
-import { useMemo, useState } from "react";
-import { Box, Button, MenuItem, Select, Typography } from "@mui/material";
-import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
-import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
-import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
-import KeyboardDoubleArrowRightIcon from "@mui/icons-material/KeyboardDoubleArrowRight";
+import { useEffect, useMemo, useState } from "react";
+import { Box, TextField, Typography } from "@mui/material";
 import {
-  ACTION_BUTTON_SX,
-  COMMON_SELECT_SX,
-} from "./ApplicationRecord/Options";
+  apiGetPendingApprovalActor,
+  apiOvertimeApplicationRecords,
+} from "../../../API/attendance";
 import {
-  FilterActions,
-  MobileSectionTitle,
+  ActionButtons,
+  FilterRow,
+  SelectField,
+  YearMonthField,
 } from "./ApplicationRecord/SharedFields";
-import ResponsiveAttendanceTable from "./ResponsiveAttendanceTable";
+
+function getCurrentTaiwanYearMonth() {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Taipei",
+    year: "numeric",
+    month: "2-digit",
+  });
+
+  const parts = formatter.formatToParts(new Date());
+  const year = parts.find((part) => part.type === "year")?.value || "2026";
+  const month = parts.find((part) => part.type === "month")?.value || "01";
+
+  return {
+    year,
+    month: String(Number(month)),
+  };
+}
+
+function getErrorMessage(error, fallback = "載入資料失敗，請稍後再試。") {
+  return (
+    error?.response?.data?.message ||
+    error?.response?.data?.data?.message ||
+    error?.message ||
+    fallback
+  );
+}
 
 const STATUS_OPTIONS = [
   { value: "all", label: "全部" },
-  { value: "cancelling", label: "簽核中" },
-  { value: "returned", label: "已駁回" },
-  { value: "overtime-returned", label: "加班確認已駁回" },
-  { value: "pending-confirm", label: "待確認" },
-  { value: "pending-cancel-confirm", label: "核准待確認" },
+  { value: "draft", label: "草稿" },
+  { value: "pending", label: "待審核" },
   { value: "approved", label: "已核准" },
-  { value: "cancel-signing", label: "撤銷簽核中" },
-  { value: "cancelled", label: "已撤銷" },
+  { value: "rejected", label: "已駁回" },
 ];
 
-const MOCK_ROWS = [
-  {
-    id: 1,
-    applyDate: "2026/01/16",
-    applicant: "許明城",
-    dateTime: "2026/01/12 18:00 -\n2026/01/12 18:30",
-    overtimeType: "平日",
-    paymentMethod: "加班費",
-    overtimeHours: "0 時 30 分",
-    status: "已核准",
+const SEARCH_INPUT_SX = {
+  width: { xs: "100%", sm: "180px" },
+  "& .MuiOutlinedInput-root": {
+    height: "32px",
+    bgcolor: "#fff",
   },
-];
-
-const TABLE_COLUMNS = [
-  { key: "applyDate", label: "申請日期", width: "12%" },
-  { key: "applicant", label: "申請人", width: "17%" },
-  {
-    key: "dateTime",
-    label: "日期/時間",
-    width: "17%",
-    desktopWhiteSpace: "pre-line",
-    mobileWhiteSpace: "pre-line",
+  "& .MuiOutlinedInput-input": {
+    py: "6px",
+    px: "10px",
+    fontSize: "14px",
   },
-  { key: "overtimeType", label: "加班類型", width: "10%" },
-  { key: "paymentMethod", label: "給付方式", width: "14%" },
-  { key: "overtimeHours", label: "加班時數", width: "15%" },
-  { key: "status", label: "狀態", width: "15%" },
-];
-
-const ROWS_PER_PAGE_OPTIONS = [10, 20, 30, 50];
+};
 
 export default function OvertimeRecord() {
-  const now = useMemo(() => new Date(), []);
-  const currentYear = String(now.getFullYear());
+  const taiwanNow = useMemo(() => getCurrentTaiwanYearMonth(), []);
+  const currentYear = Number(taiwanNow.year);
 
   const yearOptions = useMemo(() => {
-    const baseYear = now.getFullYear();
-    return Array.from({ length: 5 }, (_, index) =>
-      String(baseYear - 2 + index)
-    );
-  }, [now]);
+    const baseYear = Number(currentYear);
+    const years = [];
+    for (let year = baseYear - 3; year <= baseYear + 1; year += 1) {
+      years.push(String(year));
+    }
+    return years;
+  }, [currentYear]);
 
-  const [year, setYear] = useState(currentYear);
+  const monthOptions = useMemo(
+    () => Array.from({ length: 12 }, (_, index) => String(index + 1)),
+    [],
+  );
+
+  const [year, setYear] = useState(taiwanNow.year);
+  const [month, setMonth] = useState(taiwanNow.month);
   const [status, setStatus] = useState("all");
-  const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+
+  const [searchText, setSearchText] = useState("");
+  const [searchKeyword, setSearchKeyword] = useState("");
+
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [errorText, setErrorText] = useState("");
+  const [actor, setActor] = useState(null);
+
+  const isEmployeeOnly = !!actor?.is_employee_position;
 
   const filteredRows = useMemo(() => {
-    if (status === "all") return MOCK_ROWS;
+    if (!searchKeyword.trim()) {
+      return rows;
+    }
 
-    const statusMap = {
-      cancelling: "簽核中",
-      returned: "已駁回",
-      "overtime-returned": "加班確認已駁回",
-      "pending-confirm": "待確認",
-      "pending-cancel-confirm": "核准待確認",
-      approved: "已核准",
-      "cancel-signing": "撤銷簽核中",
-      cancelled: "已撤銷",
-    };
+    const keyword = searchKeyword.trim().toLowerCase();
 
-    return MOCK_ROWS.filter((row) => row.status === statusMap[status]);
-  }, [status]);
+    return rows.filter((row) =>
+      [
+        row.request_date,
+        row.applicant_name,
+        row.overtime_type_label,
+        row.datetime_text,
+        row.requested_hours,
+        row.reason,
+        row.status_label,
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(keyword),
+    );
+  }, [rows, searchKeyword]);
 
-  const totalRows = filteredRows.length;
-  const totalPages = Math.max(1, Math.ceil(totalRows / rowsPerPage));
-  const safePage = Math.min(page, totalPages);
-  const startIndex = (safePage - 1) * rowsPerPage;
-  const pagedRows = filteredRows.slice(startIndex, startIndex + rowsPerPage);
-  const displayFrom = totalRows === 0 ? 0 : startIndex + 1;
-  const displayTo = Math.min(startIndex + rowsPerPage, totalRows);
+  const loadData = async (nextYear, nextMonth, nextStatus) => {
+    try {
+      setLoading(true);
+      setErrorText("");
 
-  const pendingCount = useMemo(() => {
-    return filteredRows.filter((row) => row.status === "待確認").length;
-  }, [filteredRows]);
+      const [actorResponse, response] = await Promise.all([
+        apiGetPendingApprovalActor(),
+        apiOvertimeApplicationRecords({
+          year: Number(nextYear),
+          month: Number(nextMonth),
+          request_status: nextStatus === "all" ? undefined : nextStatus,
+        }),
+      ]);
+
+      const actorData =
+        actorResponse?.data?.data || actorResponse?.data || actorResponse || {};
+      setActor(actorData);
+
+      const payload = response?.data?.data || response?.data || response || {};
+      const items = Array.isArray(payload?.items) ? payload.items : [];
+      setRows(items);
+    } catch (error) {
+      console.error(error);
+      setErrorText(getErrorMessage(error));
+      setRows([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData(year, month, status);
+  }, [year, month, status]);
 
   const handleSearch = () => {
-    setPage(1);
+    setSearchKeyword(searchText.trim());
   };
 
   const handleClear = () => {
-    setYear(currentYear);
-    setStatus("all");
-    setRowsPerPage(10);
-    setPage(1);
+    setSearchText("");
+    setSearchKeyword("");
   };
 
   return (
     <Box>
-      <MobileSectionTitle>加班紀錄 / 申請紀錄</MobileSectionTitle>
+      <FilterRow withDivider>
+        <YearMonthField
+          year={year}
+          onYearChange={setYear}
+          yearOptions={yearOptions}
+          month={month}
+          onMonthChange={setMonth}
+          monthOptions={monthOptions}
+        />
 
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: { xs: "stretch", sm: "center" },
-          gap: "12px",
-          flexWrap: "wrap",
-          mb: "14px",
-        }}
-      >
+        <SelectField
+          label="狀態"
+          value={status}
+          onChange={setStatus}
+          options={STATUS_OPTIONS}
+          minWidth="180px"
+        />
+
         <Box
           sx={{
-            display: "flex",
-            flexDirection: { xs: "column", sm: "row" },
-            alignItems: { xs: "stretch", sm: "center" },
-            gap: { xs: "8px", sm: "10px" },
+            ml: { xs: 0, sm: "auto" },
             width: { xs: "100%", sm: "auto" },
-          }}
-        >
-          <Typography
-            sx={{ fontSize: "15px", color: "#111827", fontWeight: 500 }}
-          >
-            年度
-          </Typography>
-
-          <Select
-            size="small"
-            value={year}
-            onChange={(event) => setYear(event.target.value)}
-            sx={{
-              minWidth: { xs: "100%", sm: "76px" },
-              width: { xs: "100%", sm: "auto" },
-              ...COMMON_SELECT_SX,
-            }}
-          >
-            {yearOptions.map((item) => (
-              <MenuItem key={item} value={item}>
-                {item}
-              </MenuItem>
-            ))}
-          </Select>
-        </Box>
-
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: { xs: "column", sm: "row" },
-            alignItems: { xs: "stretch", sm: "center" },
-            gap: { xs: "8px", sm: "10px" },
-            width: { xs: "100%", sm: "auto" },
-          }}
-        >
-          <Typography
-            sx={{
-              ml: { xs: 0, sm: "8px" },
-              fontSize: "15px",
-              color: "#111827",
-              fontWeight: 500,
-            }}
-          >
-            狀態
-          </Typography>
-
-          <Select
-            size="small"
-            value={status}
-            onChange={(event) => setStatus(event.target.value)}
-            MenuProps={{
-              PaperProps: {
-                sx: {
-                  mt: "2px",
-                  borderRadius: "2px",
-                  boxShadow: "none",
-                  border: "1px solid #cfcfcf",
-                  maxHeight: 260,
-                  "& .MuiMenuItem-root": {
-                    minHeight: "36px",
-                    fontSize: "15px",
-                    color: "#374151",
-                  },
-                  "& .Mui-selected": {
-                    bgcolor: "#dbe5f1 !important",
-                    color: "#111827",
-                  },
-                  "& .MuiMenuItem-root:hover": {
-                    bgcolor: "#eef3f8",
-                  },
-                },
-              },
-            }}
-            sx={{
-              minWidth: { xs: "100%", sm: "190px" },
-              width: { xs: "100%", sm: "auto" },
-              ...COMMON_SELECT_SX,
-            }}
-          >
-            {STATUS_OPTIONS.map((item) => (
-              <MenuItem key={item.value} value={item.value}>
-                {item.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </Box>
-
-        <FilterActions>
-          <Button variant="outlined" onClick={handleSearch} sx={ACTION_BUTTON_SX}>
-            搜尋
-          </Button>
-
-          <Button variant="outlined" onClick={handleClear} sx={ACTION_BUTTON_SX}>
-            清空
-          </Button>
-        </FilterActions>
-      </Box>
-
-      <Box sx={{ mb: "12px" }}>
-        <Box
-          sx={{
-            minHeight: "40px",
-            bgcolor: "#2f2f2f",
             display: "flex",
             alignItems: "center",
-            justifyContent: "flex-end",
-            px: "16px",
-            mb: "0",
-            borderRadius: { xs: "6px 6px 0 0", md: 0 },
+            justifyContent: { xs: "stretch", sm: "flex-end" },
+            gap: "10px",
+            flexWrap: "wrap",
           }}
         >
-          <Typography
-            sx={{
-              fontSize: { xs: "16px", md: "18px" },
-              fontWeight: 700,
-              color: "#ffffff",
+          <TextField
+            value={searchText}
+            onChange={(event) => setSearchText(event.target.value)}
+            placeholder="搜尋"
+            size="small"
+            sx={SEARCH_INPUT_SX}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                handleSearch();
+              }
             }}
-          >
-            待確認筆數：{pendingCount} 筆
-          </Typography>
+          />
+          <ActionButtons onClear={handleClear} onSearch={handleSearch} />
         </Box>
+      </FilterRow>
 
-        <ResponsiveAttendanceTable
-          columns={TABLE_COLUMNS}
-          rows={pagedRows}
-          mobileCardTitleKey="applyDate"
-          getRowKey={(row) => row.id}
-        />
-      </Box>
-
-      <Box
-        sx={{
-          mt: "12px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: "12px",
-        }}
-      >
-        <Box sx={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <Button
-            variant="outlined"
-            disabled={safePage === 1}
-            sx={{
-              minWidth: "32px",
-              width: "32px",
-              height: "32px",
-              p: 0,
-              borderColor: "#d1d5db",
-              color: "#b9b9b9",
-            }}
-          >
-            <KeyboardDoubleArrowLeftIcon sx={{ fontSize: "18px" }} />
-          </Button>
-
-          <Button
-            variant="outlined"
-            disabled={safePage === 1}
-            sx={{
-              minWidth: "32px",
-              width: "32px",
-              height: "32px",
-              p: 0,
-              borderColor: "#d1d5db",
-              color: "#b9b9b9",
-            }}
-          >
-            <KeyboardArrowLeftIcon sx={{ fontSize: "18px" }} />
-          </Button>
-
+      <Box sx={{ pt: "14px", overflowX: "auto" }}>
+        <Box sx={{ minWidth: isEmployeeOnly ? "965px" : "1100px" }}>
           <Box
             sx={{
-              width: "68px",
-              height: "32px",
-              border: "1px solid #d1d5db",
-              display: "flex",
+              display: "grid",
+              gridTemplateColumns: isEmployeeOnly
+                ? "135px 160px 200px 100px 1fr 110px"
+                : "135px 135px 160px 200px 100px 1fr 110px",
+              minHeight: "40px",
               alignItems: "center",
+              bgcolor: "#d4d4d4",
               px: "12px",
-              fontSize: "15px",
-              color: "#b9b9b9",
-              bgcolor: "#f8f8f8",
             }}
           >
-            {safePage}
+            <Typography sx={{ fontSize: "15px", fontWeight: 700 }}>
+              申請日期
+            </Typography>
+            {!isEmployeeOnly ? (
+              <Typography sx={{ fontSize: "15px", fontWeight: 700 }}>
+                申請人
+              </Typography>
+            ) : null}
+            <Typography sx={{ fontSize: "15px", fontWeight: 700 }}>
+              加班類型
+            </Typography>
+            <Typography sx={{ fontSize: "15px", fontWeight: 700 }}>
+              日期/時間
+            </Typography>
+            <Typography sx={{ fontSize: "15px", fontWeight: 700 }}>
+              時數
+            </Typography>
+            <Typography sx={{ fontSize: "15px", fontWeight: 700 }}>
+              事由
+            </Typography>
+            <Typography sx={{ fontSize: "15px", fontWeight: 700 }}>
+              狀態
+            </Typography>
           </Box>
 
-          <Typography
-            sx={{ fontSize: "15px", color: "#111827", fontWeight: 700 }}
-          >
-            / {totalPages}
-          </Typography>
-
-          <Button
-            variant="outlined"
-            disabled={safePage >= totalPages}
-            sx={{
-              minWidth: "32px",
-              width: "32px",
-              height: "32px",
-              p: 0,
-              borderColor: "#d1d5db",
-              color: "#b9b9b9",
-            }}
-          >
-            <KeyboardArrowRightIcon sx={{ fontSize: "18px" }} />
-          </Button>
-
-          <Button
-            variant="outlined"
-            disabled={safePage >= totalPages}
-            sx={{
-              minWidth: "32px",
-              width: "32px",
-              height: "32px",
-              p: 0,
-              borderColor: "#d1d5db",
-              color: "#b9b9b9",
-            }}
-          >
-            <KeyboardDoubleArrowRightIcon sx={{ fontSize: "18px" }} />
-          </Button>
-        </Box>
-
-        <Box sx={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <Select
-            size="small"
-            value={rowsPerPage}
-            onChange={(event) => {
-              setRowsPerPage(Number(event.target.value));
-              setPage(1);
-            }}
-            sx={{
-              width: "70px",
-              height: "32px",
-              fontSize: "15px",
-              bgcolor: "#ffffff",
-              "& .MuiSelect-select": {
-                py: "4px",
-              },
-            }}
-          >
-            {ROWS_PER_PAGE_OPTIONS.map((item) => (
-              <MenuItem key={item} value={item}>
-                {item}
-              </MenuItem>
-            ))}
-          </Select>
-
-          <Typography sx={{ fontSize: "15px", color: "#111827" }}>
-            {displayFrom}-{displayTo} / {totalRows}
-          </Typography>
+          {loading ? (
+            <Box sx={{ minHeight: "56px", display: "flex", alignItems: "center", justifyContent: "center", borderBottom: "1px solid #d1d5db" }}>
+              <Typography sx={{ fontSize: "15px" }}>載入中...</Typography>
+            </Box>
+          ) : errorText ? (
+            <Box sx={{ minHeight: "56px", display: "flex", alignItems: "center", justifyContent: "center", borderBottom: "1px solid #d1d5db" }}>
+              <Typography sx={{ fontSize: "15px", color: "#dc2626" }}>{errorText}</Typography>
+            </Box>
+          ) : filteredRows.length === 0 ? (
+            <Box sx={{ minHeight: "56px", display: "flex", alignItems: "center", justifyContent: "center", borderBottom: "1px solid #d1d5db" }}>
+              <Typography sx={{ fontSize: "15px" }}>查無資料</Typography>
+            </Box>
+          ) : (
+            filteredRows.map((row) => (
+              <Box
+                key={row.id}
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: isEmployeeOnly
+                    ? "135px 160px 200px 100px 1fr 110px"
+                    : "135px 135px 160px 200px 100px 1fr 110px",
+                  minHeight: "54px",
+                  alignItems: "center",
+                  px: "12px",
+                  borderBottom: "1px solid #d1d5db",
+                }}
+              >
+                <Typography sx={{ fontSize: "15px" }}>{row.request_date || "-"}</Typography>
+                {!isEmployeeOnly ? (
+                  <Typography sx={{ fontSize: "15px" }}>{row.applicant_name || "-"}</Typography>
+                ) : null}
+                <Typography sx={{ fontSize: "15px" }}>{row.overtime_type_label || "-"}</Typography>
+                <Typography sx={{ fontSize: "15px" }}>{row.datetime_text || "-"}</Typography>
+                <Typography sx={{ fontSize: "15px" }}>{row.requested_hours || 0}</Typography>
+                <Typography
+                  sx={{
+                    fontSize: "15px",
+                    whiteSpace: "normal",
+                    wordBreak: "break-word",
+                    pr: "8px",
+                  }}
+                >
+                  {row.reason || "-"}
+                </Typography>
+                <Typography sx={{ fontSize: "15px" }}>{row.status_label || "-"}</Typography>
+              </Box>
+            ))
+          )}
         </Box>
       </Box>
     </Box>

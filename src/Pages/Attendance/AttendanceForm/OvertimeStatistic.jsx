@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Box,
   Button,
@@ -11,6 +11,7 @@ import {
 } from "@mui/material";
 import HelpIcon from "@mui/icons-material/Help";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import { apiOvertimeStatistics } from "../../../API/attendance";
 import {
   ACTION_BUTTON_SX,
   COMMON_SELECT_SX,
@@ -36,24 +37,8 @@ const PAYMENT_OPTIONS = [
   { value: "comp-leave", label: "補休" },
 ];
 
-const MOCK_ROWS = [
-  {
-    id: 1,
-    attributionDate: "2026/04/02",
-    applicant: "許明城",
-    overtimeType: "平日",
-    paymentMethod: "加班費",
-    signingHours: "0",
-    approvedHours: "2.0",
-    pendingConfirmHours: "0",
-    payableHours: "2.0",
-    actualPayHours: "2.0",
-  },
-];
-
 const MOBILE_TABLE_COLUMNS = [
   { key: "attributionDate", label: "加班歸屬日" },
-  { key: "applicant", label: "姓名" },
   { key: "overtimeType", label: "加班類型" },
   { key: "paymentMethod", label: "給付方式" },
   { key: "signingHours", label: "簽核中" },
@@ -63,29 +48,159 @@ const MOBILE_TABLE_COLUMNS = [
   { key: "actualPayHours", label: "實際給付時數" },
 ];
 
-export default function OvertimeStatistic() {
-  const now = useMemo(() => new Date(), []);
+function getErrorMessage(error, fallback = "載入資料失敗，請稍後再試。") {
+  return (
+    error?.response?.data?.message ||
+    error?.response?.data?.data?.message ||
+    error?.message ||
+    fallback
+  );
+}
 
-  const formatDate = (date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}/${month}/${day}`;
+function toApiDate(value) {
+  const raw = String(value || "").trim();
+  if (!raw) {
+    return "";
+  }
+
+  return raw.replaceAll("/", "-");
+}
+
+function toLabelFromOvertimeType(value) {
+  const raw = String(value || "")
+    .trim()
+    .toLowerCase();
+  const map = {
+    weekday: "平日",
+    after_work: "平日",
+    "rest-day": "休假日",
+    rest_day: "休假日",
+    "national-holiday": "國定假日",
+    national_holiday: "國定假日",
+    "make-up-holiday": "休息日",
+    make_up_holiday: "休息日",
+    "special-holiday": "例假日",
+    special_holiday: "例假日",
   };
 
-  const toInputDate = (value) => value.replaceAll("/", "-");
+  return map[raw] || String(value || "");
+}
 
-  const defaultStartDate = useMemo(() => formatDate(now), [now]);
-  const defaultEndDate = useMemo(() => {
-    const nextDate = new Date(now);
-    nextDate.setDate(nextDate.getDate() + 1);
-    return formatDate(nextDate);
-  }, [now]);
+function toLabelFromPayMethod(value) {
+  const raw = String(value || "")
+    .trim()
+    .toLowerCase();
+  const map = {
+    "overtime-pay": "加班費",
+    overtime_pay: "加班費",
+    cash: "加班費",
+    "comp-leave": "補休",
+    comp_leave: "補休",
+    leave: "補休",
+  };
+
+  return map[raw] || String(value || "");
+}
+
+function formatHours(value) {
+  const number = Number(value || 0);
+
+  if (!Number.isFinite(number)) {
+    return "0";
+  }
+
+  if (Number.isInteger(number)) {
+    return String(number);
+  }
+
+  return number.toFixed(1);
+}
+
+function groupStatisticsRows(items = []) {
+  const map = new Map();
+
+  items.forEach((item) => {
+    const attributionDate = String(
+      item?.request_date || item?.work_date || item?.attribution_date || "",
+    ).trim();
+
+    const overtimeType = toLabelFromOvertimeType(
+      item?.overtime_type_label || item?.overtime_type || "",
+    );
+    const paymentMethod = toLabelFromPayMethod(
+      item?.pay_method_label || item?.pay_method || "",
+    );
+
+    const key = [attributionDate, overtimeType, paymentMethod].join("||");
+
+    if (!map.has(key)) {
+      map.set(key, {
+        id: key,
+        attributionDate,
+        overtimeType,
+        paymentMethod,
+        signingHours: 0,
+        approvedHours: 0,
+        pendingConfirmHours: 0,
+        payableHours: 0,
+        actualPayHours: 0,
+      });
+    }
+
+    const row = map.get(key);
+    const hours =
+      Number(
+        item?.requested_hours ?? item?.overtime_hours ?? item?.hours ?? 0,
+      ) || 0;
+
+    const status = String(item?.request_status || "")
+      .trim()
+      .toLowerCase();
+
+    if (status === "pending") {
+      row.signingHours += hours;
+    } else if (status === "approved") {
+      row.approvedHours += hours;
+      row.payableHours += hours;
+      row.actualPayHours += hours;
+    } else if (status === "waiting_confirmation" || status === "confirming") {
+      row.pendingConfirmHours += hours;
+    }
+  });
+
+  return Array.from(map.values()).map((row) => ({
+    ...row,
+    signingHours: formatHours(row.signingHours),
+    approvedHours: formatHours(row.approvedHours),
+    pendingConfirmHours: formatHours(row.pendingConfirmHours),
+    payableHours: formatHours(row.payableHours),
+    actualPayHours: formatHours(row.actualPayHours),
+  }));
+}
+
+export default function OvertimeStatistic() {
+  const toInputDate = (value) => {
+    if (!value) return "";
+    return value.replaceAll("/", "-");
+  };
+
+  const defaultStartDate = "";
+  const defaultEndDate = "";
 
   const [startDate, setStartDate] = useState(defaultStartDate);
   const [endDate, setEndDate] = useState(defaultEndDate);
   const [overtimeType, setOvertimeType] = useState("all");
   const [paymentType, setPaymentType] = useState("all");
+
+  const [submittedStartDate, setSubmittedStartDate] =
+    useState(defaultStartDate);
+  const [submittedEndDate, setSubmittedEndDate] = useState(defaultEndDate);
+  const [submittedOvertimeType, setSubmittedOvertimeType] = useState("all");
+  const [submittedPaymentType, setSubmittedPaymentType] = useState("all");
+
+  const [sourceItems, setSourceItems] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [errorText, setErrorText] = useState("");
 
   const startDateRef = useRef(null);
   const endDateRef = useRef(null);
@@ -104,27 +219,87 @@ export default function OvertimeStatistic() {
   };
 
   const filteredRows = useMemo(() => {
-    return MOCK_ROWS.filter((row) => {
-      const overtimeMatch =
-        overtimeType === "all" ||
-        row.overtimeType ===
-          OVERTIME_TYPE_OPTIONS.find((item) => item.value === overtimeType)
-            ?.label;
+    let rows = groupStatisticsRows(sourceItems);
 
-      const paymentMatch =
-        paymentType === "all" ||
-        row.paymentMethod ===
-          PAYMENT_OPTIONS.find((item) => item.value === paymentType)?.label;
+    if (submittedOvertimeType !== "all") {
+      const typeLabel =
+        OVERTIME_TYPE_OPTIONS.find(
+          (item) => item.value === submittedOvertimeType,
+        )?.label || "";
 
-      return overtimeMatch && paymentMatch;
-    });
-  }, [overtimeType, paymentType]);
+      rows = rows.filter((row) => row.overtimeType === typeLabel);
+    }
+
+    if (submittedPaymentType !== "all") {
+      const paymentLabel =
+        PAYMENT_OPTIONS.find((item) => item.value === submittedPaymentType)
+          ?.label || "";
+
+      rows = rows.filter((row) => row.paymentMethod === paymentLabel);
+    }
+
+    return rows;
+  }, [sourceItems, submittedOvertimeType, submittedPaymentType]);
+
+  const loadData = async (
+    nextStartDate,
+    nextEndDate,
+    nextOvertimeType,
+    nextPaymentType,
+  ) => {
+    try {
+      setLoading(true);
+      setErrorText("");
+
+      const response = await apiOvertimeStatistics({
+        date_from: toApiDate(nextStartDate),
+        date_to: toApiDate(nextEndDate),
+      });
+
+      const payload = response?.data?.data || response?.data || response || {};
+
+      const items = Array.isArray(payload?.items) ? payload.items : [];
+      setSourceItems(items);
+    } catch (error) {
+      console.error(error);
+      setErrorText(getErrorMessage(error));
+      setSourceItems([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData(
+      submittedStartDate,
+      submittedEndDate,
+      submittedOvertimeType,
+      submittedPaymentType,
+    );
+  }, [
+    submittedStartDate,
+    submittedEndDate,
+    submittedOvertimeType,
+    submittedPaymentType,
+  ]);
+
+  const handleSearch = () => {
+    setSubmittedStartDate(startDate);
+    setSubmittedEndDate(endDate);
+    setSubmittedOvertimeType(overtimeType);
+    setSubmittedPaymentType(paymentType);
+  };
 
   const handleClear = () => {
-    setStartDate(defaultStartDate);
-    setEndDate(defaultEndDate);
+    setStartDate("");
+    setEndDate("");
     setOvertimeType("all");
     setPaymentType("all");
+
+    setSubmittedStartDate("");
+    setSubmittedEndDate("");
+    setSubmittedOvertimeType("all");
+    setSubmittedPaymentType("all");
   };
 
   return (
@@ -159,9 +334,6 @@ export default function OvertimeStatistic() {
             <Typography
               sx={{ fontSize: "15px", color: "#111827", fontWeight: 500 }}
             >
-              <Box component="span" sx={{ color: "#ef4444", mr: "2px" }}>
-                *
-              </Box>
               查詢日期
             </Typography>
 
@@ -302,7 +474,11 @@ export default function OvertimeStatistic() {
           </Box>
 
           <FilterActions>
-            <Button variant="outlined" sx={ACTION_BUTTON_SX}>
+            <Button
+              variant="outlined"
+              onClick={handleSearch}
+              sx={ACTION_BUTTON_SX}
+            >
               搜尋
             </Button>
 
@@ -574,7 +750,41 @@ export default function OvertimeStatistic() {
             </Typography>
           </Box>
 
-          {filteredRows.length === 0 ? (
+          {loading ? (
+            <Box
+              sx={{
+                px: "12px",
+                py: "14px",
+                borderBottom: "1px solid #d1d5db",
+              }}
+            >
+              <Typography
+                sx={{
+                  fontSize: "15px",
+                  color: "#111827",
+                }}
+              >
+                載入中...
+              </Typography>
+            </Box>
+          ) : errorText ? (
+            <Box
+              sx={{
+                px: "12px",
+                py: "14px",
+                borderBottom: "1px solid #d1d5db",
+              }}
+            >
+              <Typography
+                sx={{
+                  fontSize: "15px",
+                  color: "#dc2626",
+                }}
+              >
+                {errorText}
+              </Typography>
+            </Box>
+          ) : filteredRows.length === 0 ? (
             <Box
               sx={{
                 px: "12px",

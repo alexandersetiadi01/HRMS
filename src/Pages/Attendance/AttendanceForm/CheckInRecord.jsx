@@ -1,193 +1,290 @@
-import { useMemo, useState } from "react";
-import { Box, Button, MenuItem, Select, Typography } from "@mui/material";
-import { MobileSectionTitle } from "./ApplicationRecord/SharedFields";
-import ResponsiveAttendanceTable from "./ResponsiveAttendanceTable";
+import { useEffect, useMemo, useState } from "react";
+import { Box, TextField, Typography } from "@mui/material";
+import {
+  apiGetPendingApprovalActor,
+  apiMissedPunchRecordList,
+} from "../../../API/attendance";
+import {
+  ActionButtons,
+  FilterRow,
+  YearMonthField,
+  SelectField,
+} from "./ApplicationRecord/SharedFields";
 
-const CHECKIN_TYPES = [
-  { value: "", label: "請選擇" },
+function getCurrentTaiwanYearMonth() {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Taipei",
+    year: "numeric",
+    month: "2-digit",
+  });
+
+  const parts = formatter.formatToParts(new Date());
+  const year = parts.find((part) => part.type === "year")?.value || "2026";
+  const month = parts.find((part) => part.type === "month")?.value || "01";
+
+  return {
+    year,
+    month: String(Number(month)),
+  };
+}
+
+function getErrorMessage(error, fallback = "載入資料失敗，請稍後再試。") {
+  return (
+    error?.response?.data?.message ||
+    error?.response?.data?.data?.message ||
+    error?.message ||
+    fallback
+  );
+}
+
+const TYPE_OPTIONS = [
   { value: "all", label: "全部" },
-  { value: "missed", label: "忘打卡申請" },
-  { value: "Accidental-deletion", label: "誤打卡刪除" },
-  { value: "make-up", label: "打卡補登" },
+  { value: "missed_punch", label: "忘打卡" },
 ];
 
-const TABLE_COLUMNS = [
-  { key: "applyDate", label: "申請日期", width: "15%" },
-  { key: "applicant", label: "申請人", width: "15%" },
-  { key: "maintainType", label: "維護類型", width: "12%" },
-  {
-    key: "dateTime",
-    label: "日期/時間",
-    width: "20%",
-    desktopWhiteSpace: "pre-line",
-    mobileWhiteSpace: "pre-line",
+const SEARCH_INPUT_SX = {
+  width: { xs: "100%", sm: "180px" },
+  "& .MuiOutlinedInput-root": {
+    height: "32px",
+    bgcolor: "#fff",
   },
-  { key: "type", label: "類型", width: "10%" },
-  { key: "location", label: "地點", width: "16%" },
-  { key: "status", label: "狀態", width: "12%" },
-];
-
-// ✅ Mock data added
-const MOCK_ROWS = [
-  {
-    id: 1,
-    applyDate: "2026/04/02",
-    applicant: "許明城",
-    maintainType: "忘打卡",
-    dateTime: "2026/04/01 09:00",
-    type: "上班",
-    location: "台北辦公室",
-    status: "已核准",
+  "& .MuiOutlinedInput-input": {
+    py: "6px",
+    px: "10px",
+    fontSize: "14px",
   },
-];
+};
 
 export default function CheckInRecord() {
-  const now = useMemo(() => new Date(), []);
-  const initialYear = String(now.getFullYear());
-  const initialMonth = String(now.getMonth() + 1);
+  const taiwanNow = useMemo(() => getCurrentTaiwanYearMonth(), []);
+  const currentYear = Number(taiwanNow.year);
 
   const yearOptions = useMemo(() => {
-    const currentYear = now.getFullYear();
-    return Array.from({ length: 5 }, (_, index) =>
-      String(currentYear - 2 + index)
+    const years = [];
+    for (let year = currentYear - 3; year <= currentYear + 1; year += 1) {
+      years.push(String(year));
+    }
+    return years;
+  }, [currentYear]);
+
+  const monthOptions = useMemo(
+    () => Array.from({ length: 12 }, (_, index) => String(index + 1)),
+    [],
+  );
+
+  const [year, setYear] = useState(taiwanNow.year);
+  const [month, setMonth] = useState(taiwanNow.month);
+  const [recordType, setRecordType] = useState("all");
+
+  const [searchText, setSearchText] = useState("");
+  const [searchKeyword, setSearchKeyword] = useState("");
+
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [errorText, setErrorText] = useState("");
+  const [actor, setActor] = useState(null);
+
+  const isEmployeeOnly = !!actor?.is_employee_position;
+
+  const filteredRows = useMemo(() => {
+    if (!searchKeyword.trim()) {
+      return rows;
+    }
+
+    const keyword = searchKeyword.trim().toLowerCase();
+
+    return rows.filter((row) =>
+      [
+        row.request_date,
+        row.applicant_name,
+        row.maintenance_type,
+        row.datetime_text,
+        row.request_type_label,
+        row.location_label,
+        row.status_label,
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(keyword),
     );
-  }, [now]);
+  }, [rows, searchKeyword]);
 
-  const monthOptions = useMemo(() => {
-    return Array.from({ length: 12 }, (_, index) => String(index + 1));
-  }, []);
+  const loadData = async (nextYear, nextMonth, nextType) => {
+    try {
+      setLoading(true);
+      setErrorText("");
 
-  const [year, setYear] = useState(initialYear);
-  const [month, setMonth] = useState(initialMonth);
-  const [type, setType] = useState("");
+      const [actorResponse, response] = await Promise.all([
+        apiGetPendingApprovalActor(),
+        apiMissedPunchRecordList({
+          year: Number(nextYear),
+          month: Number(nextMonth),
+        }),
+      ]);
+
+      const actorData =
+        actorResponse?.data?.data || actorResponse?.data || actorResponse || {};
+      setActor(actorData);
+
+      const payload = response?.data?.data || response?.data || response || {};
+      let items = Array.isArray(payload?.items) ? payload.items : [];
+
+      if (nextType && nextType !== "all") {
+        items = items.filter(
+          (item) => String(item?.maintenance_type || "") === "忘打卡",
+        );
+      }
+
+      setRows(items);
+    } catch (error) {
+      console.error(error);
+      setErrorText(getErrorMessage(error));
+      setRows([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData(year, month, recordType);
+  }, [year, month, recordType]);
+
+  const handleSearch = () => {
+    setSearchKeyword(searchText.trim());
+  };
 
   const handleClear = () => {
-    setYear(initialYear);
-    setMonth(initialMonth);
-    setType("");
+    setSearchText("");
+    setSearchKeyword("");
   };
 
   return (
     <Box>
-      <MobileSectionTitle>打卡紀錄管理</MobileSectionTitle>
+      <FilterRow withDivider>
+        <YearMonthField
+          year={year}
+          onYearChange={setYear}
+          yearOptions={yearOptions}
+          month={month}
+          onMonthChange={setMonth}
+          monthOptions={monthOptions}
+        />
 
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          gap: "14px",
-          flexWrap: "wrap",
-          mb: "18px",
-        }}
-      >
-        <Typography sx={{ fontSize: "15px", color: "#111827" }}>
-          年度/月份
-        </Typography>
+        <SelectField
+          label="維護類型"
+          value={recordType}
+          onChange={setRecordType}
+          options={TYPE_OPTIONS}
+          minWidth="168px"
+        />
 
-        <Select
-          size="small"
-          value={year}
-          onChange={(event) => setYear(event.target.value)}
+        <Box
           sx={{
-            minWidth: "76px",
-            height: "32px",
-            fontSize: "15px",
-            bgcolor: "#ffffff",
+            ml: { xs: 0, sm: "auto" },
+            width: { xs: "100%", sm: "auto" },
+            display: "flex",
+            alignItems: "center",
+            justifyContent: { xs: "stretch", sm: "flex-end" },
+            gap: "10px",
+            flexWrap: "wrap",
           }}
         >
-          {yearOptions.map((item) => (
-            <MenuItem key={item} value={item}>
-              {item}
-            </MenuItem>
-          ))}
-        </Select>
+          <TextField
+            value={searchText}
+            onChange={(event) => setSearchText(event.target.value)}
+            placeholder="搜尋"
+            size="small"
+            sx={SEARCH_INPUT_SX}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                handleSearch();
+              }
+            }}
+          />
+          <ActionButtons onClear={handleClear} onSearch={handleSearch} />
+        </Box>
+      </FilterRow>
 
-        <Typography sx={{ fontSize: "18px", color: "#6b7280" }}>/</Typography>
+      <Box sx={{ pt: "14px", overflowX: "auto" }}>
+        <Box sx={{ minWidth: isEmployeeOnly ? "800px" : "930px" }}>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: isEmployeeOnly
+                ? "135px 120px 190px 90px 140px 110px"
+                : "135px 135px 120px 190px 90px 140px 110px",
+              minHeight: "40px",
+              alignItems: "center",
+              bgcolor: "#d4d4d4",
+              px: "12px",
+            }}
+          >
+            <Typography sx={{ fontSize: "15px", fontWeight: 700 }}>
+              申請日期
+            </Typography>
+            {!isEmployeeOnly ? (
+              <Typography sx={{ fontSize: "15px", fontWeight: 700 }}>
+                申請人
+              </Typography>
+            ) : null}
+            <Typography sx={{ fontSize: "15px", fontWeight: 700 }}>
+              維護類型
+            </Typography>
+            <Typography sx={{ fontSize: "15px", fontWeight: 700 }}>
+              日期/時間
+            </Typography>
+            <Typography sx={{ fontSize: "15px", fontWeight: 700 }}>
+              類型
+            </Typography>
+            <Typography sx={{ fontSize: "15px", fontWeight: 700 }}>
+              地點
+            </Typography>
+            <Typography sx={{ fontSize: "15px", fontWeight: 700 }}>
+              狀態
+            </Typography>
+          </Box>
 
-        <Select
-          size="small"
-          value={month}
-          onChange={(event) => setMonth(event.target.value)}
-          sx={{
-            minWidth: "62px",
-            height: "32px",
-            fontSize: "15px",
-            bgcolor: "#ffffff",
-          }}
-        >
-          {monthOptions.map((item) => (
-            <MenuItem key={item} value={item}>
-              {item}
-            </MenuItem>
-          ))}
-        </Select>
-
-        <Typography
-          sx={{
-            ml: { xs: 0, md: "14px" },
-            fontSize: "15px",
-            color: "#111827",
-          }}
-        >
-          維護類型
-        </Typography>
-
-        <Select
-          size="small"
-          value={type}
-          onChange={(event) => setType(event.target.value)}
-          sx={{
-            minWidth: "200px",
-            height: "32px",
-            fontSize: "15px",
-            bgcolor: "#ffffff",
-          }}
-        >
-          {CHECKIN_TYPES.map((item) => (
-            <MenuItem key={item.value || "empty"} value={item.value}>
-              {item.label}
-            </MenuItem>
-          ))}
-        </Select>
-
-        <Box sx={{ flex: 1 }} />
-
-        <Button
-          variant="outlined"
-          sx={{
-            minWidth: "48px",
-            height: "32px",
-            px: "14px",
-            fontSize: "15px",
-            color: "#111827",
-            borderColor: "#9ca3af",
-          }}
-        >
-          搜尋
-        </Button>
-
-        <Button
-          variant="outlined"
-          onClick={handleClear}
-          sx={{
-            minWidth: "48px",
-            height: "32px",
-            px: "14px",
-            fontSize: "15px",
-            color: "#111827",
-            borderColor: "#9ca3af",
-          }}
-        >
-          清空
-        </Button>
+          {loading ? (
+            <Box sx={{ minHeight: "56px", display: "flex", alignItems: "center", justifyContent: "center", px: "12px", borderBottom: "1px solid #d1d5db" }}>
+              <Typography sx={{ fontSize: "15px", color: "#111827" }}>載入中...</Typography>
+            </Box>
+          ) : errorText ? (
+            <Box sx={{ minHeight: "56px", display: "flex", alignItems: "center", justifyContent: "center", px: "12px", borderBottom: "1px solid #d1d5db" }}>
+              <Typography sx={{ fontSize: "15px", color: "#dc2626" }}>{errorText}</Typography>
+            </Box>
+          ) : filteredRows.length === 0 ? (
+            <Box sx={{ minHeight: "56px", display: "flex", alignItems: "center", justifyContent: "center", px: "12px", borderBottom: "1px solid #d1d5db" }}>
+              <Typography sx={{ fontSize: "15px", color: "#111827" }}>查無資料</Typography>
+            </Box>
+          ) : (
+            filteredRows.map((row) => (
+              <Box
+                key={row.id}
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: isEmployeeOnly
+                    ? "135px 120px 190px 90px 140px 110px"
+                    : "135px 135px 120px 190px 90px 140px 110px",
+                  minHeight: "54px",
+                  alignItems: "center",
+                  px: "12px",
+                  borderBottom: "1px solid #d1d5db",
+                }}
+              >
+                <Typography sx={{ fontSize: "15px" }}>{row.request_date || "-"}</Typography>
+                {!isEmployeeOnly ? (
+                  <Typography sx={{ fontSize: "15px" }}>{row.applicant_name || "-"}</Typography>
+                ) : null}
+                <Typography sx={{ fontSize: "15px" }}>{row.maintenance_type || "-"}</Typography>
+                <Typography sx={{ fontSize: "15px" }}>{row.datetime_text || "-"}</Typography>
+                <Typography sx={{ fontSize: "15px" }}>{row.request_type_label || "-"}</Typography>
+                <Typography sx={{ fontSize: "15px" }}>{row.location_label || "-"}</Typography>
+                <Typography sx={{ fontSize: "15px" }}>{row.status_label || "-"}</Typography>
+              </Box>
+            ))
+          )}
+        </Box>
       </Box>
-
-      <ResponsiveAttendanceTable
-        columns={TABLE_COLUMNS}
-        rows={MOCK_ROWS} // ✅ use mock data
-        mobileCardTitleKey="applyDate"
-        getRowKey={(row) => row.id}
-      />
     </Box>
   );
 }

@@ -1,359 +1,389 @@
-import { useMemo, useState } from "react";
-import { Box, Button, MenuItem, Select, Typography } from "@mui/material";
-import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
-import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
-import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
-import KeyboardDoubleArrowRightIcon from "@mui/icons-material/KeyboardDoubleArrowRight";
-import ResponsiveAttendanceTable from "./ResponsiveAttendanceTable";
+import { useEffect, useMemo, useState } from "react";
+import { Box, TextField, Typography } from "@mui/material";
 import {
-  ACTION_BUTTON_SX,
-  COMMON_SELECT_SX,
-} from "./ApplicationRecord/Options";
+  apiGetPendingApprovalActor,
+  apiLeaveRecordList,
+} from "../../../API/attendance";
 import {
-  FilterActions,
-  MobileSectionTitle,
+  ActionButtons,
+  FilterRow,
+  SelectField,
+  YearMonthField,
 } from "./ApplicationRecord/SharedFields";
+
+function getCurrentTaiwanYearMonth() {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Taipei",
+    year: "numeric",
+    month: "2-digit",
+  });
+
+  const parts = formatter.formatToParts(new Date());
+  const year = parts.find((part) => part.type === "year")?.value || "2026";
+  const month = parts.find((part) => part.type === "month")?.value || "01";
+
+  return {
+    year,
+    month: String(Number(month)),
+  };
+}
+
+function getErrorMessage(error, fallback = "載入資料失敗，請稍後再試。") {
+  return (
+    error?.response?.data?.message ||
+    error?.response?.data?.data?.message ||
+    error?.message ||
+    fallback
+  );
+}
 
 const STATUS_OPTIONS = [
   { value: "all", label: "全部" },
-  { value: "signing", label: "簽核中" },
-  { value: "returned", label: "已駁回" },
+  { value: "draft", label: "草稿" },
+  { value: "pending", label: "待審核" },
   { value: "approved", label: "已核准" },
-  { value: "re-signing", label: "撤銷簽核中" },
-  { value: "cancelled", label: "已撤銷" },
+  { value: "rejected", label: "已駁回" },
 ];
 
-const MOCK_ROWS = [
-  {
-    id: 1,
-    applyDate: "2026/01/16",
-    applicant: "許明城",
-    leaveType: "特休",
-    dateTime: "2026/02/23 09:00 -\n2026/02/25 18:00",
-    status: "已核准",
+const SEARCH_INPUT_SX = {
+  width: { xs: "100%", sm: "180px" },
+  "& .MuiOutlinedInput-root": {
+    height: "32px",
+    bgcolor: "#fff",
   },
-  {
-    id: 2,
-    applyDate: "2026/01/16",
-    applicant: "許明城",
-    leaveType: "事假",
-    dateTime: "2026/02/11 09:00 -\n2026/02/13 18:00",
-    status: "已核准",
+  "& .MuiOutlinedInput-input": {
+    py: "6px",
+    px: "10px",
+    fontSize: "14px",
   },
-];
-
-const TABLE_COLUMNS = [
-  { key: "applyDate", label: "申請日期", width: "15%" },
-  { key: "applicant", label: "申請人", width: "24%" },
-  { key: "leaveType", label: "假別", width: "24%" },
-  {
-    key: "dateTime",
-    label: "日期/時間",
-    width: "20%",
-    desktopWhiteSpace: "pre-line",
-    mobileWhiteSpace: "pre-line",
-  },
-  { key: "status", label: "狀態", width: "17%" },
-];
-
-const rowsPerPageOptions = [10, 20, 30, 50];
+};
 
 export default function LeaveOfAbsence() {
-  const now = useMemo(() => new Date(), []);
-  const currentYear = String(now.getFullYear());
+  const taiwanNow = useMemo(() => getCurrentTaiwanYearMonth(), []);
+  const currentYear = Number(taiwanNow.year);
 
   const yearOptions = useMemo(() => {
-    const baseYear = now.getFullYear();
-    return Array.from({ length: 5 }, (_, index) =>
-      String(baseYear - 2 + index)
-    );
-  }, [now]);
+    const baseYear = Number(currentYear);
+    const years = [];
+    for (let year = baseYear - 3; year <= baseYear + 1; year += 1) {
+      years.push(String(year));
+    }
+    return years;
+  }, [currentYear]);
 
-  const [year, setYear] = useState(currentYear);
+  const monthOptions = useMemo(
+    () => Array.from({ length: 12 }, (_, index) => String(index + 1)),
+    [],
+  );
+
+  const [year, setYear] = useState(taiwanNow.year);
+  const [month, setMonth] = useState(taiwanNow.month);
+  const [leaveType, setLeaveType] = useState("all");
   const [status, setStatus] = useState("all");
-  const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+
+  const [searchText, setSearchText] = useState("");
+  const [searchKeyword, setSearchKeyword] = useState("");
+
+  const [rows, setRows] = useState([]);
+  const [leaveTypeOptions, setLeaveTypeOptions] = useState([
+    { value: "all", label: "全部" },
+  ]);
+  const [loading, setLoading] = useState(false);
+  const [errorText, setErrorText] = useState("");
+  const [actor, setActor] = useState(null);
+
+  const isEmployeeOnly = !!actor?.is_employee_position;
 
   const filteredRows = useMemo(() => {
-    if (status === "all") return MOCK_ROWS;
+    if (!searchKeyword.trim()) {
+      return rows;
+    }
 
-    const statusMap = {
-      signing: "簽核中",
-      returned: "已駁回",
-      approved: "已核准",
-      "re-signing": "撤銷簽核中",
-      cancelled: "已撤銷",
-    };
+    const keyword = searchKeyword.trim().toLowerCase();
 
-    return MOCK_ROWS.filter((row) => row.status === statusMap[status]);
-  }, [status]);
+    return rows.filter((row) =>
+      [
+        row.request_date,
+        row.applicant_name,
+        row.leave_label,
+        row.datetime_text,
+        row.reason,
+        row.status_label,
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(keyword),
+    );
+  }, [rows, searchKeyword]);
 
-  const totalRows = filteredRows.length;
-  const totalPages = Math.max(1, Math.ceil(totalRows / rowsPerPage));
-  const safePage = Math.min(page, totalPages);
-  const startIndex = (safePage - 1) * rowsPerPage;
-  const pagedRows = filteredRows.slice(startIndex, startIndex + rowsPerPage);
-  const displayFrom = totalRows === 0 ? 0 : startIndex + 1;
-  const displayTo = Math.min(startIndex + rowsPerPage, totalRows);
+  const loadData = async (nextYear, nextMonth, nextLeaveType, nextStatus) => {
+    try {
+      setLoading(true);
+      setErrorText("");
+
+      const [actorResponse, response] = await Promise.all([
+        apiGetPendingApprovalActor(),
+        apiLeaveRecordList({
+          year: Number(nextYear),
+          month: Number(nextMonth),
+          status: nextStatus,
+        }),
+      ]);
+
+      const actorData =
+        actorResponse?.data?.data || actorResponse?.data || actorResponse || {};
+      setActor(actorData);
+
+      const payload = response?.data?.data || response?.data || response || {};
+      let items = Array.isArray(payload?.items) ? payload.items : [];
+
+      const leaveMap = new Map();
+      items.forEach((item) => {
+        const label = String(item?.leave_label || "").trim();
+        if (label && !leaveMap.has(label)) {
+          leaveMap.set(label, {
+            value: label,
+            label,
+          });
+        }
+      });
+
+      setLeaveTypeOptions([
+        { value: "all", label: "全部" },
+        ...Array.from(leaveMap.values()),
+      ]);
+
+      if (nextLeaveType && nextLeaveType !== "all") {
+        items = items.filter(
+          (item) => String(item?.leave_label || "") === String(nextLeaveType),
+        );
+      }
+
+      if (nextStatus && nextStatus !== "all") {
+        items = items.filter(
+          (item) =>
+            String(item?.request_status || "").trim().toLowerCase() ===
+            String(nextStatus).trim().toLowerCase(),
+        );
+      }
+
+      setRows(items);
+    } catch (error) {
+      console.error(error);
+      setErrorText(getErrorMessage(error));
+      setRows([]);
+      setLeaveTypeOptions([{ value: "all", label: "全部" }]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData(year, month, leaveType, status);
+  }, [year, month, leaveType, status]);
 
   const handleSearch = () => {
-    setPage(1);
+    setSearchKeyword(searchText.trim());
   };
 
   const handleClear = () => {
-    setYear(currentYear);
-    setStatus("all");
-    setPage(1);
-    setRowsPerPage(10);
+    setSearchText("");
+    setSearchKeyword("");
   };
 
   return (
     <Box>
-      <MobileSectionTitle>請假紀錄</MobileSectionTitle>
-
       <Box
         sx={{
           display: "flex",
-          alignItems: { xs: "stretch", sm: "center" },
+          flexDirection: "column",
           gap: "12px",
-          flexWrap: "wrap",
-          mb: "14px",
+          pb: "10px",
+          borderBottom: "1px solid #d1d5db",
         }}
       >
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: { xs: "column", sm: "row" },
-            alignItems: { xs: "stretch", sm: "center" },
-            gap: { xs: "8px", sm: "10px" },
-            width: { xs: "100%", sm: "auto" },
-          }}
-        >
-          <Typography
-            sx={{ fontSize: "15px", color: "#111827", fontWeight: 500 }}
-          >
-            年度
-          </Typography>
+        <FilterRow>
+          <YearMonthField
+            year={year}
+            onYearChange={setYear}
+            yearOptions={yearOptions}
+            month={month}
+            onMonthChange={setMonth}
+            monthOptions={monthOptions}
+          />
+        </FilterRow>
 
-          <Select
-            size="small"
-            value={year}
-            onChange={(event) => setYear(event.target.value)}
-            sx={{
-              minWidth: { xs: "100%", sm: "92px" },
-              width: { xs: "100%", sm: "auto" },
-              ...COMMON_SELECT_SX,
-            }}
-          >
-            {yearOptions.map((item) => (
-              <MenuItem key={item} value={item}>
-                {item}
-              </MenuItem>
-            ))}
-          </Select>
-        </Box>
+        <FilterRow>
+          <SelectField
+            label="假別"
+            value={leaveType}
+            onChange={setLeaveType}
+            options={leaveTypeOptions}
+            minWidth="180px"
+          />
 
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: { xs: "column", sm: "row" },
-            alignItems: { xs: "stretch", sm: "center" },
-            gap: { xs: "8px", sm: "10px" },
-            width: { xs: "100%", sm: "auto" },
-          }}
-        >
-          <Typography
-            sx={{
-              ml: { xs: 0, sm: "12px" },
-              fontSize: "15px",
-              color: "#111827",
-              fontWeight: 500,
-            }}
-          >
-            狀態
-          </Typography>
-
-          <Select
-            size="small"
+          <SelectField
+            label="狀態"
             value={status}
-            onChange={(event) => setStatus(event.target.value)}
-            MenuProps={{
-              PaperProps: {
-                sx: {
-                  mt: "2px",
-                  borderRadius: 0,
-                  boxShadow: "none",
-                  border: "1px solid #cfcfcf",
-                  maxHeight: 220,
-                  "& .MuiMenuItem-root": {
-                    minHeight: "36px",
-                    fontSize: "15px",
-                    color: "#374151",
-                  },
-                  "& .Mui-selected": {
-                    bgcolor: "#dbe5f1 !important",
-                    color: "#111827",
-                  },
-                  "& .MuiMenuItem-root:hover": {
-                    bgcolor: "#eef3f8",
-                  },
-                },
-              },
-            }}
-            sx={{
-              minWidth: { xs: "100%", sm: "190px" },
-              width: { xs: "100%", sm: "auto" },
-              ...COMMON_SELECT_SX,
-            }}
-          >
-            {STATUS_OPTIONS.map((item) => (
-              <MenuItem key={item.value} value={item.value}>
-                {item.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </Box>
-
-        <FilterActions>
-          <Button variant="outlined" onClick={handleSearch} sx={ACTION_BUTTON_SX}>
-            搜尋
-          </Button>
-
-          <Button variant="outlined" onClick={handleClear} sx={ACTION_BUTTON_SX}>
-            清空
-          </Button>
-        </FilterActions>
-      </Box>
-
-      <ResponsiveAttendanceTable
-        columns={TABLE_COLUMNS}
-        rows={pagedRows}
-        mobileCardTitleKey="applyDate"
-        getRowKey={(row) => row.id}
-      />
-
-      <Box
-        sx={{
-          mt: "12px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: "12px",
-        }}
-      >
-        <Box sx={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <Button
-            variant="outlined"
-            disabled={safePage === 1}
-            sx={{
-              minWidth: "32px",
-              width: "32px",
-              height: "32px",
-              p: 0,
-              borderColor: "#d1d5db",
-              color: "#9ca3af",
-            }}
-          >
-            <KeyboardDoubleArrowLeftIcon sx={{ fontSize: "18px" }} />
-          </Button>
-
-          <Button
-            variant="outlined"
-            disabled={safePage === 1}
-            sx={{
-              minWidth: "32px",
-              width: "32px",
-              height: "32px",
-              p: 0,
-              borderColor: "#d1d5db",
-              color: "#9ca3af",
-            }}
-          >
-            <KeyboardArrowLeftIcon sx={{ fontSize: "18px" }} />
-          </Button>
+            onChange={setStatus}
+            options={STATUS_OPTIONS}
+            minWidth="180px"
+          />
 
           <Box
             sx={{
-              width: "70px",
-              height: "32px",
-              border: "1px solid #d1d5db",
+              ml: { xs: 0, sm: "auto" },
+              width: { xs: "100%", sm: "auto" },
               display: "flex",
               alignItems: "center",
-              px: "10px",
-              fontSize: "15px",
-              color: "#9ca3af",
-              bgcolor: "#f8f8f8",
+              justifyContent: { xs: "stretch", sm: "flex-end" },
+              gap: "10px",
+              flexWrap: "wrap",
             }}
           >
-            {safePage}
+            <TextField
+              value={searchText}
+              onChange={(event) => setSearchText(event.target.value)}
+              placeholder="搜尋"
+              size="small"
+              sx={SEARCH_INPUT_SX}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  handleSearch();
+                }
+              }}
+            />
+            <ActionButtons onClear={handleClear} onSearch={handleSearch} />
+          </Box>
+        </FilterRow>
+      </Box>
+
+      <Box sx={{ pt: "14px", overflowX: "auto" }}>
+        <Box sx={{ minWidth: isEmployeeOnly ? "845px" : "980px" }}>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: isEmployeeOnly
+                ? "135px 150px 250px 1fr 110px"
+                : "135px 135px 150px 250px 1fr 110px",
+              minHeight: "40px",
+              alignItems: "center",
+              bgcolor: "#d4d4d4",
+              px: "12px",
+            }}
+          >
+            <Typography sx={{ fontSize: "15px", fontWeight: 700 }}>
+              申請日期
+            </Typography>
+            {!isEmployeeOnly ? (
+              <Typography sx={{ fontSize: "15px", fontWeight: 700 }}>
+                申請人
+              </Typography>
+            ) : null}
+            <Typography sx={{ fontSize: "15px", fontWeight: 700 }}>
+              假別
+            </Typography>
+            <Typography sx={{ fontSize: "15px", fontWeight: 700 }}>
+              日期/時間
+            </Typography>
+            <Typography sx={{ fontSize: "15px", fontWeight: 700 }}>
+              事由
+            </Typography>
+            <Typography sx={{ fontSize: "15px", fontWeight: 700 }}>
+              狀態
+            </Typography>
           </Box>
 
-          <Typography
-            sx={{ fontSize: "15px", color: "#111827", fontWeight: 700 }}
-          >
-            / 1
-          </Typography>
-
-          <Button
-            variant="outlined"
-            disabled
-            sx={{
-              minWidth: "32px",
-              width: "32px",
-              height: "32px",
-              p: 0,
-              borderColor: "#d1d5db",
-              color: "#9ca3af",
-            }}
-          >
-            <KeyboardArrowRightIcon sx={{ fontSize: "18px" }} />
-          </Button>
-
-          <Button
-            variant="outlined"
-            disabled
-            sx={{
-              minWidth: "32px",
-              width: "32px",
-              height: "32px",
-              p: 0,
-              borderColor: "#d1d5db",
-              color: "#9ca3af",
-            }}
-          >
-            <KeyboardDoubleArrowRightIcon sx={{ fontSize: "18px" }} />
-          </Button>
-        </Box>
-
-        <Box sx={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <Select
-            size="small"
-            value={rowsPerPage}
-            onChange={(event) => {
-              setRowsPerPage(Number(event.target.value));
-              setPage(1);
-            }}
-            sx={{
-              width: "70px",
-              height: "32px",
-              fontSize: "15px",
-              bgcolor: "#ffffff",
-              "& .MuiSelect-select": {
-                py: "4px",
-              },
-            }}
-          >
-            {rowsPerPageOptions.map((item) => (
-              <MenuItem key={item} value={item}>
-                {item}
-              </MenuItem>
-            ))}
-          </Select>
-
-          <Typography sx={{ fontSize: "15px", color: "#111827" }}>
-            {displayFrom}-{displayTo} / {totalRows}
-          </Typography>
+          {loading ? (
+            <Box
+              sx={{
+                minHeight: "56px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                px: "12px",
+                borderBottom: "1px solid #d1d5db",
+              }}
+            >
+              <Typography sx={{ fontSize: "15px", color: "#111827" }}>
+                載入中...
+              </Typography>
+            </Box>
+          ) : errorText ? (
+            <Box
+              sx={{
+                minHeight: "56px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                px: "12px",
+                borderBottom: "1px solid #d1d5db",
+              }}
+            >
+              <Typography sx={{ fontSize: "15px", color: "#dc2626" }}>
+                {errorText}
+              </Typography>
+            </Box>
+          ) : filteredRows.length === 0 ? (
+            <Box
+              sx={{
+                minHeight: "56px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                px: "12px",
+                borderBottom: "1px solid #d1d5db",
+              }}
+            >
+              <Typography sx={{ fontSize: "15px", color: "#111827" }}>
+                查無資料
+              </Typography>
+            </Box>
+          ) : (
+            filteredRows.map((row) => (
+              <Box
+                key={row.id}
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: isEmployeeOnly
+                    ? "135px 150px 250px 1fr 110px"
+                    : "135px 135px 150px 250px 1fr 110px",
+                  minHeight: "54px",
+                  alignItems: "center",
+                  px: "12px",
+                  borderBottom: "1px solid #d1d5db",
+                }}
+              >
+                <Typography sx={{ fontSize: "15px" }}>
+                  {row.request_date || "-"}
+                </Typography>
+                {!isEmployeeOnly ? (
+                  <Typography sx={{ fontSize: "15px" }}>
+                    {row.applicant_name || "-"}
+                  </Typography>
+                ) : null}
+                <Typography sx={{ fontSize: "15px" }}>
+                  {row.leave_label || "-"}
+                </Typography>
+                <Typography sx={{ fontSize: "15px" }}>
+                  {row.datetime_text || "-"}
+                </Typography>
+                <Typography
+                  sx={{
+                    fontSize: "15px",
+                    whiteSpace: "normal",
+                    wordBreak: "break-word",
+                    pr: "8px",
+                  }}
+                >
+                  {row.reason || "-"}
+                </Typography>
+                <Typography sx={{ fontSize: "15px" }}>
+                  {row.status_label || "-"}
+                </Typography>
+              </Box>
+            ))
+          )}
         </Box>
       </Box>
     </Box>
