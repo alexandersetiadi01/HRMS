@@ -446,6 +446,286 @@ export async function apiLeaveBalances(params = {}) {
   return res.data;
 }
 
+export async function apiLeaveApplicationMeta() {
+  const [actorRes, employeeRes, unitRes, jobRecordRes] = await Promise.all([
+    apiGetPendingApprovalActor().catch(() => ({ data: null })),
+    http
+      .get("/employees", {
+        params: {
+          page: 1,
+          per_page: 100,
+        },
+      })
+      .catch(() => ({ data: { data: [] } })),
+    http.get("/org-units").catch(() => ({ data: { data: [] } })),
+    http
+      .get("/employee-job-records")
+      .catch(() => ({ data: { data: [] } })),
+  ]);
+
+  const actor = unwrapData(actorRes, {}) || {};
+  const employees = unwrapData(employeeRes, []) || [];
+  const units = unwrapData(unitRes, []) || [];
+  const jobRecords = unwrapData(jobRecordRes, []) || [];
+
+  const unitMap = new Map(
+    units.map((unit) => [
+      Number(unit?.unit_id || 0),
+      {
+        unit_id: Number(unit?.unit_id || 0),
+        unit_code: String(unit?.unit_code || "").trim(),
+        unit_name: String(unit?.unit_name || "").trim(),
+      },
+    ])
+  );
+
+  const latestJobRecordMap = new Map();
+
+  [...jobRecords]
+    .sort((a, b) => {
+      const aDate = String(a?.effective_date || "");
+      const bDate = String(b?.effective_date || "");
+
+      if (aDate !== bDate) {
+        return bDate.localeCompare(aDate);
+      }
+
+      return Number(b?.job_record_id || 0) - Number(a?.job_record_id || 0);
+    })
+    .forEach((record) => {
+      const key = Number(record?.employee_id || 0);
+
+      if (!key || latestJobRecordMap.has(key)) {
+        return;
+      }
+
+      latestJobRecordMap.set(key, record);
+    });
+
+  const employeeOptions = [];
+  const unitOptionMap = new Map();
+
+  employees.forEach((employee) => {
+    const employeeIdValue = Number(employee?.employee_id || 0);
+
+    if (!employeeIdValue) {
+      return;
+    }
+
+    const employeeNo = String(employee?.employee_no || "").trim();
+    const displayName = String(employee?.display_name || "").trim();
+    const label =
+      employeeNo && displayName
+        ? `${employeeNo}/${displayName}`
+        : employeeNo || displayName || "";
+
+    const latestJob = latestJobRecordMap.get(employeeIdValue);
+    const unit = unitMap.get(Number(latestJob?.unit_id || 0));
+    const unitLabel =
+      unit?.unit_code && unit?.unit_name
+        ? `${unit.unit_code}/${unit.unit_name}`
+        : unit?.unit_name || unit?.unit_code || "";
+
+    if (unitLabel) {
+      unitOptionMap.set(unitLabel, {
+        value: unitLabel,
+        label: unitLabel,
+      });
+    }
+
+    employeeOptions.push({
+      value: String(employeeIdValue),
+      label,
+      employee_id: employeeIdValue,
+      unit_label: unitLabel,
+    });
+  });
+
+  employeeOptions.sort((a, b) => a.label.localeCompare(b.label, "zh-Hant"));
+  const unitOptions = Array.from(unitOptionMap.values()).sort((a, b) =>
+    a.label.localeCompare(b.label, "zh-Hant")
+  );
+
+  return {
+    actor: {
+      employee_id: Number(actor?.employee_id || 0),
+      unit_id: Number(actor?.unit_id || 0),
+      unit_name: String(actor?.unit_name || "").trim(),
+      position_name: String(actor?.position_name || "").trim(),
+      is_employee_position: !!actor?.is_employee_position,
+    },
+    unitOptions,
+    employeeOptions,
+  };
+}
+
+export async function apiLeaveApplicationRecordList(params = {}) {
+  const {
+    employee_id,
+    year,
+    request_status,
+    use_current_employee = true,
+  } = params;
+
+  const hasExplicitEmployee =
+    employee_id !== undefined && employee_id !== null && employee_id !== "";
+
+  const employeeId = hasExplicitEmployee
+    ? Number(employee_id || 0)
+    : use_current_employee
+      ? Number(getCurrentEmployeeId() || 0)
+      : 0;
+
+  const dateFrom = year ? `${Number(year)}-01-01` : "";
+  const dateTo = year ? `${Number(year)}-12-31` : "";
+
+  const [res, actorRes, employeeRes, unitRes, jobRecordRes] = await Promise.all([
+    apiLeaveRequests({
+      employee_id: employeeId || undefined,
+      request_status:
+        request_status && request_status !== "all" ? request_status : undefined,
+    }),
+    apiGetPendingApprovalActor().catch(() => ({ data: null })),
+    http
+      .get("/employees", {
+        params: {
+          page: 1,
+          per_page: 100,
+        },
+      })
+      .catch(() => ({ data: { data: [] } })),
+    http.get("/org-units").catch(() => ({ data: { data: [] } })),
+    http
+      .get("/employee-job-records")
+      .catch(() => ({ data: { data: [] } })),
+  ]);
+
+  const payload = unwrapData({ data: res }, {});
+  let items = Array.isArray(payload?.items)
+    ? payload.items
+    : Array.isArray(payload)
+      ? payload
+      : [];
+
+  if (dateFrom || dateTo) {
+    items = items.filter((item) => {
+      const start = String(item?.start_datetime || "").slice(0, 10);
+
+      if (!start) {
+        return true;
+      }
+
+      if (dateFrom && start < dateFrom) {
+        return false;
+      }
+
+      if (dateTo && start > dateTo) {
+        return false;
+      }
+
+      return true;
+    });
+  }
+
+  const actor = unwrapData(actorRes, {}) || {};
+  const employees = unwrapData(employeeRes, []) || [];
+  const units = unwrapData(unitRes, []) || [];
+  const jobRecords = unwrapData(jobRecordRes, []) || [];
+
+  const unitMap = new Map(
+    units.map((unit) => [
+      Number(unit?.unit_id || 0),
+      {
+        unit_id: Number(unit?.unit_id || 0),
+        unit_code: String(unit?.unit_code || "").trim(),
+        unit_name: String(unit?.unit_name || "").trim(),
+      },
+    ])
+  );
+
+  const latestJobRecordMap = new Map();
+
+  [...jobRecords]
+    .sort((a, b) => {
+      const aDate = String(a?.effective_date || "");
+      const bDate = String(b?.effective_date || "");
+
+      if (aDate !== bDate) {
+        return bDate.localeCompare(aDate);
+      }
+
+      return Number(b?.job_record_id || 0) - Number(a?.job_record_id || 0);
+    })
+    .forEach((record) => {
+      const key = Number(record?.employee_id || 0);
+
+      if (!key || latestJobRecordMap.has(key)) {
+        return;
+      }
+
+      latestJobRecordMap.set(key, record);
+    });
+
+  const employeeMap = new Map(
+    employees.map((employee) => {
+      const employeeIdValue = Number(employee?.employee_id || 0);
+      const jobRecord = latestJobRecordMap.get(employeeIdValue);
+      const unit = unitMap.get(Number(jobRecord?.unit_id || 0));
+
+      const employeeNo = String(employee?.employee_no || "").trim();
+      const displayName = String(employee?.display_name || "").trim();
+
+      const applicantLabel =
+        employeeNo && displayName
+          ? `${employeeNo}/${displayName}`
+          : employeeNo || displayName || "";
+
+      const unitLabel =
+        unit?.unit_code && unit?.unit_name
+          ? `${unit.unit_code}/${unit.unit_name}`
+          : unit?.unit_name || unit?.unit_code || "";
+
+      return [
+        employeeIdValue,
+        {
+          employee_id: employeeIdValue,
+          employee_no: employeeNo,
+          display_name: displayName,
+          applicant_label: applicantLabel,
+          unit_id: Number(jobRecord?.unit_id || 0),
+          unit_label: unitLabel,
+        },
+      ];
+    })
+  );
+
+  const normalizedItems = items.map((item) => {
+    const normalized = normalizeLeaveItem(item);
+    const employeeInfo = employeeMap.get(Number(item?.employee_id || 0));
+
+    return {
+      ...normalized,
+      employee_id: Number(item?.employee_id || 0),
+      unit_label:
+        employeeInfo?.unit_label ||
+        String(item?.unit_label || item?.unit_name || "").trim(),
+      applicant_name:
+        employeeInfo?.applicant_label ||
+        normalized.applicant_name ||
+        String(item?.employee_name || "").trim(),
+      actor_is_employee_position: !!actor?.is_employee_position,
+    };
+  });
+
+  return {
+    ...res,
+    data: {
+      ...(res?.data || {}),
+      items: normalizedItems,
+    },
+  };
+}
+
 /**
  * =========================
  * Overtime
@@ -546,6 +826,303 @@ export async function apiRejectOvertimeRequest(requestId, payload = {}) {
   return res.data;
 }
 
+export async function apiOvertimeApplicationMeta() {
+  const [actorRes, employeeRes, unitRes, jobRecordRes] = await Promise.all([
+    apiGetPendingApprovalActor().catch(() => ({ data: null })),
+    http
+      .get("/employees", {
+        params: {
+          page: 1,
+          per_page: 100,
+        },
+      })
+      .catch(() => ({ data: { data: [] } })),
+    http.get("/org-units").catch(() => ({ data: { data: [] } })),
+    http
+      .get("/employee-job-records")
+      .catch(() => ({ data: { data: [] } })),
+  ]);
+
+  const actor = unwrapData(actorRes, {}) || {};
+  const employees = unwrapData(employeeRes, []) || [];
+  const units = unwrapData(unitRes, []) || [];
+  const jobRecords = unwrapData(jobRecordRes, []) || [];
+
+  const unitMap = new Map(
+    units.map((unit) => [
+      Number(unit?.unit_id || 0),
+      {
+        unit_id: Number(unit?.unit_id || 0),
+        unit_code: String(unit?.unit_code || "").trim(),
+        unit_name: String(unit?.unit_name || "").trim(),
+      },
+    ])
+  );
+
+  const latestJobRecordMap = new Map();
+
+  [...jobRecords]
+    .sort((a, b) => {
+      const aDate = String(a?.effective_date || "");
+      const bDate = String(b?.effective_date || "");
+
+      if (aDate !== bDate) {
+        return bDate.localeCompare(aDate);
+      }
+
+      return Number(b?.job_record_id || 0) - Number(a?.job_record_id || 0);
+    })
+    .forEach((record) => {
+      const key = Number(record?.employee_id || 0);
+
+      if (!key || latestJobRecordMap.has(key)) {
+        return;
+      }
+
+      latestJobRecordMap.set(key, record);
+    });
+
+  const employeeOptions = [];
+  const unitOptionMap = new Map();
+
+  employees.forEach((employee) => {
+    const employeeIdValue = Number(employee?.employee_id || 0);
+
+    if (!employeeIdValue) {
+      return;
+    }
+
+    const employeeNo = String(employee?.employee_no || "").trim();
+    const displayName = String(employee?.display_name || "").trim();
+    const label =
+      employeeNo && displayName
+        ? `${employeeNo}/${displayName}`
+        : employeeNo || displayName || "";
+
+    const latestJob = latestJobRecordMap.get(employeeIdValue);
+    const unit = unitMap.get(Number(latestJob?.unit_id || 0));
+    const unitLabel =
+      unit?.unit_code && unit?.unit_name
+        ? `${unit.unit_code}/${unit.unit_name}`
+        : unit?.unit_name || unit?.unit_code || "";
+
+    if (unitLabel) {
+      unitOptionMap.set(unitLabel, {
+        value: unitLabel,
+        label: unitLabel,
+      });
+    }
+
+    employeeOptions.push({
+      value: String(employeeIdValue),
+      label,
+      employee_id: employeeIdValue,
+      unit_label: unitLabel,
+    });
+  });
+
+  employeeOptions.sort((a, b) => a.label.localeCompare(b.label, "zh-Hant"));
+  const unitOptions = Array.from(unitOptionMap.values()).sort((a, b) =>
+    a.label.localeCompare(b.label, "zh-Hant")
+  );
+
+  return {
+    actor: {
+      employee_id: Number(actor?.employee_id || 0),
+      unit_id: Number(actor?.unit_id || 0),
+      unit_name: String(actor?.unit_name || "").trim(),
+      position_name: String(actor?.position_name || "").trim(),
+      is_employee_position: !!actor?.is_employee_position,
+    },
+    unitOptions,
+    employeeOptions,
+  };
+}
+
+export async function apiOvertimeApplicationRecordList(params = {}) {
+  const {
+    employee_id,
+    year,
+    month,
+    request_status,
+    use_current_employee = true,
+  } = params;
+
+  const hasExplicitEmployee =
+    employee_id !== undefined && employee_id !== null && employee_id !== "";
+
+  const employeeId = hasExplicitEmployee
+    ? Number(employee_id || 0)
+    : use_current_employee
+      ? Number(getCurrentEmployeeId() || 0)
+      : 0;
+
+  let date_from;
+  let date_to;
+
+  if (year && month) {
+    const y = Number(year);
+    const m = Number(month);
+    const lastDay = new Date(y, m, 0).getDate();
+
+    date_from = `${y}-${String(m).padStart(2, "0")}-01`;
+    date_to = `${y}-${String(m).padStart(2, "0")}-${String(lastDay).padStart(
+      2,
+      "0"
+    )}`;
+  } else if (year) {
+    const y = Number(year);
+    date_from = `${y}-01-01`;
+    date_to = `${y}-12-31`;
+  }
+
+  const [res, actorRes, employeeRes, unitRes, jobRecordRes] = await Promise.all([
+    apiOvertimeRequests({
+      employee_id: employeeId || undefined,
+      request_status:
+        request_status && request_status !== "all" ? request_status : undefined,
+    }),
+    apiGetPendingApprovalActor().catch(() => ({ data: null })),
+    http
+      .get("/employees", {
+        params: {
+          page: 1,
+          per_page: 100,
+        },
+      })
+      .catch(() => ({ data: { data: [] } })),
+    http.get("/org-units").catch(() => ({ data: { data: [] } })),
+    http
+      .get("/employee-job-records")
+      .catch(() => ({ data: { data: [] } })),
+  ]);
+
+  const payload = unwrapData({ data: res }, {});
+  let items = Array.isArray(payload?.items)
+    ? payload.items
+    : Array.isArray(payload)
+      ? payload
+      : [];
+
+  if (date_from || date_to) {
+    items = items.filter((item) => {
+      const start = String(item?.start_datetime || "").slice(0, 10);
+
+      if (!start) {
+        return true;
+      }
+
+      if (date_from && start < date_from) {
+        return false;
+      }
+
+      if (date_to && start > date_to) {
+        return false;
+      }
+
+      return true;
+    });
+  }
+
+  const actor = unwrapData(actorRes, {}) || {};
+  const employees = unwrapData(employeeRes, []) || [];
+  const units = unwrapData(unitRes, []) || [];
+  const jobRecords = unwrapData(jobRecordRes, []) || [];
+
+  const unitMap = new Map(
+    units.map((unit) => [
+      Number(unit?.unit_id || 0),
+      {
+        unit_id: Number(unit?.unit_id || 0),
+        unit_code: String(unit?.unit_code || "").trim(),
+        unit_name: String(unit?.unit_name || "").trim(),
+      },
+    ])
+  );
+
+  const latestJobRecordMap = new Map();
+
+  [...jobRecords]
+    .sort((a, b) => {
+      const aDate = String(a?.effective_date || "");
+      const bDate = String(b?.effective_date || "");
+
+      if (aDate !== bDate) {
+        return bDate.localeCompare(aDate);
+      }
+
+      return Number(b?.job_record_id || 0) - Number(a?.job_record_id || 0);
+    })
+    .forEach((record) => {
+      const key = Number(record?.employee_id || 0);
+
+      if (!key || latestJobRecordMap.has(key)) {
+        return;
+      }
+
+      latestJobRecordMap.set(key, record);
+    });
+
+  const employeeMap = new Map(
+    employees.map((employee) => {
+      const employeeIdValue = Number(employee?.employee_id || 0);
+      const jobRecord = latestJobRecordMap.get(employeeIdValue);
+      const unit = unitMap.get(Number(jobRecord?.unit_id || 0));
+
+      const employeeNo = String(employee?.employee_no || "").trim();
+      const displayName = String(employee?.display_name || "").trim();
+
+      const applicantLabel =
+        employeeNo && displayName
+          ? `${employeeNo}/${displayName}`
+          : employeeNo || displayName || "";
+
+      const unitLabel =
+        unit?.unit_code && unit?.unit_name
+          ? `${unit.unit_code}/${unit.unit_name}`
+          : unit?.unit_name || unit?.unit_code || "";
+
+      return [
+        employeeIdValue,
+        {
+          employee_id: employeeIdValue,
+          employee_no: employeeNo,
+          display_name: displayName,
+          applicant_label: applicantLabel,
+          unit_id: Number(jobRecord?.unit_id || 0),
+          unit_label: unitLabel,
+        },
+      ];
+    })
+  );
+
+  const normalizedItems = items.map((item) => {
+    const normalized = normalizeOvertimeItem(item);
+    const employeeInfo = employeeMap.get(Number(item?.employee_id || 0));
+
+    return {
+      ...normalized,
+      employee_id: Number(item?.employee_id || 0),
+      unit_label:
+        employeeInfo?.unit_label ||
+        String(item?.unit_label || item?.unit_name || "").trim(),
+      applicant_name:
+        employeeInfo?.applicant_label ||
+        normalized.applicant_name ||
+        String(item?.employee_name || "").trim(),
+      actor_is_employee_position: !!actor?.is_employee_position,
+    };
+  });
+
+  return {
+    ...res,
+    data: {
+      ...(res?.data || {}),
+      items: normalizedItems,
+    },
+  };
+}
+
 /**
  * =========================
  * Missed Punch
@@ -561,9 +1138,17 @@ export async function apiMissedPunchRequests(params = {}) {
     date_to,
     limit,
     offset,
+    use_current_employee = true,
   } = params;
 
-  const employeeId = Number(employee_id || getCurrentEmployeeId() || 0);
+  const hasExplicitEmployee =
+    employee_id !== undefined && employee_id !== null && employee_id !== "";
+
+  const employeeId = hasExplicitEmployee
+    ? Number(employee_id || 0)
+    : use_current_employee
+      ? Number(getCurrentEmployeeId() || 0)
+      : 0;
 
   const res = await http.get("/missed-punch-requests", {
     params: {
@@ -645,6 +1230,282 @@ export async function apiRejectMissedPunchRequest(requestId, payload = {}) {
   });
 
   return res.data;
+}
+
+export async function apiMissedPunchApplicationMeta() {
+  const [actorRes, employeeRes, unitRes, jobRecordRes] = await Promise.all([
+    apiGetPendingApprovalActor().catch(() => ({ data: null })),
+    http
+      .get("/employees", {
+        params: {
+          page: 1,
+          per_page: 100,
+        },
+      })
+      .catch(() => ({ data: { data: [] } })),
+    http.get("/org-units").catch(() => ({ data: { data: [] } })),
+    http
+      .get("/employee-job-records")
+      .catch(() => ({ data: { data: [] } })),
+  ]);
+
+  const actor = unwrapData(actorRes, {}) || {};
+  const employees = unwrapData(employeeRes, []) || [];
+  const units = unwrapData(unitRes, []) || [];
+  const jobRecords = unwrapData(jobRecordRes, []) || [];
+
+  const unitMap = new Map(
+    units.map((unit) => [
+      Number(unit?.unit_id || 0),
+      {
+        unit_id: Number(unit?.unit_id || 0),
+        unit_code: String(unit?.unit_code || "").trim(),
+        unit_name: String(unit?.unit_name || "").trim(),
+      },
+    ])
+  );
+
+  const latestJobRecordMap = new Map();
+
+  [...jobRecords]
+    .sort((a, b) => {
+      const aDate = String(a?.effective_date || "");
+      const bDate = String(b?.effective_date || "");
+
+      if (aDate !== bDate) {
+        return bDate.localeCompare(aDate);
+      }
+
+      return Number(b?.job_record_id || 0) - Number(a?.job_record_id || 0);
+    })
+    .forEach((record) => {
+      const key = Number(record?.employee_id || 0);
+
+      if (!key || latestJobRecordMap.has(key)) {
+        return;
+      }
+
+      latestJobRecordMap.set(key, record);
+    });
+
+  const employeeOptions = [];
+  const unitOptionMap = new Map();
+
+  employees.forEach((employee) => {
+    const employeeIdValue = Number(employee?.employee_id || 0);
+
+    if (!employeeIdValue) {
+      return;
+    }
+
+    const employeeNo = String(employee?.employee_no || "").trim();
+    const displayName = String(employee?.display_name || "").trim();
+    const label =
+      employeeNo && displayName
+        ? `${employeeNo}/${displayName}`
+        : employeeNo || displayName || "";
+
+    const latestJob = latestJobRecordMap.get(employeeIdValue);
+    const unit = unitMap.get(Number(latestJob?.unit_id || 0));
+    const unitLabel =
+      unit?.unit_code && unit?.unit_name
+        ? `${unit.unit_code}/${unit.unit_name}`
+        : unit?.unit_name || unit?.unit_code || "";
+
+    if (unitLabel) {
+      unitOptionMap.set(unitLabel, {
+        value: unitLabel,
+        label: unitLabel,
+      });
+    }
+
+    employeeOptions.push({
+      value: String(employeeIdValue),
+      label,
+      employee_id: employeeIdValue,
+      unit_label: unitLabel,
+    });
+  });
+
+  employeeOptions.sort((a, b) => a.label.localeCompare(b.label, "zh-Hant"));
+  const unitOptions = Array.from(unitOptionMap.values()).sort((a, b) =>
+    a.label.localeCompare(b.label, "zh-Hant")
+  );
+
+  return {
+    actor: {
+      employee_id: Number(actor?.employee_id || 0),
+      unit_id: Number(actor?.unit_id || 0),
+      unit_name: String(actor?.unit_name || "").trim(),
+      position_name: String(actor?.position_name || "").trim(),
+      is_employee_position: !!actor?.is_employee_position,
+    },
+    unitOptions,
+    employeeOptions,
+  };
+}
+
+export async function apiMissedPunchApplicationRecordList(params = {}) {
+  const {
+    employee_id,
+    year,
+    month,
+    request_status,
+    use_current_employee = true,
+  } = params;
+
+  const hasExplicitEmployee =
+    employee_id !== undefined && employee_id !== null && employee_id !== "";
+
+  const employeeId = hasExplicitEmployee
+    ? Number(employee_id || 0)
+    : use_current_employee
+      ? Number(getCurrentEmployeeId() || 0)
+      : 0;
+
+  let date_from;
+  let date_to;
+
+  if (year && month) {
+    const y = Number(year);
+    const m = Number(month);
+    const lastDay = new Date(y, m, 0).getDate();
+
+    date_from = `${y}-${String(m).padStart(2, "0")}-01`;
+    date_to = `${y}-${String(m).padStart(2, "0")}-${String(lastDay).padStart(
+      2,
+      "0"
+    )}`;
+  }
+
+  const [res, actorRes, employeeRes, unitRes, jobRecordRes] = await Promise.all([
+    apiMissedPunchRequests({
+      employee_id: employeeId || undefined,
+      request_status:
+        request_status && request_status !== "all" ? request_status : undefined,
+      date_from,
+      date_to,
+      use_current_employee,
+    }),
+    apiGetPendingApprovalActor().catch(() => ({ data: null })),
+    http
+      .get("/employees", {
+        params: {
+          page: 1,
+          per_page: 100,
+        },
+      })
+      .catch(() => ({ data: { data: [] } })),
+    http.get("/org-units").catch(() => ({ data: { data: [] } })),
+    http
+      .get("/employee-job-records")
+      .catch(() => ({ data: { data: [] } })),
+  ]);
+
+  const payload = unwrapData({ data: res }, {});
+  const items = Array.isArray(payload?.items)
+    ? payload.items
+    : Array.isArray(payload)
+      ? payload
+      : [];
+
+  const actor = unwrapData(actorRes, {}) || {};
+  const employees = unwrapData(employeeRes, []) || [];
+  const units = unwrapData(unitRes, []) || [];
+  const jobRecords = unwrapData(jobRecordRes, []) || [];
+
+  const unitMap = new Map(
+    units.map((unit) => [
+      Number(unit?.unit_id || 0),
+      {
+        unit_id: Number(unit?.unit_id || 0),
+        unit_code: String(unit?.unit_code || "").trim(),
+        unit_name: String(unit?.unit_name || "").trim(),
+      },
+    ])
+  );
+
+  const latestJobRecordMap = new Map();
+
+  [...jobRecords]
+    .sort((a, b) => {
+      const aDate = String(a?.effective_date || "");
+      const bDate = String(b?.effective_date || "");
+
+      if (aDate !== bDate) {
+        return bDate.localeCompare(aDate);
+      }
+
+      return Number(b?.job_record_id || 0) - Number(a?.job_record_id || 0);
+    })
+    .forEach((record) => {
+      const key = Number(record?.employee_id || 0);
+
+      if (!key || latestJobRecordMap.has(key)) {
+        return;
+      }
+
+      latestJobRecordMap.set(key, record);
+    });
+
+  const employeeMap = new Map(
+    employees.map((employee) => {
+      const employeeIdValue = Number(employee?.employee_id || 0);
+      const jobRecord = latestJobRecordMap.get(employeeIdValue);
+      const unit = unitMap.get(Number(jobRecord?.unit_id || 0));
+
+      const employeeNo = String(employee?.employee_no || "").trim();
+      const displayName = String(employee?.display_name || "").trim();
+
+      const applicantLabel =
+        employeeNo && displayName
+          ? `${employeeNo}/${displayName}`
+          : employeeNo || displayName || "";
+
+      const unitLabel =
+        unit?.unit_code && unit?.unit_name
+          ? `${unit.unit_code}/${unit.unit_name}`
+          : unit?.unit_name || unit?.unit_code || "";
+
+      return [
+        employeeIdValue,
+        {
+          employee_id: employeeIdValue,
+          employee_no: employeeNo,
+          display_name: displayName,
+          applicant_label: applicantLabel,
+          unit_id: Number(jobRecord?.unit_id || 0),
+          unit_label: unitLabel,
+        },
+      ];
+    })
+  );
+
+  const normalizedItems = items.map((item) => {
+    const normalized = normalizeMissedPunchItem(item);
+    const employeeInfo = employeeMap.get(Number(item?.employee_id || 0));
+
+    return {
+      ...normalized,
+      employee_id: Number(item?.employee_id || 0),
+      unit_label:
+        employeeInfo?.unit_label ||
+        String(item?.unit_label || item?.unit_name || "").trim(),
+      applicant_name:
+        employeeInfo?.applicant_label ||
+        normalized.applicant_name ||
+        String(item?.employee_name || "").trim(),
+      actor_is_employee_position: !!actor?.is_employee_position,
+    };
+  });
+
+  return {
+    ...res,
+    data: {
+      ...(res?.data || {}),
+      items: normalizedItems,
+    },
+  };
 }
 
 /**
