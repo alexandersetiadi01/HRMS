@@ -39,7 +39,6 @@ const PAYMENT_OPTIONS = [
 
 const MOBILE_TABLE_COLUMNS = [
   { key: "attributionDate", label: "加班歸屬日" },
-  { key: "overtimeType", label: "加班類型" },
   { key: "paymentMethod", label: "給付方式" },
   { key: "signingHours", label: "簽核中" },
   { key: "approvedHours", label: "已核准" },
@@ -67,9 +66,9 @@ function toApiDate(value) {
 }
 
 function toLabelFromOvertimeType(value) {
-  const raw = String(value || "")
-    .trim()
-    .toLowerCase();
+  const raw = String(value || "").trim();
+  const normalized = raw.toLowerCase();
+
   const map = {
     weekday: "平日",
     after_work: "平日",
@@ -81,25 +80,31 @@ function toLabelFromOvertimeType(value) {
     make_up_holiday: "休息日",
     "special-holiday": "例假日",
     special_holiday: "例假日",
+    下班後: "下班後",
+    上班前: "上班前",
+    假日加班: "假日加班",
   };
 
-  return map[raw] || String(value || "");
+  return map[raw] || map[normalized] || String(value || "");
 }
 
 function toLabelFromPayMethod(value) {
-  const raw = String(value || "")
-    .trim()
-    .toLowerCase();
+  const raw = String(value || "").trim();
+  const normalized = raw.toLowerCase();
+
   const map = {
     "overtime-pay": "加班費",
     overtime_pay: "加班費",
     cash: "加班費",
+    pay: "加班費",
     "comp-leave": "補休",
     comp_leave: "補休",
     leave: "補休",
+    加班費: "加班費",
+    補休: "補休",
   };
 
-  return map[raw] || String(value || "");
+  return map[raw] || map[normalized] || String(value || "");
 }
 
 function formatHours(value) {
@@ -153,17 +158,19 @@ function groupStatisticsRows(items = []) {
         item?.requested_hours ?? item?.overtime_hours ?? item?.hours ?? 0,
       ) || 0;
 
-    const status = String(item?.request_status || "")
-      .trim()
-      .toLowerCase();
+    const status = String(item?.request_status || "").trim();
+    const normalizedStatus = status.toLowerCase();
 
-    if (status === "pending") {
+    if (status === "待簽核" || normalizedStatus === "pending") {
       row.signingHours += hours;
-    } else if (status === "approved") {
+    } else if (status === "已核准" || normalizedStatus === "approved") {
       row.approvedHours += hours;
       row.payableHours += hours;
       row.actualPayHours += hours;
-    } else if (status === "waiting_confirmation" || status === "confirming") {
+    } else if (
+      normalizedStatus === "waiting_confirmation" ||
+      normalizedStatus === "confirming"
+    ) {
       row.pendingConfirmHours += hours;
     }
   });
@@ -619,7 +626,7 @@ export default function OvertimeStatistic() {
           <Box
             sx={{
               display: "grid",
-              gridTemplateColumns: "12% 10% 12% 13% 13% 13% 13% 14%",
+              gridTemplateColumns: "16% 16% 13% 13% 13% 14% 15%",
               gridTemplateRows: "40px 40px",
               alignItems: "center",
               bgcolor: "#d4d4d4",
@@ -647,24 +654,12 @@ export default function OvertimeStatistic() {
                 color: "#111827",
               }}
             >
-              加班類型
-            </Typography>
-
-            <Typography
-              sx={{
-                gridColumn: "3 / 4",
-                gridRow: "1 / 3",
-                fontSize: "15px",
-                fontWeight: 700,
-                color: "#111827",
-              }}
-            >
               給付方式
             </Typography>
 
             <Box
               sx={{
-                gridColumn: "4 / 7",
+                gridColumn: "3 / 6",
                 gridRow: "1 / 2",
                 height: "100%",
                 display: "flex",
@@ -686,7 +681,7 @@ export default function OvertimeStatistic() {
 
             <Typography
               sx={{
-                gridColumn: "4 / 5",
+                gridColumn: "3 / 4",
                 gridRow: "2 / 3",
                 textAlign: "center",
                 fontSize: "15px",
@@ -699,7 +694,7 @@ export default function OvertimeStatistic() {
 
             <Typography
               sx={{
-                gridColumn: "5 / 6",
+                gridColumn: "4 / 5",
                 gridRow: "2 / 3",
                 textAlign: "center",
                 fontSize: "15px",
@@ -712,7 +707,7 @@ export default function OvertimeStatistic() {
 
             <Typography
               sx={{
-                gridColumn: "6 / 7",
+                gridColumn: "5 / 6",
                 gridRow: "2 / 3",
                 textAlign: "center",
                 fontSize: "15px",
@@ -725,7 +720,7 @@ export default function OvertimeStatistic() {
 
             <Typography
               sx={{
-                gridColumn: "7 / 8",
+                gridColumn: "6 / 7",
                 gridRow: "1 / 3",
                 textAlign: "center",
                 fontSize: "15px",
@@ -738,7 +733,7 @@ export default function OvertimeStatistic() {
 
             <Typography
               sx={{
-                gridColumn: "8 / 9",
+                gridColumn: "7 / 8",
                 gridRow: "1 / 3",
                 textAlign: "center",
                 fontSize: "15px",
@@ -807,7 +802,7 @@ export default function OvertimeStatistic() {
                 key={row.id}
                 sx={{
                   display: "grid",
-                  gridTemplateColumns: "12% 10% 12% 13% 13% 13% 13% 14%",
+                  gridTemplateColumns: "16% 16% 13% 13% 13% 14% 15%",
                   alignItems: "center",
                   px: "12px",
                   py: "14px",
@@ -816,9 +811,6 @@ export default function OvertimeStatistic() {
               >
                 <Typography sx={{ fontSize: "15px", color: "#111827" }}>
                   {row.attributionDate}
-                </Typography>
-                <Typography sx={{ fontSize: "15px", color: "#111827" }}>
-                  {row.overtimeType}
                 </Typography>
                 <Typography sx={{ fontSize: "15px", color: "#111827" }}>
                   {row.paymentMethod}

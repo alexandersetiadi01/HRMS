@@ -1,7 +1,10 @@
 export function formatLocation(value) {
   const map = {
-    office: "辦公室",
+    office: "公司",
     company: "公司",
+    公司: "公司",
+    other: "其他",
+    其他: "其他",
   };
 
   return map[value] || value || "-";
@@ -20,12 +23,15 @@ export function formatLeaveType(value) {
 
 export function formatOvertimeType(value) {
   const map = {
-    after_work: "平日",
+    after_work: "下班後",
     weekday: "平日",
     "rest-day": "休假日",
     rest_day: "休假日",
     "national-holiday": "國定假日",
     national_holiday: "國定假日",
+    下班後: "下班後",
+    上班前: "上班前",
+    假日加班: "假日加班",
   };
 
   return map[value] || value || "-";
@@ -40,6 +46,8 @@ export function formatPaymentMethod(value) {
     leave: "補休",
     comp_leave: "補休",
     "comp-leave": "補休",
+    加班費: "加班費",
+    補休: "補休",
   };
 
   return map[value] || value || "-";

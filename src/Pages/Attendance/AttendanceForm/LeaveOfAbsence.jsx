@@ -39,10 +39,10 @@ function getErrorMessage(error, fallback = "載入資料失敗，請稍後再試
 
 const STATUS_OPTIONS = [
   { value: "all", label: "全部" },
-  { value: "draft", label: "草稿" },
-  { value: "pending", label: "待審核" },
-  { value: "approved", label: "已核准" },
-  { value: "rejected", label: "已駁回" },
+  { value: "草稿", label: "草稿" },
+  { value: "待簽核", label: "待簽核" },
+  { value: "已核准", label: "已核准" },
+  { value: "已駁回", label: "已駁回" },
 ];
 
 const SEARCH_INPUT_SX = {
@@ -160,11 +160,34 @@ export default function LeaveOfAbsence() {
       }
 
       if (nextStatus && nextStatus !== "all") {
-        items = items.filter(
-          (item) =>
-            String(item?.request_status || "").trim().toLowerCase() ===
-            String(nextStatus).trim().toLowerCase(),
-        );
+        items = items.filter((item) => {
+          const rowStatus = String(item?.request_status || "").trim();
+          const targetStatus = String(nextStatus).trim();
+
+          if (targetStatus === "待簽核") {
+            return (
+              rowStatus === "待簽核" || rowStatus.toLowerCase() === "pending"
+            );
+          }
+
+          if (targetStatus === "已核准") {
+            return (
+              rowStatus === "已核准" || rowStatus.toLowerCase() === "approved"
+            );
+          }
+
+          if (targetStatus === "已駁回") {
+            return (
+              rowStatus === "已駁回" || rowStatus.toLowerCase() === "rejected"
+            );
+          }
+
+          if (targetStatus === "草稿") {
+            return rowStatus === "草稿" || rowStatus.toLowerCase() === "draft";
+          }
+
+          return rowStatus === targetStatus;
+        });
       }
 
       setRows(items);

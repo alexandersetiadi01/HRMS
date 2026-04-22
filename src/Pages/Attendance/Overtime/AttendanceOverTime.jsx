@@ -162,7 +162,8 @@ export default function AttendanceOvertime() {
           return;
         }
 
-        const payload = response?.data?.data || response?.data || response || {};
+        const payload =
+          response?.data?.data || response?.data || response || {};
         setMeta(payload);
 
         const defaultStart = getShiftEndDefaultTime(selectedDay, payload);
@@ -210,7 +211,15 @@ export default function AttendanceOvertime() {
       selectedDay,
       selectedMeta: meta,
     });
-  }, [endHour, endMin, meta, selectedDateKey, selectedDay, startHour, startMin]);
+  }, [
+    endHour,
+    endMin,
+    meta,
+    selectedDateKey,
+    selectedDay,
+    startHour,
+    startMin,
+  ]);
 
   const clockRecordText = useMemo(() => {
     return formatClockRecordText(
@@ -269,7 +278,11 @@ export default function AttendanceOvertime() {
       return;
     }
 
-    const startDateTime = buildDateTimeString(selectedDateKey, startHour, startMin);
+    const startDateTime = buildDateTimeString(
+      selectedDateKey,
+      startHour,
+      startMin,
+    );
     const endDateTime = buildDateTimeString(selectedDateKey, endHour, endMin);
 
     if (!startDateTime || !endDateTime) {
@@ -297,17 +310,15 @@ export default function AttendanceOvertime() {
 
       const response = await apiCreateOvertimeRequest({
         employee_id: employeeId,
-        overtime_type: "after_work",
-        pay_method: payType === "加班費" ? "pay" : "comp_leave",
+        overtime_type: "下班後",
+        pay_method: payType === "加班費" ? "加班費" : "補休",
         start_datetime: startDateTime,
         end_datetime: endDateTime,
         reason: reason.trim(),
       });
 
       const payload = response?.data?.data || response?.data || response || {};
-      const requestedText =
-        payload?.requested_text ||
-        "";
+      const requestedText = payload?.requested_text || "";
 
       setSuccessText(
         requestedText
@@ -372,7 +383,7 @@ export default function AttendanceOvertime() {
             opacity: monthLoading ? 0.7 : 1,
           }}
         >
-          {(monthLoading || metaLoading) ? (
+          {monthLoading || metaLoading ? (
             <Box
               sx={{
                 position: "absolute",
@@ -633,7 +644,8 @@ export default function AttendanceOvertime() {
                   lineHeight: 1.7,
                 }}
               >
-                扣除休息時間 {formatDuration(summary.breakMinutes)}，共申請 {formatDuration(summary.appliedMinutes)}
+                扣除休息時間 {formatDuration(summary.breakMinutes)}，共申請{" "}
+                {formatDuration(summary.appliedMinutes)}
               </Typography>
             </Box>
           </Box>
@@ -726,7 +738,8 @@ export default function AttendanceOvertime() {
                     lineHeight: 1.8,
                   }}
                 >
-                  1.加班需事前申請，並經主管核准。 2.平日加班上限為4小時，每月加班上限為46小時。
+                  1.加班需事前申請，並經主管核准。
+                  2.平日加班上限為4小時，每月加班上限為46小時。
                 </Typography>
               </Box>
             </Box>

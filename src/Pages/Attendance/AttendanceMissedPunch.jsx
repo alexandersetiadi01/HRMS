@@ -48,8 +48,8 @@ const OFFICE = {
 };
 
 const TYPE_OPTIONS = [
-  { value: "in", label: "上班" },
-  { value: "out", label: "下班" },
+  { value: "上班", label: "上班" },
+  { value: "下班", label: "下班" },
 ];
 
 function getErrorMessage(error, fallback = "送出忘打卡申請失敗，請稍後再試。") {

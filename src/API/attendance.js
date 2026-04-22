@@ -97,13 +97,13 @@ function formatDateTimeRangeShort(startValue, endValue) {
 }
 
 function formatMissedPunchType(value) {
-  const type = String(value || "").trim().toLowerCase();
+  const type = String(value || "").trim();
 
-  if (type === "in") {
+  if (type === "in" || type === "上班") {
     return "上班";
   }
 
-  if (type === "out") {
+  if (type === "out" || type === "下班") {
     return "下班";
   }
 
@@ -111,14 +111,24 @@ function formatMissedPunchType(value) {
 }
 
 function formatRequestStatus(value) {
-  const status = String(value || "").trim().toLowerCase();
+  const status = String(value || "").trim();
 
   const map = {
     draft: "草稿",
+    草稿: "草稿",
+
     pending: "待審核",
+    待審核: "待審核",
+    待簽核: "待簽核",
+
     approved: "已核准",
+    已核准: "已核准",
+
     rejected: "已駁回",
+    已駁回: "已駁回",
+
     cancelled: "已取消",
+    已取消: "已取消",
   };
 
   return map[status] || value || "";
@@ -151,7 +161,8 @@ function normalizeLeaveItem(item = {}) {
       item.request_date || item.created_at || item.start_datetime || "",
     ),
     applicant_name: item.display_name || item.employee_name || "",
-    leave_label: item.leave_name || item.leave_type_name || item.leave_label || "",
+    leave_label:
+      item.leave_name || item.leave_type_name || item.leave_label || "",
     datetime_text: formatDateTimeRangeShort(
       item.start_datetime,
       item.end_datetime,
@@ -361,9 +372,7 @@ export async function apiLeaveRequests(params = {}) {
 }
 
 export async function apiCreateLeaveRequest(payload = {}) {
-  const employeeId = Number(
-    payload.employee_id || getCurrentEmployeeId() || 0,
-  );
+  const employeeId = Number(payload.employee_id || getCurrentEmployeeId() || 0);
 
   const res = await http.post("/leave-requests", {
     employee_id: employeeId,
@@ -377,9 +386,7 @@ export async function apiCreateLeaveRequest(payload = {}) {
 }
 
 export async function apiUpdateLeaveRequest(requestId, payload = {}) {
-  const employeeId = Number(
-    payload.employee_id || getCurrentEmployeeId() || 0,
-  );
+  const employeeId = Number(payload.employee_id || getCurrentEmployeeId() || 0);
 
   const res = await http.put(`/leave-requests/${requestId}`, {
     employee_id: employeeId,
@@ -406,9 +413,7 @@ export async function apiDeleteLeaveRequest(requestId, params = {}) {
 }
 
 export async function apiApproveLeaveRequest(requestId, payload = {}) {
-  const employeeId = Number(
-    payload.employee_id || getCurrentEmployeeId() || 0,
-  );
+  const employeeId = Number(payload.employee_id || getCurrentEmployeeId() || 0);
 
   const res = await http.post(`/leave-requests/${requestId}/approve`, {
     employee_id: employeeId,
@@ -418,9 +423,7 @@ export async function apiApproveLeaveRequest(requestId, payload = {}) {
 }
 
 export async function apiRejectLeaveRequest(requestId, payload = {}) {
-  const employeeId = Number(
-    payload.employee_id || getCurrentEmployeeId() || 0,
-  );
+  const employeeId = Number(payload.employee_id || getCurrentEmployeeId() || 0);
 
   const res = await http.post(`/leave-requests/${requestId}/reject`, {
     employee_id: employeeId,
@@ -481,9 +484,7 @@ export async function apiOvertimeRequests(params = {}) {
 }
 
 export async function apiCreateOvertimeRequest(payload = {}) {
-  const employeeId = Number(
-    payload.employee_id || getCurrentEmployeeId() || 0,
-  );
+  const employeeId = Number(payload.employee_id || getCurrentEmployeeId() || 0);
 
   const res = await http.post("/overtime-requests", {
     employee_id: employeeId,
@@ -498,9 +499,7 @@ export async function apiCreateOvertimeRequest(payload = {}) {
 }
 
 export async function apiUpdateOvertimeRequest(requestId, payload = {}) {
-  const employeeId = Number(
-    payload.employee_id || getCurrentEmployeeId() || 0,
-  );
+  const employeeId = Number(payload.employee_id || getCurrentEmployeeId() || 0);
 
   const res = await http.put(`/overtime-requests/${requestId}`, {
     employee_id: employeeId,
@@ -528,9 +527,7 @@ export async function apiDeleteOvertimeRequest(requestId, params = {}) {
 }
 
 export async function apiApproveOvertimeRequest(requestId, payload = {}) {
-  const employeeId = Number(
-    payload.employee_id || getCurrentEmployeeId() || 0,
-  );
+  const employeeId = Number(payload.employee_id || getCurrentEmployeeId() || 0);
 
   const res = await http.post(`/overtime-requests/${requestId}/approve`, {
     employee_id: employeeId,
@@ -540,9 +537,7 @@ export async function apiApproveOvertimeRequest(requestId, payload = {}) {
 }
 
 export async function apiRejectOvertimeRequest(requestId, payload = {}) {
-  const employeeId = Number(
-    payload.employee_id || getCurrentEmployeeId() || 0,
-  );
+  const employeeId = Number(payload.employee_id || getCurrentEmployeeId() || 0);
 
   const res = await http.post(`/overtime-requests/${requestId}/reject`, {
     employee_id: employeeId,
@@ -586,9 +581,7 @@ export async function apiMissedPunchRequests(params = {}) {
 }
 
 export async function apiCreateMissedPunchRequest(payload = {}) {
-  const employeeId = Number(
-    payload.employee_id || getCurrentEmployeeId() || 0,
-  );
+  const employeeId = Number(payload.employee_id || getCurrentEmployeeId() || 0);
 
   const res = await http.post("/missed-punch-requests", {
     employee_id: employeeId,
@@ -605,9 +598,7 @@ export async function apiCreateMissedPunchRequest(payload = {}) {
 }
 
 export async function apiUpdateMissedPunchRequest(requestId, payload = {}) {
-  const employeeId = Number(
-    payload.employee_id || getCurrentEmployeeId() || 0,
-  );
+  const employeeId = Number(payload.employee_id || getCurrentEmployeeId() || 0);
 
   const res = await http.put(`/missed-punch-requests/${requestId}`, {
     employee_id: employeeId,
@@ -637,9 +628,7 @@ export async function apiDeleteMissedPunchRequest(requestId, params = {}) {
 }
 
 export async function apiApproveMissedPunchRequest(requestId, payload = {}) {
-  const employeeId = Number(
-    payload.employee_id || getCurrentEmployeeId() || 0,
-  );
+  const employeeId = Number(payload.employee_id || getCurrentEmployeeId() || 0);
 
   const res = await http.post(`/missed-punch-requests/${requestId}/approve`, {
     employee_id: employeeId,
@@ -649,9 +638,7 @@ export async function apiApproveMissedPunchRequest(requestId, payload = {}) {
 }
 
 export async function apiRejectMissedPunchRequest(requestId, payload = {}) {
-  const employeeId = Number(
-    payload.employee_id || getCurrentEmployeeId() || 0,
-  );
+  const employeeId = Number(payload.employee_id || getCurrentEmployeeId() || 0);
 
   const res = await http.post(`/missed-punch-requests/${requestId}/reject`, {
     employee_id: employeeId,
@@ -720,7 +707,7 @@ export async function apiMissedPunchRecordList(params = {}) {
   const res = await apiMissedPunchRequests({
     employee_id: employeeId,
     request_status:
-      request_status && request_status !== "all" ? request_status : "approved",
+      request_status && request_status !== "all" ? request_status : "已核准",
     date_from,
     date_to,
   });
@@ -884,23 +871,43 @@ export async function apiOvertimeStatistics(params = {}) {
   const normalizedItems = items.map(normalizeOvertimeItem);
 
   const requested_pending = roundHours(
-    sumHours(normalizedItems, (item) => item.request_status === "pending"),
+    sumHours(
+      normalizedItems,
+      (item) =>
+        item.request_status === "pending" || item.request_status === "待簽核",
+    ),
   );
 
   const requested_approved = roundHours(
-    sumHours(normalizedItems, (item) => item.request_status === "approved"),
+    sumHours(
+      normalizedItems,
+      (item) =>
+        item.request_status === "approved" || item.request_status === "已核准",
+    ),
   );
 
   const requested_rejected = roundHours(
-    sumHours(normalizedItems, (item) => item.request_status === "rejected"),
+    sumHours(
+      normalizedItems,
+      (item) =>
+        item.request_status === "rejected" || item.request_status === "已駁回",
+    ),
   );
 
   const requested_draft = roundHours(
-    sumHours(normalizedItems, (item) => item.request_status === "draft"),
+    sumHours(
+      normalizedItems,
+      (item) =>
+        item.request_status === "draft" || item.request_status === "草稿",
+    ),
   );
 
   const payable_hours = roundHours(
-    sumHours(normalizedItems, (item) => item.request_status === "approved"),
+    sumHours(
+      normalizedItems,
+      (item) =>
+        item.request_status === "approved" || item.request_status === "已核准",
+    ),
   );
 
   const actual_paid_hours = payable_hours;

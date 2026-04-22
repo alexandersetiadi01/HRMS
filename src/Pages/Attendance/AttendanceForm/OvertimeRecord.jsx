@@ -101,7 +101,7 @@ export default function OvertimeRecord() {
       [
         row.request_date,
         row.applicant_name,
-        row.overtime_type_label,
+        row.pay_method_label,
         row.datetime_text,
         row.requested_hours,
         row.reason,
@@ -156,6 +156,10 @@ export default function OvertimeRecord() {
     setSearchKeyword("");
   };
 
+  const headerGridTemplate = isEmployeeOnly
+    ? "1.1fr 1fr 1.8fr 0.7fr minmax(180px, 2fr) 0.8fr"
+    : "1.1fr 1.1fr 1fr 1.8fr 0.7fr minmax(180px, 2fr) 0.8fr";
+
   return (
     <Box>
       <FilterRow withDivider>
@@ -203,55 +207,80 @@ export default function OvertimeRecord() {
         </Box>
       </FilterRow>
 
-      <Box sx={{ pt: "14px", overflowX: "auto" }}>
-        <Box sx={{ minWidth: isEmployeeOnly ? "965px" : "1100px" }}>
+      <Box sx={{ pt: "14px", overflowX: "hidden" }}>
+        <Box sx={{ width: "100%" }}>
           <Box
             sx={{
               display: "grid",
-              gridTemplateColumns: isEmployeeOnly
-                ? "135px 160px 200px 100px 1fr 110px"
-                : "135px 135px 160px 200px 100px 1fr 110px",
+              gridTemplateColumns: headerGridTemplate,
               minHeight: "40px",
               alignItems: "center",
               bgcolor: "#d4d4d4",
               px: "12px",
+              columnGap: "12px",
             }}
           >
-            <Typography sx={{ fontSize: "15px", fontWeight: 700 }}>
+            <Typography sx={{ fontSize: "15px", fontWeight: 700, minWidth: 0 }}>
               申請日期
             </Typography>
             {!isEmployeeOnly ? (
-              <Typography sx={{ fontSize: "15px", fontWeight: 700 }}>
+              <Typography sx={{ fontSize: "15px", fontWeight: 700, minWidth: 0 }}>
                 申請人
               </Typography>
             ) : null}
-            <Typography sx={{ fontSize: "15px", fontWeight: 700 }}>
-              加班類型
+            <Typography sx={{ fontSize: "15px", fontWeight: 700, minWidth: 0 }}>
+              給付方式
             </Typography>
-            <Typography sx={{ fontSize: "15px", fontWeight: 700 }}>
+            <Typography sx={{ fontSize: "15px", fontWeight: 700, minWidth: 0 }}>
               日期/時間
             </Typography>
-            <Typography sx={{ fontSize: "15px", fontWeight: 700 }}>
+            <Typography sx={{ fontSize: "15px", fontWeight: 700, minWidth: 0 }}>
               時數
             </Typography>
-            <Typography sx={{ fontSize: "15px", fontWeight: 700 }}>
+            <Typography sx={{ fontSize: "15px", fontWeight: 700, minWidth: 0 }}>
               事由
             </Typography>
-            <Typography sx={{ fontSize: "15px", fontWeight: 700 }}>
+            <Typography sx={{ fontSize: "15px", fontWeight: 700, minWidth: 0 }}>
               狀態
             </Typography>
           </Box>
 
           {loading ? (
-            <Box sx={{ minHeight: "56px", display: "flex", alignItems: "center", justifyContent: "center", borderBottom: "1px solid #d1d5db" }}>
+            <Box
+              sx={{
+                minHeight: "56px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderBottom: "1px solid #d1d5db",
+              }}
+            >
               <Typography sx={{ fontSize: "15px" }}>載入中...</Typography>
             </Box>
           ) : errorText ? (
-            <Box sx={{ minHeight: "56px", display: "flex", alignItems: "center", justifyContent: "center", borderBottom: "1px solid #d1d5db" }}>
-              <Typography sx={{ fontSize: "15px", color: "#dc2626" }}>{errorText}</Typography>
+            <Box
+              sx={{
+                minHeight: "56px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderBottom: "1px solid #d1d5db",
+              }}
+            >
+              <Typography sx={{ fontSize: "15px", color: "#dc2626" }}>
+                {errorText}
+              </Typography>
             </Box>
           ) : filteredRows.length === 0 ? (
-            <Box sx={{ minHeight: "56px", display: "flex", alignItems: "center", justifyContent: "center", borderBottom: "1px solid #d1d5db" }}>
+            <Box
+              sx={{
+                minHeight: "56px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderBottom: "1px solid #d1d5db",
+              }}
+            >
               <Typography sx={{ fontSize: "15px" }}>查無資料</Typography>
             </Box>
           ) : (
@@ -260,33 +289,67 @@ export default function OvertimeRecord() {
                 key={row.id}
                 sx={{
                   display: "grid",
-                  gridTemplateColumns: isEmployeeOnly
-                    ? "135px 160px 200px 100px 1fr 110px"
-                    : "135px 135px 160px 200px 100px 1fr 110px",
+                  gridTemplateColumns: headerGridTemplate,
                   minHeight: "54px",
                   alignItems: "center",
                   px: "12px",
+                  py: "10px",
                   borderBottom: "1px solid #d1d5db",
+                  columnGap: "12px",
                 }}
               >
-                <Typography sx={{ fontSize: "15px" }}>{row.request_date || "-"}</Typography>
+                <Typography sx={{ fontSize: "15px", minWidth: 0 }}>
+                  {row.request_date || "-"}
+                </Typography>
+
                 {!isEmployeeOnly ? (
-                  <Typography sx={{ fontSize: "15px" }}>{row.applicant_name || "-"}</Typography>
+                  <Typography sx={{ fontSize: "15px", minWidth: 0 }}>
+                    {row.applicant_name || "-"}
+                  </Typography>
                 ) : null}
-                <Typography sx={{ fontSize: "15px" }}>{row.overtime_type_label || "-"}</Typography>
-                <Typography sx={{ fontSize: "15px" }}>{row.datetime_text || "-"}</Typography>
-                <Typography sx={{ fontSize: "15px" }}>{row.requested_hours || 0}</Typography>
+
+                <Typography sx={{ fontSize: "15px", minWidth: 0 }}>
+                  {row.pay_method_label || "-"}
+                </Typography>
+
                 <Typography
                   sx={{
                     fontSize: "15px",
+                    minWidth: 0,
                     whiteSpace: "normal",
                     wordBreak: "break-word",
+                  }}
+                >
+                  {row.datetime_text || "-"}
+                </Typography>
+
+                <Typography sx={{ fontSize: "15px", minWidth: 0 }}>
+                  {row.requested_hours || 0}
+                </Typography>
+
+                <Typography
+                  sx={{
+                    fontSize: "15px",
+                    minWidth: 0,
+                    whiteSpace: "normal",
+                    wordBreak: "break-word",
+                    overflowWrap: "anywhere",
                     pr: "8px",
                   }}
                 >
                   {row.reason || "-"}
                 </Typography>
-                <Typography sx={{ fontSize: "15px" }}>{row.status_label || "-"}</Typography>
+
+                <Typography
+                  sx={{
+                    fontSize: "15px",
+                    minWidth: 0,
+                    whiteSpace: "normal",
+                    wordBreak: "break-word",
+                  }}
+                >
+                  {row.status_label || "-"}
+                </Typography>
               </Box>
             ))
           )}

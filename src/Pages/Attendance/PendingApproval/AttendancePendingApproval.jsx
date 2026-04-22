@@ -27,6 +27,7 @@ import {
   SelectField,
 } from "../AttendanceForm/ApplicationRecord/SharedFields";
 import PendingApprovalDetailDialog from "./PendingApprovalDetailDialog";
+import Breadcrumb from "../../../Utils/Breadcrumb";
 
 const FORM_TYPE_OPTIONS = [
   { value: "all", label: "全部", disabled: false },
@@ -182,11 +183,15 @@ function formatDateTimeRange(startValue, endValue) {
 }
 
 function formatMissedPunchContent(raw) {
-  const requestType = String(raw?.request_punch_type || "").trim().toLowerCase();
+  const requestType = String(raw?.request_punch_type || "").trim();
   const requestDatetime = String(raw?.request_datetime || "").trim();
 
   const typeLabel =
-    requestType === "in" ? "上班" : requestType === "out" ? "下班" : "忘打卡";
+    requestType === "in" || requestType === "上班"
+      ? "上班"
+      : requestType === "out" || requestType === "下班"
+        ? "下班"
+        : "忘打卡";
 
   const dateTimeText = formatDateTimeCompact(requestDatetime);
 
@@ -267,7 +272,9 @@ export default function AttendancePendingApproval() {
     if (isEmployee) {
       return [
         {
-          value: actor?.employee_id ? String(actor.employee_id) : "self-employee",
+          value: actor?.employee_id
+            ? String(actor.employee_id)
+            : "self-employee",
           label: actor?.applicant_label || "-",
         },
       ];
@@ -328,10 +335,7 @@ export default function AttendancePendingApproval() {
       ]);
 
       const actorData =
-        actorResponse?.data?.data ||
-        actorResponse?.data ||
-        actorResponse ||
-        {};
+        actorResponse?.data?.data || actorResponse?.data || actorResponse || {};
 
       const approvalData =
         approvalResponse?.data?.data ||
@@ -544,11 +548,15 @@ export default function AttendancePendingApproval() {
 
   return (
     <Box>
+      <Breadcrumb rootLabel="首頁" currentLabel="待審核表單" mb="14px" />
+
       <Typography sx={{ fontSize: "18px", fontWeight: 700, mb: "10px" }}>
         待審核表單
       </Typography>
 
-      <Box sx={{ border: "1px solid #9ca3af", p: "16px", position: "relative" }}>
+      <Box
+        sx={{ border: "1px solid #9ca3af", p: "16px", position: "relative" }}
+      >
         {loading || submitting ? (
           <Box
             sx={{
@@ -722,9 +730,15 @@ export default function AttendancePendingApproval() {
                     }}
                     onClick={() => handleOpenDetail(row)}
                   >
-                    <Typography sx={{ fontSize: "15px" }}>{row.date}</Typography>
-                    <Typography sx={{ fontSize: "15px" }}>{row.applicant}</Typography>
-                    <Typography sx={{ fontSize: "15px" }}>{row.formType}</Typography>
+                    <Typography sx={{ fontSize: "15px" }}>
+                      {row.date}
+                    </Typography>
+                    <Typography sx={{ fontSize: "15px" }}>
+                      {row.applicant}
+                    </Typography>
+                    <Typography sx={{ fontSize: "15px" }}>
+                      {row.formType}
+                    </Typography>
                     <Typography
                       sx={{
                         fontSize: "15px",
@@ -774,7 +788,9 @@ export default function AttendancePendingApproval() {
                     {!isEmployee ? (
                       <Checkbox
                         checked={selectedIds.includes(rowKey)}
-                        onChange={(e) => handleCheckOne(rowKey, e.target.checked)}
+                        onChange={(e) =>
+                          handleCheckOne(rowKey, e.target.checked)
+                        }
                         onClick={(e) => e.stopPropagation()}
                       />
                     ) : null}
