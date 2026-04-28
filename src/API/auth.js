@@ -33,15 +33,25 @@ export function clearStoredAuth() {
   clearLocationConsent();
 }
 
+function unwrapAuthPayload(response) {
+  const responseData = response?.data || {};
+
+  if (responseData?.data?.token || responseData?.data?.user) {
+    return responseData.data;
+  }
+
+  return responseData;
+}
+
 export async function loginWithPassword(username, password) {
   const response = await http.post("/auth/login", {
     username,
     password,
   });
 
-  const payload = response?.data?.data || {};
-  const token = payload.token || "";
-  const user = payload.user || null;
+  const payload = unwrapAuthPayload(response);
+  const token = payload?.token || "";
+  const user = payload?.user || null;
 
   if (!token || !user) {
     throw new Error("登入回應格式錯誤。");
@@ -54,7 +64,8 @@ export async function loginWithPassword(username, password) {
 
 export async function fetchCurrentUser() {
   const response = await http.get("/auth/me");
-  const user = response?.data?.data || null;
+  const responseData = response?.data || {};
+  const user = responseData?.data || responseData || null;
 
   if (!user) {
     throw new Error("無法取得目前登入者資料。");
