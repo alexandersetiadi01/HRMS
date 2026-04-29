@@ -31,6 +31,7 @@ import {
 import Breadcrumb from "../../../Utils/Breadcrumb";
 import {
   apiCreateLeaveRequest,
+  apiLeaveEntitlementInstances,
   apiLeaveRequestFormMeta,
   apiLeaveTypes,
 } from "../../../API/attendance";
@@ -42,11 +43,18 @@ import {
 } from "./LeaveConstants";
 import {
   buildDateTimeString,
+  calculateContinuousSpecialLeaveEndDate,
   calculateLeaveHoursFromSchedule,
   formatHoursSummaryText,
   formatHoursText,
+  getBestEntitlementInstanceForLeaveType,
+  getSpecialLeaveEntitlementHours,
+  getSpecialLeaveRuleSettings,
   getTaiwanTodayDayjs,
+  isDateWithinEntitlementRange,
+  isSpecialLeaveType,
   normalizeDateSet,
+  normalizeEntitlementInstances,
   normalizeLeaveTypes,
   safeText,
 } from "./LeaveUtils";
@@ -78,6 +86,7 @@ export default function AttendanceLeave() {
   const [leaveRows, setLeaveRows] = useState([{ id: 1, leaveType: "" }]);
 
   const [leaveTypes, setLeaveTypes] = useState([]);
+  const [entitlementInstances, setEntitlementInstances] = useState([]);
   const [formMeta, setFormMeta] = useState({});
   const [pageLoading, setPageLoading] = useState(true);
   const [submitLoading, setSubmitLoading] = useState(false);
@@ -98,9 +107,12 @@ export default function AttendanceLeave() {
         setPageLoading(true);
         setPageError("");
 
-        const [leaveTypesRes, formMetaRes] = await Promise.all([
+        const [leaveTypesRes, formMetaRes, entitlementRes] = await Promise.all([
           apiLeaveTypes(),
           apiLeaveRequestFormMeta(),
+          apiLeaveEntitlementInstances({
+            employee_id: employeeId,
+          }),
         ]);
 
         if (!active) {
@@ -108,29 +120,14 @@ export default function AttendanceLeave() {
         }
 
         const normalizedLeaveTypes = normalizeLeaveTypes(leaveTypesRes);
+        const normalizedEntitlements =
+          normalizeEntitlementInstances(entitlementRes);
         const metaPayload =
           formMetaRes?.data?.data || formMetaRes?.data || formMetaRes || {};
 
         setLeaveTypes(normalizedLeaveTypes);
+        setEntitlementInstances(normalizedEntitlements);
         setFormMeta(metaPayload);
-
-        setLeaveRows((prev) => {
-          const firstSelected = prev?.[0]?.leaveType || "";
-          const hasSelected = normalizedLeaveTypes.some(
-            (item) => String(item.value) === String(firstSelected),
-          );
-
-          if (hasSelected) {
-            return prev;
-          }
-
-          return [
-            {
-              id: 1,
-              leaveType: normalizedLeaveTypes[0]?.value || "",
-            },
-          ];
-        });
       } catch (error) {
         console.error("Failed to load leave page data:", error);
         if (!active) {
@@ -150,31 +147,227 @@ export default function AttendanceLeave() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [employeeId]);
 
-  const disabledDateSet = useMemo(() => {
-    const holidaySet = normalizeDateSet(formMeta?.holiday_disabled_dates);
+  const holidayDateSet = useMemo(() => {
+    return normalizeDateSet(formMeta?.holiday_disabled_dates);
+  }, [formMeta]);
 
+  const approvedLeaveDateSet = useMemo(() => {
     const approvedLeaveRaw = formMeta?.approved_leave_dates_map || {};
     const approvedLeaveSource =
       approvedLeaveRaw?.[String(employeeId)] || approvedLeaveRaw || {};
-    const approvedLeaveSet = normalizeDateSet(approvedLeaveSource);
 
-    return new Set([...holidaySet, ...approvedLeaveSet]);
+    return normalizeDateSet(approvedLeaveSource);
   }, [employeeId, formMeta]);
+
+  const disabledDateSet = useMemo(() => {
+    return new Set([...holidayDateSet, ...approvedLeaveDateSet]);
+  }, [approvedLeaveDateSet, holidayDateSet]);
+
+  const usableEntitlementInstances = useMemo(() => {
+    return entitlementInstances.filter((instance) => {
+      const remainingHours = Number(instance?.remaining_hours);
+      const remainingDays = Number(instance?.remaining_days);
+
+      return (
+        (Number.isFinite(remainingHours) && remainingHours > 0) ||
+        (Number.isFinite(remainingDays) && remainingDays > 0)
+      );
+    });
+  }, [entitlementInstances]);
+
+  const availableLeaveTypes = useMemo(() => {
+    const rows = [];
+
+    leaveTypes.forEach((leaveType) => {
+      if (!isSpecialLeaveType(leaveType)) {
+        rows.push(leaveType);
+        return;
+      }
+
+      usableEntitlementInstances
+        .filter((instance) => {
+          return String(instance.leave_type_id) === String(leaveType.value);
+        })
+        .forEach((instance) => {
+          const relationText = safeText(instance?.relation_type, "");
+          const label = relationText
+            ? `${leaveType.label}(${relationText})`
+            : leaveType.label;
+
+          rows.push({
+            ...leaveType,
+            value: `${leaveType.value}__${instance.entitlement_instance_id}`,
+            leave_type_id: String(leaveType.value),
+            entitlement_instance_id: String(instance.entitlement_instance_id),
+            label,
+            raw: {
+              ...(leaveType.raw || {}),
+              entitlement_instance_id: String(instance.entitlement_instance_id),
+              relation_type: relationText,
+            },
+          });
+        });
+    });
+
+    return rows;
+  }, [leaveTypes, usableEntitlementInstances]);
+
+  useEffect(() => {
+    setLeaveRows((prev) => {
+      const firstSelected = prev?.[0]?.leaveType || "";
+      const hasSelected = availableLeaveTypes.some(
+        (item) => String(item.value) === String(firstSelected),
+      );
+
+      if (hasSelected) {
+        return prev;
+      }
+
+      return [
+        {
+          id: 1,
+          leaveType: availableLeaveTypes[0]?.value || "",
+        },
+      ];
+    });
+  }, [availableLeaveTypes]);
+
+  const selectedRow = leaveRows[0] || {};
+  const selectedLeaveTypeId = safeText(selectedRow.leaveType, "");
+
+  const selectedBaseLeaveTypeId = selectedLeaveTypeId.includes("__")
+    ? selectedLeaveTypeId.split("__")[0]
+    : selectedLeaveTypeId;
+
+  const selectedEntitlementInstanceIdFromValue = selectedLeaveTypeId.includes(
+    "__",
+  )
+    ? selectedLeaveTypeId.split("__")[1]
+    : "";
+
+  const selectedLeaveType = useMemo(() => {
+    return availableLeaveTypes.find(
+      (item) => String(item.value) === String(selectedLeaveTypeId),
+    );
+  }, [availableLeaveTypes, selectedLeaveTypeId]);
+
+  const selectedIsSpecialLeave = useMemo(() => {
+    return isSpecialLeaveType(selectedLeaveType);
+  }, [selectedLeaveType]);
+
+  const selectedEntitlementInstance = useMemo(() => {
+    if (!selectedIsSpecialLeave || !selectedBaseLeaveTypeId) {
+      return null;
+    }
+
+    if (selectedEntitlementInstanceIdFromValue) {
+      return (
+        usableEntitlementInstances.find((instance) => {
+          return (
+            String(instance.entitlement_instance_id) ===
+            String(selectedEntitlementInstanceIdFromValue)
+          );
+        }) || null
+      );
+    }
+
+    return getBestEntitlementInstanceForLeaveType(
+      usableEntitlementInstances,
+      selectedBaseLeaveTypeId,
+    );
+  }, [
+    selectedBaseLeaveTypeId,
+    selectedEntitlementInstanceIdFromValue,
+    selectedIsSpecialLeave,
+    usableEntitlementInstances,
+  ]);
+
+  const selectedSpecialRuleSettings = useMemo(() => {
+    if (!selectedIsSpecialLeave) {
+      return null;
+    }
+
+    return getSpecialLeaveRuleSettings(
+      selectedLeaveType,
+      selectedEntitlementInstance,
+    );
+  }, [selectedEntitlementInstance, selectedIsSpecialLeave, selectedLeaveType]);
 
   const shouldDisableLeaveDate = (dateValue) => {
     if (!dateValue || !dayjs(dateValue).isValid()) {
       return false;
     }
 
+    const dateKey = dayjs(dateValue).format("YYYY-MM-DD");
+
+    if (
+      selectedIsSpecialLeave &&
+      selectedEntitlementInstance &&
+      !isDateWithinEntitlementRange(dateValue, selectedEntitlementInstance)
+    ) {
+      return true;
+    }
+
     const weekday = dayjs(dateValue).day();
+
     if (weekday === 0 || weekday === 6) {
       return true;
     }
 
-    const dateKey = dayjs(dateValue).format("YYYY-MM-DD");
-    return disabledDateSet.has(dateKey);
+    if (disabledDateSet.has(dateKey)) {
+      return true;
+    }
+
+    return false;
+  };
+
+  const applyContinuousSpecialEndDate = (nextStartDate) => {
+    if (
+      !selectedIsSpecialLeave ||
+      !selectedEntitlementInstance ||
+      !selectedSpecialRuleSettings?.mustBeContinuous
+    ) {
+      return;
+    }
+
+    const targetHours = getSpecialLeaveEntitlementHours(
+      selectedEntitlementInstance,
+    );
+
+    const autoEndDate = calculateContinuousSpecialLeaveEndDate({
+      startDate: nextStartDate,
+      targetHours,
+      formMeta,
+      employeeId,
+      holidayDateSet,
+      approvedDateSet: approvedLeaveDateSet,
+      excludeHoliday: selectedSpecialRuleSettings?.excludeHoliday,
+    });
+
+    if (autoEndDate) {
+      setEndDate(dayjs(autoEndDate));
+    }
+  };
+
+  const handleStartDateChange = (value) => {
+    setStartDate(value);
+
+    if (value && dayjs(value).isValid()) {
+      applyContinuousSpecialEndDate(value);
+    }
+  };
+
+  const handleEndDateChange = (value) => {
+    if (
+      selectedIsSpecialLeave &&
+      selectedSpecialRuleSettings?.mustBeContinuous
+    ) {
+      return;
+    }
+
+    setEndDate(value);
   };
 
   const totalLeaveHours = useMemo(() => {
@@ -219,6 +412,11 @@ export default function AttendanceLeave() {
     setLeaveRows((prev) =>
       prev.map((row) => (row.id === id ? { ...row, [key]: value } : row)),
     );
+
+    if (key === "leaveType") {
+      setSubmitError("");
+      setSubmitSuccess("");
+    }
   };
 
   const handleToggleFormType = (key) => {
@@ -227,17 +425,44 @@ export default function AttendanceLeave() {
     );
   };
 
+  useEffect(() => {
+    if (
+      selectedIsSpecialLeave &&
+      selectedEntitlementInstance &&
+      selectedSpecialRuleSettings?.mustBeContinuous &&
+      startDate &&
+      dayjs(startDate).isValid()
+    ) {
+      applyContinuousSpecialEndDate(startDate);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    selectedEntitlementInstance,
+    selectedIsSpecialLeave,
+    selectedSpecialRuleSettings?.mustBeContinuous,
+    selectedSpecialRuleSettings?.excludeHoliday,
+  ]);
+
   const handleSubmit = async () => {
     setSubmitError("");
     setSubmitSuccess("");
 
-    const selectedRow = leaveRows[0] || {};
-    const leaveTypeId = safeText(selectedRow.leaveType, "");
+    const selectedRowForSubmit = leaveRows[0] || {};
+    const leaveTypeId = safeText(selectedRowForSubmit.leaveType, "");
     const startDateTime = buildDateTimeString(startDate, startHour, startMin);
     const endDateTime = buildDateTimeString(endDate, endHour, endMin);
 
     if (!leaveTypeId) {
       setSubmitError("請選擇假別。");
+      return;
+    }
+
+    if (
+      selectedIsSpecialLeave &&
+      (!selectedEntitlementInstance ||
+        !selectedEntitlementInstance.entitlement_instance_id)
+    ) {
+      setSubmitError("此特殊假別沒有可用的核准額度，請重新選擇假別。");
       return;
     }
 
@@ -274,18 +499,27 @@ export default function AttendanceLeave() {
     try {
       setSubmitLoading(true);
 
-      const response = await apiCreateLeaveRequest({
-        leave_type_id: Number(leaveTypeId),
+      const requestPayload = {
+        leave_type_id: Number(selectedBaseLeaveTypeId),
         start_datetime: startDateTime,
         end_datetime: endDateTime,
         reason: reason.trim(),
-      });
+      };
+
+      if (
+        selectedIsSpecialLeave &&
+        selectedEntitlementInstance?.entitlement_instance_id
+      ) {
+        requestPayload.entitlement_instance_id = Number(
+          selectedEntitlementInstance.entitlement_instance_id,
+        );
+      }
+
+      const response = await apiCreateLeaveRequest(requestPayload);
 
       const payload = response?.data?.data || response?.data || response || {};
       const requestedHours =
-        payload?.requested_hours ??
-        payload?.request?.requested_hours ??
-        "";
+        payload?.requested_hours ?? payload?.request?.requested_hours ?? "";
 
       setSubmitSuccess(
         requestedHours !== ""
@@ -303,7 +537,8 @@ export default function AttendanceLeave() {
       setLeaveRows((prev) => [
         {
           id: 1,
-          leaveType: prev?.[0]?.leaveType || leaveTypes[0]?.value || "",
+          leaveType:
+            prev?.[0]?.leaveType || availableLeaveTypes[0]?.value || "",
         },
       ]);
     } catch (error) {
@@ -441,7 +676,7 @@ export default function AttendanceLeave() {
 
                         <DatePicker
                           value={startDate}
-                          onChange={(value) => setStartDate(value)}
+                          onChange={handleStartDateChange}
                           format="YYYY-MM-DD"
                           shouldDisableDate={shouldDisableLeaveDate}
                           slotProps={commonDatePickerSlotProps}
@@ -473,9 +708,13 @@ export default function AttendanceLeave() {
 
                         <DatePicker
                           value={endDate}
-                          onChange={(value) => setEndDate(value)}
+                          onChange={handleEndDateChange}
                           format="YYYY-MM-DD"
                           shouldDisableDate={shouldDisableLeaveDate}
+                          disabled={
+                            selectedIsSpecialLeave &&
+                            selectedSpecialRuleSettings?.mustBeContinuous
+                          }
                           slotProps={commonDatePickerSlotProps}
                         />
 
@@ -507,7 +746,7 @@ export default function AttendanceLeave() {
                   <>
                     <DatePicker
                       value={startDate}
-                      onChange={(value) => setStartDate(value)}
+                      onChange={handleStartDateChange}
                       format="YYYY-MM-DD"
                       shouldDisableDate={shouldDisableLeaveDate}
                       slotProps={commonDatePickerSlotProps}
@@ -553,9 +792,13 @@ export default function AttendanceLeave() {
 
                     <DatePicker
                       value={endDate}
-                      onChange={(value) => setEndDate(value)}
+                      onChange={handleEndDateChange}
                       format="YYYY-MM-DD"
                       shouldDisableDate={shouldDisableLeaveDate}
+                      disabled={
+                        selectedIsSpecialLeave &&
+                        selectedSpecialRuleSettings?.mustBeContinuous
+                      }
                       slotProps={commonDatePickerSlotProps}
                     />
 
@@ -614,7 +857,7 @@ export default function AttendanceLeave() {
                   <LeaveTypeRow
                     key={row.id}
                     row={row}
-                    leaveTypes={leaveTypes}
+                    leaveTypes={availableLeaveTypes}
                     onRemove={() => handleRemoveLeaveRow(row.id)}
                     onChangeType={(value) =>
                       updateLeaveRow(row.id, "leaveType", value)
@@ -622,6 +865,8 @@ export default function AttendanceLeave() {
                     mobile={isMobile}
                     balanceMap={formMeta?.leave_balance_map || {}}
                     employeeId={employeeId}
+                    entitlementInstance={selectedEntitlementInstance}
+                    isSpecialLeave={selectedIsSpecialLeave}
                   />
                 ))}
               </Box>
@@ -637,7 +882,9 @@ export default function AttendanceLeave() {
                 }}
               >
                 <Typography sx={{ fontSize: "14px", color: "#1f3b67" }}>
-                  總計：{totalDisplayText}，系統依開始時間與結束時間對應班表工時自動計算，並以 30 分鐘為單位。
+                  總計：{totalDisplayText}
+                  ，系統依開始時間與結束時間對應班表工時自動計算，並以 30
+                  分鐘為單位。
                 </Typography>
 
                 <Box
@@ -706,7 +953,9 @@ export default function AttendanceLeave() {
                   },
                 }}
               />
-              <Typography sx={{ mt: "8px", fontSize: "13px", color: "#9ca3af" }}>
+              <Typography
+                sx={{ mt: "8px", fontSize: "13px", color: "#9ca3af" }}
+              >
                 字數限制 250 字，已輸入 {reason.length} 字
               </Typography>
             </Box>
@@ -798,7 +1047,9 @@ export default function AttendanceLeave() {
                   <Box
                     sx={{
                       display: "grid",
-                      gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 1fr 1fr 1fr",
+                      gridTemplateColumns: isMobile
+                        ? "1fr 1fr"
+                        : "1fr 1fr 1fr 1fr",
                       gap: isMobile ? "10px 12px" : "20px",
                       width: isMobile ? "100%" : "auto",
                       alignItems: "center",
@@ -842,7 +1093,8 @@ export default function AttendanceLeave() {
               </Button>
 
               <Typography sx={{ fontSize: "13px", color: "#6b7280" }}>
-                檔案格式限制為 Microsoft Office 文件、TXT文字檔、PDF、JPG、JPEG、GIF、PNG
+                檔案格式限制為 Microsoft Office
+                文件、TXT文字檔、PDF、JPG、JPEG、GIF、PNG
               </Typography>
               <Typography sx={{ fontSize: "13px", color: "#6b7280" }}>
                 檔案大小限制為 3 MB

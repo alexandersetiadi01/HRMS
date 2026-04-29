@@ -386,13 +386,19 @@ export async function apiLeaveRequests(params = {}) {
 export async function apiCreateLeaveRequest(payload = {}) {
   const employeeId = Number(payload.employee_id || getCurrentEmployeeId() || 0);
 
-  const res = await http.post("/leave-requests", {
+  const requestPayload = {
     employee_id: employeeId,
     leave_type_id: payload.leave_type_id,
     start_datetime: payload.start_datetime,
     end_datetime: payload.end_datetime,
     reason: payload.reason,
-  });
+  };
+
+  if (payload.entitlement_instance_id) {
+    requestPayload.entitlement_instance_id = payload.entitlement_instance_id;
+  }
+
+  const res = await http.post("/leave-requests", requestPayload);
 
   return res.data;
 }

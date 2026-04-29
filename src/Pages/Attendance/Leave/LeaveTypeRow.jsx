@@ -4,7 +4,42 @@ import { selectMenuProps } from "../../../Utils/Attendance/SharedForm";
 import {
   formatBalanceMap,
   getLeaveMinimumText,
+  safeText,
 } from "./LeaveUtils";
+
+function formatEntitlementInstanceText(instance) {
+  if (!instance) {
+    return "";
+  }
+
+  const validFrom = safeText(instance?.valid_from, "");
+  const validTo = safeText(instance?.valid_to, "");
+
+  const remainingHours = Number(instance?.remaining_hours);
+  const remainingDays = Number(instance?.remaining_days);
+
+  let remainingText = "";
+
+  if (Number.isFinite(remainingHours) && remainingHours > 0) {
+    const totalMinutes = Math.round(remainingHours * 60);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    remainingText = `剩餘：${hours} 小時 ${minutes} 分`;
+  } else if (Number.isFinite(remainingDays) && remainingDays > 0) {
+    remainingText = `剩餘：${remainingDays} 天`;
+  }
+
+  const rangeText =
+    validFrom && validTo
+      ? `可用期間：${validFrom} ~ ${validTo}`
+      : validFrom
+        ? `可用期間：${validFrom} 起`
+        : validTo
+          ? `可用期間：至 ${validTo}`
+          : "";
+
+  return [remainingText, rangeText].filter(Boolean).join("，");
+}
 
 export default function LeaveTypeRow({
   row,
@@ -14,10 +49,17 @@ export default function LeaveTypeRow({
   mobile,
   balanceMap,
   employeeId,
+  entitlementInstance = null,
+  isSpecialLeave = false,
 }) {
   const selectedType = leaveTypes.find(
     (item) => String(item.value) === String(row.leaveType),
   );
+
+  const entitlementText = formatEntitlementInstanceText(entitlementInstance);
+  const balanceText = isSpecialLeave
+    ? entitlementText || "剩餘：-"
+    : formatBalanceMap(balanceMap, row.leaveType, employeeId);
 
   return (
     <Box sx={{ mb: mobile ? "12px" : "10px", width: "100%", minWidth: 0 }}>
@@ -91,7 +133,7 @@ export default function LeaveTypeRow({
               wordBreak: "break-word",
             }}
           >
-            {formatBalanceMap(balanceMap, row.leaveType, employeeId)}
+            {balanceText}
           </Typography>
 
           <Typography
