@@ -332,11 +332,23 @@ export async function apiLeaveTypes(params = {}) {
   const { employee_id } = params;
   const employeeId = Number(employee_id || getCurrentEmployeeId() || 0);
 
-  const res = await http.get("/leave-types", {
+  const res = await http.get("/leave/types", {
     params: {
       employee_id: employeeId || undefined,
     },
   });
+
+  return res.data;
+}
+
+export async function apiSpecialLeaveOptions() {
+  const res = await http.get("/leave/special-options");
+
+  return res.data;
+}
+
+export async function apiLeaveMeta() {
+  const res = await http.get("/leave/meta");
 
   return res.data;
 }
@@ -436,12 +448,103 @@ export async function apiLeaveBalances(params = {}) {
   const { employee_id, leave_type_id } = params;
   const employeeId = Number(employee_id || getCurrentEmployeeId() || 0);
 
-  const res = await http.get("/leave-balances", {
+  const res = await http.get("/leave/balances", {
     params: {
       employee_id: employeeId || undefined,
       leave_type_id,
     },
   });
+
+  return res.data;
+}
+
+export async function apiLeaveEntitlementInstances(params = {}) {
+  const {
+    employee_id,
+    leave_type_id,
+    request_year,
+    relation_type,
+    status,
+  } = params;
+
+  const res = await http.get("/leave/entitlements", {
+    params: {
+      employee_id: employee_id || undefined,
+      leave_type_id,
+      request_year,
+      relation_type,
+      status,
+    },
+  });
+
+  return res.data;
+}
+
+export async function apiLeaveEntitlementRequests(params = {}) {
+  const {
+    employee_id,
+    leave_type_id,
+    request_status,
+    request_year,
+    relation_type,
+    date_from,
+    date_to,
+  } = params;
+
+  const res = await http.get("/leave-entitlement-requests", {
+    params: {
+      employee_id: employee_id || undefined,
+      leave_type_id,
+      request_status,
+      request_year,
+      relation_type,
+      date_from,
+      date_to,
+    },
+  });
+
+  return res.data;
+}
+
+export async function apiCreateLeaveEntitlementRequest(payload = {}) {
+  const hasAttachments =
+    Array.isArray(payload.attachments) && payload.attachments.length > 0;
+
+  if (hasAttachments) {
+    const formData = new FormData();
+
+    if (payload.employee_id) {
+      formData.append("employee_id", String(payload.employee_id));
+    }
+
+    formData.append("leave_type_id", String(payload.leave_type_id || ""));
+    formData.append("reason", String(payload.reason || ""));
+    formData.append("event_date", String(payload.event_date || ""));
+    formData.append("request_year", String(payload.request_year || ""));
+    formData.append("relation_type", String(payload.relation_type || ""));
+
+    payload.attachments.forEach((file) => {
+      formData.append("attachments[]", file);
+    });
+
+    const res = await http.post("/leave-entitlement-requests", formData);
+
+    return res.data;
+  }
+
+  const requestPayload = {
+    leave_type_id: payload.leave_type_id,
+    reason: payload.reason,
+    event_date: payload.event_date,
+    request_year: payload.request_year,
+    relation_type: payload.relation_type,
+  };
+
+  if (payload.employee_id) {
+    requestPayload.employee_id = payload.employee_id;
+  }
+
+  const res = await http.post("/leave-entitlement-requests", requestPayload);
 
   return res.data;
 }
