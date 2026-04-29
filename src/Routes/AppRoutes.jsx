@@ -7,7 +7,7 @@ import AdminDashboardPage from "../Pages/AdminDashboardPage";
 import AttendanceSchedule from "../Pages/Attendance/AttendanceSchedule";
 import AttendanceMissedPunch from "../Pages/Attendance/AttendanceMissedPunch";
 import AttendanceRecord from "../Pages/Attendance/Record/AttendanceRecord";
-import AttendanceSpecialLeave from "../Pages/Attendance/AttendanceSpecialLeave";
+import AttendanceSpecialLeave from "../Pages/Attendance/SpecialLeave/AttendanceSpecialLeave";
 import AttendanceLeave from "../Pages/Attendance/Leave/AttendanceLeave";
 import AttendanceOvertime from "../Pages/Attendance/Overtime/AttendanceOverTime";
 import AttendanceLeaveBalance from "../Pages/Attendance/AttendanceLeaveBalance";
