@@ -86,6 +86,10 @@ const DEFAULT_DAY_DATA = {
   leave_type_id: 0,
   leave_code: "",
   leave_name: "",
+  leave_relation_type: "",
+  leave_display_name: "",
+  leave_filter_key: "",
+  entitlement_instance_id: 0,
   leave_request_status: "",
   leave_reason: "",
   leave_requested_hours: 0,
@@ -99,7 +103,9 @@ const DEFAULT_DAY_DATA = {
 };
 
 function getNormalizedAttendanceStatus(value) {
-  const raw = String(value || "").trim().toLowerCase();
+  const raw = String(value || "")
+    .trim()
+    .toLowerCase();
 
   if (!raw) {
     return {
@@ -309,6 +315,79 @@ function formatMinutesText(value) {
   return `${numeric} 分鐘`;
 }
 
+function formatSummaryMinutes(hours, minutes) {
+  const safeHours = Number(hours || 0);
+  const safeMinutes = Number(minutes || 0);
+
+  return `${Number.isFinite(safeHours) ? safeHours : 0} 時 ${
+    Number.isFinite(safeMinutes) ? safeMinutes : 0
+  } 分`;
+}
+
+function getLeaveDisplayName(dayData) {
+  const displayName = String(dayData?.leave_display_name || "").trim();
+  const leaveName = String(dayData?.leave_name || "").trim();
+  const relationType = String(dayData?.leave_relation_type || "").trim();
+
+  if (displayName) {
+    return displayName;
+  }
+
+  if (leaveName && relationType) {
+    return `${leaveName} - ${relationType}`;
+  }
+
+  if (leaveName) {
+    return leaveName;
+  }
+
+  return "";
+}
+
+function buildLeaveTypeFilterKey(leaveTypeId) {
+  return `leave-type:${leaveTypeId}`;
+}
+
+function buildLeaveFilterGroups(leaveBreakdown = []) {
+  const groupMap = {};
+
+  leaveBreakdown.forEach((item) => {
+    const leaveTypeId = Number(item?.leave_type_id || 0);
+    const leaveName = String(item?.leave_name || "").trim();
+    const relationType = String(item?.relation_type || "").trim();
+    const filterKey = String(item?.filter_key || "").trim();
+    const displayName = String(item?.display_name || "").trim();
+
+    if (!filterKey) {
+      return;
+    }
+
+    const safeLeaveTypeId = leaveTypeId || filterKey;
+    const safeLeaveName = leaveName || displayName || "請假";
+
+    if (!groupMap[leaveTypeId]) {
+      groupMap[leaveTypeId] = {
+        leave_type_id: leaveTypeId,
+        leave_name: leaveName,
+        filter_key: buildLeaveTypeFilterKey(leaveTypeId),
+        children: [],
+      };
+    }
+
+    groupMap[leaveTypeId].children.push({
+      leave_type_id: leaveTypeId,
+      leave_name: leaveName,
+      relation_type: relationType,
+      filter_key: filterKey,
+      display_name:
+        displayName ||
+        (relationType ? `${leaveName} - ${relationType}` : leaveName),
+    });
+  });
+
+  return Object.values(groupMap);
+}
+
 function getDisplayTitle(dayData, fallbackHolidayName = "") {
   return (
     dayData?.display_title ||
@@ -321,7 +400,9 @@ function getDisplayTitle(dayData, fallbackHolidayName = "") {
 function getDetailStatusLabel(dayData) {
   const parsed = getNormalizedAttendanceStatus(dayData?.attendance_status);
   const attendanceStatus = parsed.base;
-  const indicatorStatus = String(dayData?.indicator?.status || "").toLowerCase();
+  const indicatorStatus = String(
+    dayData?.indicator?.status || "",
+  ).toLowerCase();
   const missedPunchSuffix = getMissedPunchDetailSuffix(dayData);
 
   let baseLabel = "";
@@ -349,10 +430,14 @@ function getDetailStatusLabel(dayData) {
   } else if (attendanceStatus === "leave") {
     baseLabel = "請假";
   } else if (
-    ["missing_clock_in", "missing_clock_out", "absent"].includes(attendanceStatus)
+    ["missing_clock_in", "missing_clock_out", "absent"].includes(
+      attendanceStatus,
+    )
   ) {
     baseLabel = "缺卡 / 異常";
-  } else if (["late", "early_leave", "late_early_leave"].includes(attendanceStatus)) {
+  } else if (
+    ["late", "early_leave", "late_early_leave"].includes(attendanceStatus)
+  ) {
     baseLabel = "異常出勤";
   } else if (dayData?.has_clock_in) {
     baseLabel = "已出勤";
@@ -400,13 +485,21 @@ function getScheduleDayData(date, scheduleDayMap) {
   return scheduleDayMap[key] || null;
 }
 
-function shouldDisplayDay(selectedFilter, dayData) {
-  if (selectedFilter === "all") {
+function shouldDisplayDay(selectedFilters, dayData) {
+  if (selectedFilters.includes("all")) {
     return true;
   }
 
-  const filterKey = dayData?.filter_key || "";
-  return filterKey === selectedFilter;
+  const filterKey = String(dayData?.filter_key || "");
+  const dayType = String(dayData?.day_type || "");
+
+  return selectedFilters.some((selectedFilter) => {
+    if (selectedFilter === "leave") {
+      return dayType === "leave" || filterKey === "leave";
+    }
+
+    return filterKey === selectedFilter;
+  });
 }
 
 function AttendanceDetailDialog({
@@ -425,7 +518,7 @@ function AttendanceDetailDialog({
   const statusLabel = getDetailStatusLabel(dayData);
   const statusColor = getStatusColor(dayData);
   const leaveLabel =
-    dayData?.leave_name ||
+    getLeaveDisplayName(dayData) ||
     dayData?.leave_code ||
     (dayData?.day_type === "leave" ? "請假" : "－");
 
@@ -553,7 +646,10 @@ function AttendanceDetailDialog({
                 sx={{
                   fontSize: { xs: "14px", sm: "15px" },
                   fontWeight: 700,
-                  color: dayData?.indicator?.show === false ? "#ffffff" : statusColor,
+                  color:
+                    dayData?.indicator?.show === false
+                      ? "#ffffff"
+                      : statusColor,
                 }}
               >
                 {statusLabel}
@@ -578,7 +674,11 @@ function AttendanceDetailDialog({
               label="實際下班"
               value={formatDateTimeDisplay(dayData?.actual_out)}
             />
-            <DetailField label="出勤狀態" value={statusLabel} valueColor={statusColor} />
+            <DetailField
+              label="出勤狀態"
+              value={statusLabel}
+              valueColor={statusColor}
+            />
             <DetailField
               label="遲到分鐘"
               value={formatMinutesText(dayData?.late_minutes)}
@@ -587,7 +687,10 @@ function AttendanceDetailDialog({
               label="早退分鐘"
               value={formatMinutesText(dayData?.early_leave_minutes)}
             />
-            <DetailField label="工時" value={formatHoursText(dayData?.worked_hours)} />
+            <DetailField
+              label="工時"
+              value={formatHoursText(dayData?.worked_hours)}
+            />
             <DetailField
               label="加班時數"
               value={
@@ -727,7 +830,8 @@ function CalendarDayCell({
   today,
   holidayMap,
   scheduleDayMap,
-  selectedFilter,
+  selectedFilters,
+  leaveFilterGroups,
   onClickDate,
 }) {
   if (!date) {
@@ -750,7 +854,7 @@ function CalendarDayCell({
   const displaySubtitle = dayData?.display_subtitle || "";
   const displayTime = dayData?.display_time || dayData?.time || "";
   const isToday = isSameDate(date, today);
-  const isVisible = shouldDisplayDay(selectedFilter, dayData);
+  const isVisible = shouldDisplayDay(selectedFilters, dayData);
 
   return (
     <Box
@@ -876,7 +980,7 @@ export default function AttendanceSchedule() {
   const [holidayMap, setHolidayMap] = useState({});
   const [holidayLoading, setHolidayLoading] = useState(false);
   const [holidaySourceNote, setHolidaySourceNote] = useState("");
-  const [selectedFilter, setSelectedFilter] = useState("all");
+  const [selectedFilters, setSelectedFilters] = useState(["all"]);
   const [selectedDate, setSelectedDate] = useState(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [scheduleDays, setScheduleDays] = useState([]);
@@ -895,6 +999,7 @@ export default function AttendanceSchedule() {
     rest_remaining_minutes: 0,
     overtime_hours: 0,
     overtime_remaining_minutes: 0,
+    leave_breakdown: [],
   });
 
   useEffect(() => {
@@ -989,6 +1094,7 @@ export default function AttendanceSchedule() {
             rest_remaining_minutes: 0,
             overtime_hours: 0,
             overtime_remaining_minutes: 0,
+            leave_breakdown: [],
           });
           setScheduleError("班表資料載入失敗。");
         }
@@ -1060,6 +1166,33 @@ export default function AttendanceSchedule() {
     setDetailOpen(false);
   }
 
+  function isFilterChecked(filterKey) {
+    return (
+      selectedFilters.includes("all") || selectedFilters.includes(filterKey)
+    );
+  }
+
+  function handleSelectFilter(filterKey) {
+    if (filterKey === "all") {
+      setSelectedFilters(["all"]);
+      return;
+    }
+
+    setSelectedFilters((prev) => {
+      const current = prev.includes("all") ? [] : prev;
+      const exists = current.includes(filterKey);
+
+      const next = exists
+        ? current.filter((item) => item !== filterKey)
+        : [...current, filterKey];
+
+      return next.length > 0 ? next : ["all"];
+    });
+  }
+
+  const sidebarSummary =
+    scheduleSummary?.sidebar_summary || scheduleSummary || {};
+
   return (
     <Box>
       <Breadcrumb rootLabel="個人專區" currentLabel="個人班表" mb="14px" />
@@ -1088,20 +1221,22 @@ export default function AttendanceSchedule() {
         <>
           <MobileCalendar
             filters={SHIFT_FILTERS}
-            selectedFilter={selectedFilter}
-            onSelectFilter={setSelectedFilter}
+            selectedFilter={
+              selectedFilters.includes("all") ? "all" : selectedFilters[0]
+            }
+            onSelectFilter={(value) => setSelectedFilters([value])}
             monthTitle={monthTitle}
             monthGrid={monthGrid}
             holidayMap={holidayMap}
             scheduleDayMap={scheduleDayMap}
             selectedDate={selectedDate}
             onSelectDate={handleOpenDateDetail}
-            workHours={scheduleSummary.work_hours}
-            workMinutes={scheduleSummary.work_remaining_minutes}
-            leaveHours={scheduleSummary.leave_hours}
-            leaveMinutes={scheduleSummary.leave_remaining_minutes}
-            restHours={scheduleSummary.rest_hours}
-            restMinutes={scheduleSummary.rest_remaining_minutes}
+            workHours={sidebarSummary.work_hours}
+            workMinutes={sidebarSummary.work_remaining_minutes}
+            leaveHours={sidebarSummary.leave_hours}
+            leaveMinutes={sidebarSummary.leave_remaining_minutes}
+            restHours={sidebarSummary.rest_hours}
+            restMinutes={sidebarSummary.rest_remaining_minutes}
             onPrevMonth={() => {
               const prev = getPrevMonthYear(selectedYear, selectedMonth);
               setSelectedYear(prev.year);
@@ -1319,7 +1454,7 @@ export default function AttendanceSchedule() {
                         today={today}
                         holidayMap={holidayMap}
                         scheduleDayMap={scheduleDayMap}
-                        selectedFilter={selectedFilter}
+                        selectedFilters={selectedFilters}
                         onClickDate={handleOpenDateDetail}
                       />
                     ))}
@@ -1350,19 +1485,59 @@ export default function AttendanceSchedule() {
                   統計
                 </Typography>
 
-                <Typography sx={{ fontSize: "16px", color: "#374151", mb: "6px" }}>
-                  上班時數：{scheduleSummary.work_hours} 時{" "}
-                  {scheduleSummary.work_remaining_minutes} 分
+                <Typography
+                  sx={{ fontSize: "16px", color: "#374151", mb: "6px" }}
+                >
+                  上班時數：
+                  {formatSummaryMinutes(
+                    sidebarSummary.work_hours,
+                    sidebarSummary.work_remaining_minutes,
+                  )}
                 </Typography>
 
-                <Typography sx={{ fontSize: "16px", color: "#374151", mb: "6px" }}>
-                  請假時數：{scheduleSummary.leave_hours} 時{" "}
-                  {scheduleSummary.leave_remaining_minutes} 分
+                <Typography
+                  sx={{ fontSize: "16px", color: "#374151", mb: "6px" }}
+                >
+                  請假時數：
+                  {formatSummaryMinutes(
+                    sidebarSummary.leave_hours,
+                    sidebarSummary.leave_remaining_minutes,
+                  )}
                 </Typography>
+
+                {Array.isArray(sidebarSummary.leave_breakdown) &&
+                sidebarSummary.leave_breakdown.length > 0 ? (
+                  <Box sx={{ pl: "12px", mb: "6px" }}>
+                    {sidebarSummary.leave_breakdown.map((item) => {
+                      const displayName =
+                        item.display_name ||
+                        (item.relation_type
+                          ? `${item.leave_name} - ${item.relation_type}`
+                          : item.leave_name) ||
+                        "請假";
+
+                      return (
+                        <Typography
+                          key={item.filter_key || displayName}
+                          sx={{ fontSize: "14px", color: "#4b5563", mb: "4px" }}
+                        >
+                          {displayName}：
+                          {formatSummaryMinutes(
+                            item.hours,
+                            item.remaining_minutes,
+                          )}
+                        </Typography>
+                      );
+                    })}
+                  </Box>
+                ) : null}
 
                 <Typography sx={{ fontSize: "16px", color: "#374151" }}>
-                  加班時數：{scheduleSummary.overtime_hours || 0} 時{" "}
-                  {scheduleSummary.overtime_remaining_minutes || 0} 分
+                  加班時數：
+                  {formatSummaryMinutes(
+                    sidebarSummary.overtime_hours,
+                    sidebarSummary.overtime_remaining_minutes,
+                  )}
                 </Typography>
               </Paper>
 
@@ -1370,48 +1545,43 @@ export default function AttendanceSchedule() {
                 <Box
                   sx={{ display: "flex", flexDirection: "column", gap: "8px" }}
                 >
-                  <Box
-                    sx={{ display: "flex", alignItems: "center", cursor: "pointer" }}
-                    onClick={() => setSelectedFilter("all")}
-                  >
-                    <Checkbox
-                      checked={selectedFilter === "all"}
-                      size="small"
-                      sx={{ p: "4px" }}
-                    />
-                    <Typography sx={{ fontSize: "15px" }}>全選</Typography>
-                  </Box>
-
-                  {[
-                    { key: "support", label: "支援", color: "#cfe8ff" },
-                    { key: "leave", label: "請假", color: "#f7b3c2" },
-                    { key: "rest", label: "休假", color: "#d1d5db" },
-                    { key: "trip", label: "公出/出差", color: "#f6b73c" },
-                    { key: "normal", label: "常日班", color: "#f5a04a" },
-                  ].map((item) => (
+                  {SHIFT_FILTERS.map((item) => (
                     <Box
                       key={item.key}
-                      sx={{ display: "flex", alignItems: "center", cursor: "pointer" }}
-                      onClick={() => setSelectedFilter(item.key)}
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        cursor: "pointer",
+                      }}
+                      onClick={() => handleSelectFilter(item.key)}
                     >
                       <Checkbox
-                        checked={selectedFilter === item.key}
+                        checked={
+                          item.key === "all"
+                            ? selectedFilters.includes("all")
+                            : isFilterChecked(item.key)
+                        }
                         size="small"
                         sx={{ p: "4px" }}
                       />
-                      <Box
-                        sx={{
-                          px: "8px",
-                          py: "2px",
-                          bgcolor: item.color,
-                          fontSize: "14px",
-                          color: "#111827",
-                          minWidth: "74px",
-                          textAlign: "center",
-                        }}
-                      >
-                        {item.label}
-                      </Box>
+
+                      {item.key === "all" ? (
+                        <Typography sx={{ fontSize: "15px" }}>全選</Typography>
+                      ) : (
+                        <Box
+                          sx={{
+                            px: "8px",
+                            py: "2px",
+                            bgcolor: item.color,
+                            fontSize: "14px",
+                            color: "#111827",
+                            minWidth: "74px",
+                            textAlign: "center",
+                          }}
+                        >
+                          {item.label}
+                        </Box>
+                      )}
                     </Box>
                   ))}
                 </Box>
