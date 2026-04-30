@@ -30,6 +30,7 @@ import CalculateOutlinedIcon from "@mui/icons-material/CalculateOutlined";
 import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 import BadgeOutlinedIcon from "@mui/icons-material/BadgeOutlined";
 import LoginOutlinedIcon from "@mui/icons-material/LoginOutlined";
+import PlaylistAddCheckIcon from "@mui/icons-material/PlaylistAddCheck";
 
 export function renderMenuIcon(iconKey, { size = 52, color = "#2196d3" } = {}) {
   const sx = { fontSize: `${size}px`, color };
@@ -101,6 +102,8 @@ export function renderMenuIcon(iconKey, { size = 52, color = "#2196d3" } = {}) {
       return <LogoutOutlinedIcon sx={sx} />;
     case "feedback":
       return <FeedbackOutlinedIcon sx={sx} />;
+    case "to-do-list":
+      return <PlaylistAddCheckIcon sx={sx} />;
     default:
       return <DescriptionOutlinedIcon sx={sx} />;
   }
@@ -383,6 +386,14 @@ export const MENU_ITEMS = [
     groups: ["homeShortcut"],
   },
   {
+    id: "to-do-list",
+    label: "待辦事項",
+    to: "/to-do-list",
+    iconKey: "to-do-list",
+    disable: false,
+    groups: ["homeShortcut"],
+  },
+  {
     id: "ordering-system",
     label: "最新訂單",
     to: "/ordering-system",
@@ -433,9 +444,9 @@ export const MENU_ITEMS = [
   },
 ];
 
-export const DEFAULT_MOBILE_DRAWER_SHORTCUT_IDS = MENU_ITEMS
-  .filter((item) => item.groups.includes("mobileDrawer") && item.defaultInMobileDrawer)
-  .map((item) => item.id);
+export const DEFAULT_MOBILE_DRAWER_SHORTCUT_IDS = MENU_ITEMS.filter(
+  (item) => item.groups.includes("mobileDrawer") && item.defaultInMobileDrawer,
+).map((item) => item.id);
 
 export function getMenuItemsByGroup(group) {
   return MENU_ITEMS.filter((item) => item.groups.includes(group));
@@ -453,7 +464,7 @@ export function getAttendanceMenuItems() {
 
 export function getAttendanceMenuItemsBySection(sectionKey) {
   return getAttendanceMenuItems().filter(
-    (item) => (item.sectionKey || "personal") === sectionKey
+    (item) => (item.sectionKey || "personal") === sectionKey,
   );
 }
 
