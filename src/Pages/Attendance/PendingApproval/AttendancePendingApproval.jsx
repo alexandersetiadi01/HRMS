@@ -33,6 +33,7 @@ const FORM_TYPE_OPTIONS = [
   { value: "all", label: "全部", disabled: false },
   { value: "missed_punch", label: "忘打卡", disabled: false },
   { value: "leave", label: "請假", disabled: false },
+  { value: "leave_entitlement", label: "特殊假額度申請", disabled: false },
   { value: "leave_cancel", label: "請假撤銷", disabled: true },
   { value: "overtime", label: "加班", disabled: false },
   { value: "overtime_cancel", label: "加班撤銷", disabled: true },
@@ -90,7 +91,11 @@ function getTypeFilterValue(formType) {
     return undefined;
   }
 
-  if (["leave", "overtime", "missed_punch"].includes(formType)) {
+  if (
+    ["leave", "leave_entitlement", "overtime", "missed_punch"].includes(
+      formType,
+    )
+  ) {
     return formType;
   }
 
@@ -202,6 +207,29 @@ function formatMissedPunchContent(raw) {
   return typeLabel;
 }
 
+function formatLeaveEntitlementContent(raw) {
+  const leaveName = String(
+    raw?.leave_name || raw?.leave_type_name || "特殊假",
+  ).trim();
+  const relationType = String(
+    raw?.relation_type || raw?.condition_value || raw?.condition_label || "",
+  ).trim();
+  const eventDate = formatDateOnly(raw?.event_date);
+  const requestYear = String(raw?.request_year || "").trim();
+
+  const leaveLabel = relationType
+    ? `${leaveName} - ${relationType}`
+    : leaveName;
+
+  return [
+    leaveLabel,
+    eventDate ? `事件日期：${eventDate}` : "",
+    requestYear ? `年度：${requestYear}` : "",
+  ]
+    .filter(Boolean)
+    .join("｜");
+}
+
 function getReasonFromRaw(raw) {
   return String(raw?.reason || "").trim();
 }
@@ -213,6 +241,10 @@ function getContentFromRaw(type, raw) {
 
   if (type === "missed_punch") {
     return formatMissedPunchContent(raw);
+  }
+
+  if (type === "leave_entitlement") {
+    return formatLeaveEntitlementContent(raw);
   }
 
   return "";
@@ -240,6 +272,10 @@ function mapItemsFromResponse(payload) {
         item?.type_label || "",
         getContentFromRaw(item?.type, raw),
         getReasonFromRaw(raw),
+        raw?.leave_name || "",
+        raw?.relation_type || "",
+        raw?.event_date || "",
+        raw?.request_year || "",
       ]
         .join(" ")
         .toLowerCase(),

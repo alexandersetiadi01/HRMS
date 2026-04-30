@@ -154,9 +154,17 @@ export default function LeaveOfAbsence() {
       ]);
 
       if (nextLeaveType && nextLeaveType !== "all") {
-        items = items.filter(
-          (item) => String(item?.leave_label || "") === String(nextLeaveType),
-        );
+        items = items.filter((item) => {
+          const leaveLabel = String(item?.leave_label || "").trim();
+          const leaveName = String(
+            item?.leave_name || item?.leave_type_name || "",
+          ).trim();
+
+          return (
+            leaveLabel === String(nextLeaveType) ||
+            leaveName === String(nextLeaveType)
+          );
+        });
       }
 
       if (nextStatus && nextStatus !== "all") {

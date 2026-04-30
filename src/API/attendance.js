@@ -134,6 +134,30 @@ function formatRequestStatus(value) {
   return map[status] || value || "";
 }
 
+function buildLeaveLabel(item = {}) {
+  const leaveName = String(
+    item.leave_name || item.leave_type_name || item.leave_label || "",
+  ).trim();
+
+  const relationType = String(
+    item.relation_type ||
+      item.leave_relation_type ||
+      item.entitlement_relation_type ||
+      item.condition_value ||
+      item.condition_label ||
+      item.kinship ||
+      item.kinship_label ||
+      item.relationship ||
+      "",
+  ).trim();
+
+  if (leaveName && relationType) {
+    return `${leaveName} - ${relationType}`;
+  }
+
+  return leaveName;
+}
+
 function normalizeMissedPunchItem(item = {}) {
   return {
     ...item,
@@ -161,8 +185,7 @@ function normalizeLeaveItem(item = {}) {
       item.request_date || item.created_at || item.start_datetime || "",
     ),
     applicant_name: item.display_name || item.employee_name || "",
-    leave_label:
-      item.leave_name || item.leave_type_name || item.leave_label || "",
+    leave_label: buildLeaveLabel(item),
     datetime_text: formatDateTimeRangeShort(
       item.start_datetime,
       item.end_datetime,

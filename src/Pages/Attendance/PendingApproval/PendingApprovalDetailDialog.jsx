@@ -36,6 +36,35 @@ function Field({ label, value }) {
   );
 }
 
+function buildLeaveEntitlementFields(row) {
+  const raw = row?.raw || {};
+
+  const leaveName = String(
+    raw?.leave_name || raw?.leave_type_name || "特殊假",
+  ).trim();
+
+  const relationType = String(
+    raw?.relation_type || raw?.condition_value || raw?.condition_label || "",
+  ).trim();
+
+  const displayName = relationType
+    ? `${leaveName} - ${relationType}`
+    : leaveName;
+
+  const eventDate = raw?.event_date
+    ? String(raw.event_date).replaceAll("-", "/")
+    : "-";
+
+  const requestYear = raw?.request_year || "-";
+
+  return [
+    { label: "假別", value: displayName },
+    { label: "事件日期", value: eventDate },
+    { label: "年度", value: requestYear },
+    { label: "事由", value: row?.reason || "-" },
+  ];
+}
+
 export default function PendingApprovalDetailDialog({
   open,
   row,
@@ -76,8 +105,17 @@ export default function PendingApprovalDetailDialog({
           <Field label="狀態" value={row?.statusLabel} />
           <Field label="申請人" value={row?.applicant} />
           <Field label="日期" value={row?.date} />
-          <Field label="內容" value={row?.content} />
-          <Field label="事由" value={row?.reason} />
+
+          {row?.type === "leave_entitlement" ? (
+            buildLeaveEntitlementFields(row).map((item, index) => (
+              <Field key={index} label={item.label} value={item.value} />
+            ))
+          ) : (
+            <>
+              <Field label="內容" value={row?.content} />
+              <Field label="事由" value={row?.reason} />
+            </>
+          )}
         </Box>
       </DialogContent>
 

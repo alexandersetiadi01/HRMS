@@ -72,6 +72,28 @@ function buildValidPeriod(validFrom, validTo) {
   return `${from}~${to}`;
 }
 
+function buildLeaveBalanceName(row = {}) {
+  const leaveName = String(
+    row?.leave_name || row?.name || row?.leave_type_name || "-",
+  ).trim();
+
+  const relationType = String(
+    row?.relation_type ||
+      row?.leave_relation_type ||
+      row?.entitlement_relation_type ||
+      row?.condition_value ||
+      row?.condition_label ||
+      row?.kinship ||
+      "",
+  ).trim();
+
+  if (leaveName && leaveName !== "-" && relationType) {
+    return `${leaveName} - ${relationType}`;
+  }
+
+  return leaveName || "-";
+}
+
 function normalizeLeaveBalanceRows(payload) {
   const list = payload?.data?.data || payload?.data || payload || [];
   const rows = Array.isArray(list) ? list : [];
@@ -82,14 +104,25 @@ function normalizeLeaveBalanceRows(payload) {
     const remainingHours = Number(row?.remaining_hours || 0);
 
     return {
-      id: row?.leave_balance_id || row?.leave_type_id || `balance-${index}`,
-      name: row?.leave_name || row?.name || row?.leave_type_name || "-",
+      id:
+        row?.balance_source_id ||
+        row?.entitlement_instance_id ||
+        row?.leave_balance_id ||
+        `${row?.leave_type_id || "balance"}-${row?.relation_type || index}`,
+      name: buildLeaveBalanceName(row),
+      validFrom: formatDateText(row?.valid_from),
+      validTo: formatDateText(row?.valid_to),
+      relationType: row?.relation_type || "",
+      balanceSource: row?.balance_source || "",
       available: formatHoursText(grantedHours),
       used: formatHoursText(usedHours),
       remaining: formatHoursText(remainingHours),
       details: [
         {
+          validFrom: formatDateText(row?.valid_from),
+          validTo: formatDateText(row?.valid_to),
           validPeriod: buildValidPeriod(row?.valid_from, row?.valid_to),
+          relationType: row?.relation_type || "",
           remaining: formatHoursText(remainingHours),
         },
       ],
@@ -193,7 +226,7 @@ function LeaveDetailDialog({ open, onClose, leaveItem }) {
               sx={{
                 bgcolor: "#d4d4d4",
                 display: "grid",
-                gridTemplateColumns: "1.4fr 0.8fr",
+                gridTemplateColumns: "1fr 1fr 0.8fr",
               }}
             >
               <Box
@@ -216,6 +249,17 @@ function LeaveDetailDialog({ open, onClose, leaveItem }) {
                   color: "#111827",
                 }}
               >
+                條件
+              </Box>
+              <Box
+                sx={{
+                  px: "12px",
+                  py: "12px",
+                  fontSize: "14px",
+                  fontWeight: 700,
+                  color: "#111827",
+                }}
+              >
                 剩餘
               </Box>
             </Box>
@@ -225,7 +269,7 @@ function LeaveDetailDialog({ open, onClose, leaveItem }) {
                 key={`${row.validPeriod}-${index}`}
                 sx={{
                   display: "grid",
-                  gridTemplateColumns: "1.4fr 0.8fr",
+                  gridTemplateColumns: "1fr 1fr 0.8fr",
                   borderTop: index === 0 ? "none" : "1px solid #d8d8d8",
                 }}
               >
@@ -240,6 +284,18 @@ function LeaveDetailDialog({ open, onClose, leaveItem }) {
                   }}
                 >
                   {row.validPeriod}
+                </Box>
+                <Box
+                  sx={{
+                    px: "12px",
+                    py: "12px",
+                    fontSize: "14px",
+                    color: "#374151",
+                    lineHeight: 1.6,
+                    wordBreak: "break-word",
+                  }}
+                >
+                  {row.relationType || "-"}
                 </Box>
                 <Box
                   sx={{
@@ -295,6 +351,9 @@ function LeaveDetailDialog({ open, onClose, leaveItem }) {
                 <TableRow key={`${row.validPeriod}-${index}`}>
                   <TableCell sx={{ fontSize: "16px", color: "#374151" }}>
                     {row.validPeriod}
+                  </TableCell>
+                  <TableCell sx={{ fontSize: "16px", color: "#374151" }}>
+                    {row.relationType || "-"}
                   </TableCell>
                   <TableCell sx={{ fontSize: "16px", color: "#374151" }}>
                     {row.remaining}
@@ -378,7 +437,9 @@ function LeaveDetailDialog({ open, onClose, leaveItem }) {
               {page}
             </Box>
 
-            <Typography sx={{ fontSize: isMobile ? "15px" : "16px", color: "#374151" }}>
+            <Typography
+              sx={{ fontSize: isMobile ? "15px" : "16px", color: "#374151" }}
+            >
               / {totalPages}
             </Typography>
 
@@ -554,8 +615,12 @@ function MobileLeaveCard({ item, onOpenDetail }) {
             alignItems: "start",
           }}
         >
-          <Typography sx={{ fontSize: "14px", color: "#6b7280" }}>可用</Typography>
-          <Typography sx={{ fontSize: "15px", color: "#111827" }}>{item.available}</Typography>
+          <Typography sx={{ fontSize: "14px", color: "#6b7280" }}>
+            可用
+          </Typography>
+          <Typography sx={{ fontSize: "15px", color: "#111827" }}>
+            {item.available}
+          </Typography>
         </Box>
 
         <Box
@@ -566,8 +631,12 @@ function MobileLeaveCard({ item, onOpenDetail }) {
             alignItems: "start",
           }}
         >
-          <Typography sx={{ fontSize: "14px", color: "#6b7280" }}>已用</Typography>
-          <Typography sx={{ fontSize: "15px", color: "#111827" }}>{item.used}</Typography>
+          <Typography sx={{ fontSize: "14px", color: "#6b7280" }}>
+            已用
+          </Typography>
+          <Typography sx={{ fontSize: "15px", color: "#111827" }}>
+            {item.used}
+          </Typography>
         </Box>
 
         <Box
@@ -578,8 +647,27 @@ function MobileLeaveCard({ item, onOpenDetail }) {
             alignItems: "start",
           }}
         >
-          <Typography sx={{ fontSize: "14px", color: "#6b7280" }}>剩餘</Typography>
-          <Typography sx={{ fontSize: "15px", color: "#111827" }}>{item.remaining}</Typography>
+          <Typography sx={{ fontSize: "14px", color: "#6b7280" }}>
+            剩餘
+          </Typography>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: "64px 1fr",
+              columnGap: "10px",
+              alignItems: "start",
+            }}
+          >
+            <Typography sx={{ fontSize: "14px", color: "#6b7280" }}>
+              有效期
+            </Typography>
+            <Typography sx={{ fontSize: "15px", color: "#111827" }}>
+              {buildValidPeriod(item.validFrom, item.validTo)}
+            </Typography>
+          </Box>
+          <Typography sx={{ fontSize: "15px", color: "#111827" }}>
+            {item.remaining}
+          </Typography>
         </Box>
       </Box>
     </Box>
@@ -734,6 +822,12 @@ export default function AttendanceLeaveBalance() {
                 <TableCell sx={{ fontSize: "16px", fontWeight: 700 }}>
                   剩餘
                 </TableCell>
+                <TableCell sx={{ fontSize: "16px", fontWeight: 700 }}>
+                  有效起日
+                </TableCell>
+                <TableCell sx={{ fontSize: "16px", fontWeight: 700 }}>
+                  有效迄日
+                </TableCell>
                 <TableCell
                   align="center"
                   sx={{ fontSize: "16px", fontWeight: 700, width: "120px" }}
@@ -757,6 +851,12 @@ export default function AttendanceLeaveBalance() {
                   </TableCell>
                   <TableCell sx={{ fontSize: "16px", color: "#111827" }}>
                     {item.remaining}
+                  </TableCell>
+                  <TableCell sx={{ fontSize: "16px", color: "#111827" }}>
+                    {item.validFrom}
+                  </TableCell>
+                  <TableCell sx={{ fontSize: "16px", color: "#111827" }}>
+                    {item.validTo}
                   </TableCell>
                   <TableCell align="center">
                     <IconButton onClick={() => handleOpenDetail(item)}>
