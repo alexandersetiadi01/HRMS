@@ -3,7 +3,7 @@ const API_BASE =
   `${window.location.origin}/hrms-wp/wp-json/hrms/v1`;
 
 function getAuthHeaders(isFormData = false) {
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem("hrms_auth_token");
 
   const headers = {};
 
@@ -18,37 +18,166 @@ function getAuthHeaders(isFormData = false) {
   return headers;
 }
 
+function buildQuery(params = {}) {
+  const searchParams = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === "") {
+      return;
+    }
+
+    searchParams.append(key, String(value));
+  });
+
+  const query = searchParams.toString();
+
+  return query ? `?${query}` : "";
+}
+
+async function parseResponse(res, fallback = null) {
+  const data = await res.json().catch(() => null);
+
+  if (!res.ok) {
+    throw new Error(data?.message || "Request failed");
+  }
+
+  return data?.data ?? fallback;
+}
+
 // ======================
-// TASK ASSIGNEES (MAIN LIST)
+// EMPLOYEES
 // ======================
 
-export async function fetchMyTasks(employeeId) {
+export async function fetchEmployees() {
+  const res = await fetch(`${API_BASE}/employees`, {
+    headers: getAuthHeaders(),
+  });
+
+  return parseResponse(res, []);
+}
+
+// ======================
+// TASKS
+// ======================
+
+export async function fetchTasks(params = {}) {
+  const res = await fetch(`${API_BASE}/tasks${buildQuery(params)}`, {
+    headers: getAuthHeaders(),
+  });
+
+  return parseResponse(res, []);
+}
+
+export async function fetchCreatedTasks(creatorEmployeeId) {
   const res = await fetch(
-    `${API_BASE}/task-assignees?employee_id=${employeeId}`,
+    `${API_BASE}/tasks${buildQuery({
+      creator_employee_id: creatorEmployeeId,
+    })}`,
     {
       headers: getAuthHeaders(),
     }
   );
 
-  if (!res.ok) throw new Error("Failed to fetch tasks");
-
-  const data = await res.json();
-  return data?.data || [];
+  return parseResponse(res, []);
 }
-
-// ======================
-// TASK DETAIL
-// ======================
 
 export async function fetchTaskDetail(taskId) {
   const res = await fetch(`${API_BASE}/tasks/${taskId}`, {
     headers: getAuthHeaders(),
   });
 
-  if (!res.ok) throw new Error("Failed to fetch task detail");
+  return parseResponse(res, null);
+}
 
-  const data = await res.json();
-  return data?.data || null;
+export async function createTask({
+  creator_employee_id,
+  title,
+  description,
+  start_date,
+  due_date,
+}) {
+  const res = await fetch(`${API_BASE}/tasks`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({
+      creator_employee_id,
+      title,
+      description,
+      start_date,
+      due_date,
+    }),
+  });
+
+  return parseResponse(res, null);
+}
+
+// ======================
+// TASK ASSIGNEES
+// ======================
+
+export async function fetchMyTasks(employeeId) {
+  const res = await fetch(
+    `${API_BASE}/task-assignees${buildQuery({
+      employee_id: employeeId,
+    })}`,
+    {
+      headers: getAuthHeaders(),
+    }
+  );
+
+  return parseResponse(res, []);
+}
+
+export async function fetchPendingTaskAssignments(employeeId) {
+  const res = await fetch(
+    `${API_BASE}/task-assignees${buildQuery({
+      employee_id: employeeId,
+    })}`,
+    {
+      headers: getAuthHeaders(),
+    }
+  );
+
+  return parseResponse(res, []);
+}
+
+export async function fetchTaskAssigneesByTask(taskId) {
+  const res = await fetch(
+    `${API_BASE}/task-assignees${buildQuery({
+      task_id: taskId,
+    })}`,
+    {
+      headers: getAuthHeaders(),
+    }
+  );
+
+  return parseResponse(res, []);
+}
+
+export async function fetchAssignedTaskRows(creatorEmployeeId) {
+  const res = await fetch(
+    `${API_BASE}/task-assignees${buildQuery({
+      creator_employee_id: creatorEmployeeId,
+    })}`,
+    {
+      headers: getAuthHeaders(),
+    }
+  );
+
+  return parseResponse(res, []);
+}
+
+export async function assignTask({ task_id, employee_ids }) {
+  const res = await fetch(`${API_BASE}/task-assignees`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({
+      task_id,
+      employee_ids,
+    }),
+  });
+
+  return parseResponse(res, null);
 }
 
 // ======================
@@ -57,53 +186,17 @@ export async function fetchTaskDetail(taskId) {
 
 export async function fetchTaskReplies(taskId, employeeId) {
   const res = await fetch(
-    `${API_BASE}/task-replies?task_id=${taskId}&employee_id=${employeeId}`,
+    `${API_BASE}/task-replies${buildQuery({
+      task_id: taskId,
+      employee_id: employeeId,
+    })}`,
     {
       headers: getAuthHeaders(),
     }
   );
 
-  if (!res.ok) throw new Error("Failed to fetch replies");
-
-  const data = await res.json();
-  return data?.data || [];
+  return parseResponse(res, []);
 }
-
-// ======================
-// ATTACHMENTS
-// ======================
-
-export async function fetchTaskAttachments(taskId) {
-  const res = await fetch(
-    `${API_BASE}/task-attachments?task_id=${taskId}`,
-    {
-      headers: getAuthHeaders(),
-    }
-  );
-
-  if (!res.ok) throw new Error("Failed to fetch attachments");
-
-  const data = await res.json();
-  return data?.data || [];
-}
-
-export async function fetchReplyAttachments(replyId) {
-  const res = await fetch(
-    `${API_BASE}/task-attachments?task_reply_id=${replyId}`,
-    {
-      headers: getAuthHeaders(),
-    }
-  );
-
-  if (!res.ok) throw new Error("Failed to fetch reply attachments");
-
-  const data = await res.json();
-  return data?.data || [];
-}
-
-// ======================
-// SUBMIT REPLY (WITH FILE)
-// ======================
 
 export async function submitTaskReply({
   task_id,
@@ -129,8 +222,35 @@ export async function submitTaskReply({
     body: formData,
   });
 
-  if (!res.ok) throw new Error("Failed to submit reply");
+  return parseResponse(res, null);
+}
 
-  const data = await res.json();
-  return data?.data;
+// ======================
+// ATTACHMENTS
+// ======================
+
+export async function fetchTaskAttachments(taskId) {
+  const res = await fetch(
+    `${API_BASE}/task-attachments${buildQuery({
+      task_id: taskId,
+    })}`,
+    {
+      headers: getAuthHeaders(),
+    }
+  );
+
+  return parseResponse(res, []);
+}
+
+export async function fetchReplyAttachments(replyId) {
+  const res = await fetch(
+    `${API_BASE}/task-attachments${buildQuery({
+      task_reply_id: replyId,
+    })}`,
+    {
+      headers: getAuthHeaders(),
+    }
+  );
+
+  return parseResponse(res, []);
 }
