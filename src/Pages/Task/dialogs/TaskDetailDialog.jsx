@@ -1,6 +1,6 @@
 import { Box, Button, Dialog, DialogContent, IconButton, Typography } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import { formatDateTime } from "../taskUtils";
+import { formatDateTime } from "../TaskUtils";
 
 function DialogHeader({ title, onClose }) {
   return (
