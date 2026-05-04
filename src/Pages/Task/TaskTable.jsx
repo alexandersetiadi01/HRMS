@@ -1,5 +1,5 @@
 import { Box, Typography } from "@mui/material";
-import { StatusPill } from "./taskUtils";
+import { StatusPill } from "./TaskUtils";
 
 export default function TaskTable({
   columns,

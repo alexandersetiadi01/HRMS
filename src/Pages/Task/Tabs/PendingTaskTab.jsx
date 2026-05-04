@@ -12,7 +12,7 @@ import {
   fetchTaskReplies,
 } from "../../../API/task";
 import TaskTable from "../TaskTable";
-import { downloadExcelFile, formatDateTime } from "../taskUtils";
+import { downloadExcelFile, formatDateTime } from "../TaskUtils";
 
 const pendingColumns = [
   {
