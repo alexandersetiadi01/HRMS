@@ -88,7 +88,17 @@ const AssignedTaskTab = forwardRef(function AssignedTaskTab(
 
     try {
       const data = await fetchAssignedTaskRows(employeeId);
-      const nextRows = Array.isArray(data) ? data : [];
+
+      const nextRows = Array.isArray(data)
+        ? data.filter((row) => {
+            const status = row.task_status || row.assigned_status || "";
+
+            return (
+              Number(row.employee_id) === Number(employeeId) &&
+              (status === "已開始" || status === "進行中")
+            );
+          })
+        : [];
 
       setRows(nextRows);
       setHasLoaded(true);
@@ -135,7 +145,9 @@ const AssignedTaskTab = forwardRef(function AssignedTaskTab(
   };
 
   const handleDownloadSelected = useCallback(async () => {
-    const selectedRows = mappedRows.filter((row) => selectedIds.includes(row.id));
+    const selectedRows = mappedRows.filter((row) =>
+      selectedIds.includes(row.id),
+    );
 
     if (selectedRows.length === 0) {
       alert("請先勾選要下載的項目。");

@@ -57,16 +57,33 @@ const pendingColumns = [
 
 function getEmployeeLabel(employeeId, rows) {
   const matchedRow = rows.find(
-    (row) => Number(row.employee_id) === Number(employeeId),
+    (row) =>
+      Number(row.employee_id) === Number(employeeId) ||
+      Number(row.creator_employee_id) === Number(employeeId),
   );
 
   if (!matchedRow) {
     return String(employeeId || "");
   }
 
-  return `${matchedRow.employee_id || employeeId} ${
-    matchedRow.display_name || ""
-  }`.trim();
+  const id =
+    matchedRow.employee_id ||
+    matchedRow.creator_employee_id ||
+    employeeId;
+
+  const name =
+    matchedRow.display_name ||
+    matchedRow.creator_display_name ||
+    "";
+
+  return `${id} ${name}`.trim();
+}
+
+function isRelatedToEmployee(row, employeeId) {
+  return (
+    Number(row.employee_id) === Number(employeeId) ||
+    Number(row.creator_employee_id) === Number(employeeId)
+  );
 }
 
 const PendingTaskTab = forwardRef(function PendingTaskTab(
@@ -91,9 +108,13 @@ const PendingTaskTab = forwardRef(function PendingTaskTab(
 
     try {
       const data = await fetchPendingTaskAssignments(employeeId);
-      const nextRows = Array.isArray(data) ? data : [];
+
+      const nextRows = Array.isArray(data)
+        ? data.filter((row) => isRelatedToEmployee(row, employeeId))
+        : [];
 
       setRows(nextRows);
+      setSelectedIds([]);
       setHasLoaded(true);
       onRowsChange?.(nextRows.length);
     } catch (error) {
@@ -117,7 +138,7 @@ const PendingTaskTab = forwardRef(function PendingTaskTab(
     return rows.map((row) => {
       return {
         ...row,
-        id: row.task_assignee_id,
+        id: row.task_assignee_id || `${row.task_id}-${row.employee_id}`,
         status: row.assigned_status || row.task_status || "-",
         title: row.title || "-",
         assigner: row.creator_display_name || "-",
@@ -148,7 +169,7 @@ const PendingTaskTab = forwardRef(function PendingTaskTab(
     const rowsWithReplies = await Promise.all(
       selectedRows.map(async (row) => {
         try {
-          const replies = await fetchTaskReplies(row.task_id, employeeId);
+          const replies = await fetchTaskReplies(row.task_id, row.employee_id);
 
           const replyText = Array.isArray(replies)
             ? replies

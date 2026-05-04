@@ -38,10 +38,18 @@ async function parseResponse(res, fallback = null) {
   const data = await res.json().catch(() => null);
 
   if (!res.ok) {
-    throw new Error(data?.message || "Request failed");
+    throw new Error(data?.message || data?.data?.message || "Request failed");
   }
 
-  return data?.data ?? fallback;
+  if (Array.isArray(data)) {
+    return data;
+  }
+
+  if (data?.data !== undefined) {
+    return data.data;
+  }
+
+  return data ?? fallback;
 }
 
 // ======================
@@ -129,16 +137,32 @@ export async function fetchMyTasks(employeeId) {
 }
 
 export async function fetchPendingTaskAssignments(employeeId) {
-  const res = await fetch(
+  const assignedToMe = await fetchMyTasks(employeeId);
+
+  const createdByMeRes = await fetch(
     `${API_BASE}/task-assignees${buildQuery({
-      employee_id: employeeId,
+      creator_employee_id: employeeId,
     })}`,
     {
       headers: getAuthHeaders(),
     }
   );
 
-  return parseResponse(res, []);
+  const createdByMe = await parseResponse(createdByMeRes, []);
+
+  const merged = [
+    ...(Array.isArray(assignedToMe) ? assignedToMe : []),
+    ...(Array.isArray(createdByMe) ? createdByMe : []),
+  ];
+
+  const map = new Map();
+
+  merged.forEach((row) => {
+    const key = row.task_assignee_id || `${row.task_id}-${row.employee_id}`;
+    map.set(String(key), row);
+  });
+
+  return Array.from(map.values());
 }
 
 export async function fetchTaskAssigneesByTask(taskId) {
@@ -154,17 +178,8 @@ export async function fetchTaskAssigneesByTask(taskId) {
   return parseResponse(res, []);
 }
 
-export async function fetchAssignedTaskRows(creatorEmployeeId) {
-  const res = await fetch(
-    `${API_BASE}/task-assignees${buildQuery({
-      creator_employee_id: creatorEmployeeId,
-    })}`,
-    {
-      headers: getAuthHeaders(),
-    }
-  );
-
-  return parseResponse(res, []);
+export async function fetchAssignedTaskRows(employeeId) {
+  return fetchMyTasks(employeeId);
 }
 
 export async function assignTask({ task_id, employee_ids }) {
