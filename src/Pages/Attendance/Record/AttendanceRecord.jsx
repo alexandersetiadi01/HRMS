@@ -394,7 +394,7 @@ export default function AttendanceRecord() {
           p: { xs: "0px", md: "24px" },
         }}
       >
-        <Breadcrumb rootLabel="個人專區" currentLabel="打卡紀錄" mb="14px" />
+        <Breadcrumb rootLabel="個人專區" rootTo="/attendance" currentLabel="打卡紀錄" mb="14px" />
 
         <Typography sx={{ fontSize: "24px", fontWeight: 700, mb: 2 }}>
           打卡紀錄

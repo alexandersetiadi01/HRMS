@@ -59,7 +59,7 @@ export default function AttendanceBusinessTrip() {
 
   return (
     <Box sx={{ width: "100%" }}>
-      <Breadcrumb rootLabel="個人專區" currentLabel="公出|出差" mb="14px" />
+      <Breadcrumb rootLabel="個人專區" rootTo="/attendance" currentLabel="公出|出差" mb="14px" />
       <Typography
         sx={{
           fontSize: isMobile ? "24px" : "22px",

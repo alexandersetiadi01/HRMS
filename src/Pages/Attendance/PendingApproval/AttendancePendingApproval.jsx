@@ -584,7 +584,7 @@ export default function AttendancePendingApproval() {
 
   return (
     <Box>
-      <Breadcrumb rootLabel="首頁" currentLabel="待審核表單" mb="14px" />
+      <Breadcrumb rootLabel="首頁" rootTo="/attendance" currentLabel="待審核表單" mb="14px" />
 
       <Typography sx={{ fontSize: "18px", fontWeight: 700, mb: "10px" }}>
         待審核表單

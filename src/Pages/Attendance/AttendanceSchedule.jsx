@@ -1195,7 +1195,7 @@ export default function AttendanceSchedule() {
 
   return (
     <Box>
-      <Breadcrumb rootLabel="個人專區" currentLabel="個人班表" mb="14px" />
+      <Breadcrumb rootLabel="個人專區" rootTo="/attendance" currentLabel="個人班表" mb="14px" />
 
       <Typography
         sx={{

@@ -736,7 +736,7 @@ export default function AttendanceLeaveBalance() {
 
   return (
     <Box>
-      <Breadcrumb rootLabel="個人專區" currentLabel="剩餘假別" mb="14px" />
+      <Breadcrumb rootLabel="個人專區" rootTo="/attendance" currentLabel="剩餘假別" mb="14px" />
 
       <Typography
         sx={{

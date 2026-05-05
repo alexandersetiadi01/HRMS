@@ -580,7 +580,7 @@ export default function AttendanceLeave() {
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <Box sx={{ width: "100%" }}>
-        <Breadcrumb rootLabel="個人專區" currentLabel="請假" mb="14px" />
+        <Breadcrumb rootLabel="個人專區" rootTo="/attendance" currentLabel="請假" mb="14px" />
 
         <Typography
           sx={{

@@ -359,7 +359,7 @@ export default function FormRecordLayout({
 
   return (
     <Box sx={{ position: "relative" }}>
-      <Breadcrumb rootLabel={rootLabel} currentLabel={title} mb="10px" />
+      <Breadcrumb rootLabel={rootLabel} rootTo="/attendance" currentLabel={title} mb="10px" />
 
       <Typography
         sx={{

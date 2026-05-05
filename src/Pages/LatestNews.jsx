@@ -46,6 +46,33 @@ function setStoredCategoryId(categoryId) {
   }
 }
 
+function getPageStorageKey(categoryId) {
+  return `latest-news-page-${categoryId || "default"}`;
+}
+
+function getStoredPage(categoryId) {
+  try {
+    const value = Number(
+      window.sessionStorage.getItem(getPageStorageKey(categoryId)),
+    );
+
+    return Number.isFinite(value) && value > 0 ? value : 1;
+  } catch {
+    return 1;
+  }
+}
+
+function setStoredPage(categoryId, page) {
+  try {
+    window.sessionStorage.setItem(
+      getPageStorageKey(categoryId),
+      String(Math.max(1, Number(page) || 1)),
+    );
+  } catch {
+    //
+  }
+}
+
 function formatDateTime(value) {
   if (!value) return "-";
 
@@ -150,11 +177,17 @@ function SidebarMenu({ categories, activeCategoryId, onChange }) {
   );
 }
 
-function PaginationBar({ totalRows }) {
-  const currentPage = 1;
+function PaginationBar({ totalRows, currentPage, onPageChange }) {
   const totalPages = Math.max(1, Math.ceil(totalRows / DEFAULT_ROWS_PER_PAGE));
-  const displayFrom = totalRows === 0 ? 0 : 1;
-  const displayTo = Math.min(DEFAULT_ROWS_PER_PAGE, totalRows);
+  const safePage = Math.min(Math.max(1, currentPage), totalPages);
+  const displayFrom =
+    totalRows === 0 ? 0 : (safePage - 1) * DEFAULT_ROWS_PER_PAGE + 1;
+  const displayTo = Math.min(safePage * DEFAULT_ROWS_PER_PAGE, totalRows);
+
+  const goToPage = (page) => {
+    const nextPage = Math.min(Math.max(1, page), totalPages);
+    onPageChange(nextPage);
+  };
 
   return (
     <Box
@@ -170,7 +203,8 @@ function PaginationBar({ totalRows }) {
       <Box sx={{ display: "flex", alignItems: "center", gap: "8px" }}>
         <Button
           variant="outlined"
-          disabled
+          disabled={safePage <= 1}
+          onClick={() => goToPage(1)}
           sx={{ minWidth: "24px", width: "24px", height: "24px", p: 0 }}
         >
           <KeyboardDoubleArrowLeftIcon sx={{ fontSize: "18px" }} />
@@ -178,7 +212,8 @@ function PaginationBar({ totalRows }) {
 
         <Button
           variant="outlined"
-          disabled
+          disabled={safePage <= 1}
+          onClick={() => goToPage(safePage - 1)}
           sx={{ minWidth: "24px", width: "24px", height: "24px", p: 0 }}
         >
           <KeyboardArrowLeftIcon sx={{ fontSize: "18px" }} />
@@ -201,7 +236,7 @@ function PaginationBar({ totalRows }) {
             bgcolor: "#ffffff",
           }}
         >
-          {currentPage}
+          {safePage}
         </Box>
 
         <Typography sx={{ fontSize: "15px", color: "#333333" }}>
@@ -210,7 +245,8 @@ function PaginationBar({ totalRows }) {
 
         <Button
           variant="outlined"
-          disabled
+          disabled={safePage >= totalPages}
+          onClick={() => goToPage(safePage + 1)}
           sx={{ minWidth: "24px", width: "24px", height: "24px", p: 0 }}
         >
           <KeyboardArrowRightIcon sx={{ fontSize: "18px" }} />
@@ -218,7 +254,8 @@ function PaginationBar({ totalRows }) {
 
         <Button
           variant="outlined"
-          disabled
+          disabled={safePage >= totalPages}
+          onClick={() => goToPage(totalPages)}
           sx={{ minWidth: "24px", width: "24px", height: "24px", p: 0 }}
         >
           <KeyboardDoubleArrowRightIcon sx={{ fontSize: "18px" }} />
@@ -423,6 +460,9 @@ function NewsDetailDialog({ open, loading, news, onClose }) {
 export default function LatestNews() {
   const [categories, setCategories] = useState([]);
   const [activeCategoryId, setActiveCategoryId] = useState(getStoredCategoryId);
+  const [currentPage, setCurrentPage] = useState(() => {
+    return getStoredPage(getStoredCategoryId());
+  });
   const [newsRows, setNewsRows] = useState([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [loadingNews, setLoadingNews] = useState(false);
@@ -521,9 +561,22 @@ export default function LatestNews() {
     };
   }, [activeCategoryId]);
 
+  useEffect(() => {
+    const totalPages = Math.max(
+      1,
+      Math.ceil(newsRows.length / DEFAULT_ROWS_PER_PAGE),
+    );
+
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+      setStoredPage(activeCategoryId, totalPages);
+    }
+  }, [activeCategoryId, currentPage, newsRows.length]);
+
   const visibleRows = useMemo(() => {
-    return newsRows.slice(0, DEFAULT_ROWS_PER_PAGE);
-  }, [newsRows]);
+    const startIndex = (currentPage - 1) * DEFAULT_ROWS_PER_PAGE;
+    return newsRows.slice(startIndex, startIndex + DEFAULT_ROWS_PER_PAGE);
+  }, [currentPage, newsRows]);
 
   const handleOpenDetail = async (row) => {
     const newsId = row?.news_id;
@@ -556,8 +609,17 @@ export default function LatestNews() {
   };
 
   const handleCategoryChange = (categoryId) => {
-    setActiveCategoryId(String(categoryId));
-    setStoredCategoryId(categoryId);
+    const nextCategoryId = String(categoryId);
+    const nextPage = getStoredPage(nextCategoryId);
+
+    setActiveCategoryId(nextCategoryId);
+    setStoredCategoryId(nextCategoryId);
+    setCurrentPage(nextPage);
+  };
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    setStoredPage(activeCategoryId, page);
   };
 
   return (
@@ -782,7 +844,11 @@ export default function LatestNews() {
             )}
           </Box>
 
-          <PaginationBar totalRows={newsRows.length} />
+          <PaginationBar
+            totalRows={newsRows.length}
+            currentPage={currentPage}
+            onPageChange={handlePageChange}
+          />
         </Box>
       </Box>
 
