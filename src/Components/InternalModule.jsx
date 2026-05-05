@@ -616,6 +616,7 @@ function DataTable({
         rows.map((row, rowIndex) => (
           <Box
             key={row.id || rowIndex}
+            onClick={row.onRowClick || undefined}
             sx={{
               display: "grid",
               gridTemplateColumns: columns
@@ -626,8 +627,9 @@ function DataTable({
               borderBottom:
                 rowIndex === rows.length - 1 ? "none" : "1px solid #d3d3d3",
               transition: "background-color 0.2s ease",
+              cursor: row.onRowClick ? "pointer" : "default",
               "&:hover": {
-                bgcolor: "#fafafa",
+                bgcolor: row.hoverBg || "#fafafa",
               },
             }}
           >
@@ -676,17 +678,20 @@ export default function InternalModule({
   rows,
   emptyText = "查無資料",
   defaultSidebarKey,
+  activeSidebarKey,
+  onSidebarChange,
+  rowsVersion,
 }) {
   const location = useLocation();
 
   const storageKey = useMemo(
     () => `internal-module-active:${location.pathname}`,
-    [location.pathname]
+    [location.pathname],
   );
 
   const restoreKey = useMemo(
     () => `internal-module-restore:${location.pathname}`,
-    [location.pathname]
+    [location.pathname],
   );
 
   const fallbackKey =
@@ -695,7 +700,7 @@ export default function InternalModule({
     sidebarItems?.[0]?.label ||
     "";
 
-  const [activeKey, setActiveKey] = useState(() => {
+  const [internalActiveKey, setInternalActiveKey] = useState(() => {
     try {
       const shouldRestore = window.sessionStorage.getItem(restoreKey) === "1";
 
@@ -710,6 +715,15 @@ export default function InternalModule({
       return fallbackKey;
     }
   });
+  const activeKey = activeSidebarKey ?? internalActiveKey;
+
+  const handleSidebarChange = (nextKey) => {
+    setInternalActiveKey(nextKey);
+
+    if (typeof onSidebarChange === "function") {
+      onSidebarChange(nextKey);
+    }
+  };
 
   const [rowStateMap, setRowStateMap] = useState({});
   const [detailOpen, setDetailOpen] = useState(false);
@@ -719,7 +733,7 @@ export default function InternalModule({
   useEffect(() => {
     const valid = sidebarItems?.some((item) => item.key === activeKey);
     if (!valid) {
-      setActiveKey(fallbackKey);
+      handleSidebarChange(fallbackKey);
     }
   }, [activeKey, fallbackKey, sidebarItems]);
 
@@ -773,7 +787,7 @@ export default function InternalModule({
 
   const sourceRows = useMemo(
     () => activeItem.rows || rows || [],
-    [activeItem.rows, rows]
+    [activeItem.rows, rows],
   );
 
   const stateMapKey = activeKey;
@@ -781,12 +795,9 @@ export default function InternalModule({
   useEffect(() => {
     setRowStateMap((prev) => ({
       ...prev,
-      [stateMapKey]:
-        prev[stateMapKey] !== undefined
-          ? prev[stateMapKey]
-          : sourceRows.map((row) => ({ ...row })),
+      [stateMapKey]: sourceRows.map((row) => ({ ...row })),
     }));
-  }, [sourceRows, stateMapKey]);
+  }, [sourceRows, stateMapKey, rowsVersion]);
 
   const currentRows = rowStateMap[stateMapKey] || sourceRows;
   const totalRows = currentRows.length;
@@ -797,7 +808,7 @@ export default function InternalModule({
     setRowStateMap((prev) => ({
       ...prev,
       [stateMapKey]: (prev[stateMapKey] || sourceRows).map((row) =>
-        row.id === rowId ? { ...row, [key]: !row[key] } : row
+        row.id === rowId ? { ...row, [key]: !row[key] } : row,
       ),
     }));
   };
@@ -812,7 +823,7 @@ export default function InternalModule({
     setRowStateMap((prev) => ({
       ...prev,
       [stateMapKey]: (prev[stateMapKey] || sourceRows).filter(
-        (row) => row.id !== deleteTarget
+        (row) => row.id !== deleteTarget,
       ),
     }));
 
@@ -865,7 +876,7 @@ export default function InternalModule({
             title={sidebarTitle}
             items={sidebarItems}
             activeKey={activeKey}
-            onChange={setActiveKey}
+            onChange={handleSidebarChange}
           />
         </Box>
 

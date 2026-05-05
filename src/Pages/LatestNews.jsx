@@ -23,6 +23,29 @@ import {
 const ACCENT_COLOR = "#35b8ec";
 const DEFAULT_ROWS_PER_PAGE = 10;
 
+const LATEST_NEWS_CATEGORY_STORAGE_KEY = "latest-news-active-category-id";
+
+function getStoredCategoryId() {
+  try {
+    return (
+      window.sessionStorage.getItem(LATEST_NEWS_CATEGORY_STORAGE_KEY) || ""
+    );
+  } catch {
+    return "";
+  }
+}
+
+function setStoredCategoryId(categoryId) {
+  try {
+    window.sessionStorage.setItem(
+      LATEST_NEWS_CATEGORY_STORAGE_KEY,
+      String(categoryId || ""),
+    );
+  } catch {
+    //
+  }
+}
+
 function formatDateTime(value) {
   if (!value) return "-";
 
@@ -362,7 +385,7 @@ function NewsDetailDialog({ open, loading, news, onClose }) {
                       ) : null}
                     </Box>
                   );
-                })} 
+                })}
               </Box>
             )}
 
@@ -399,7 +422,7 @@ function NewsDetailDialog({ open, loading, news, onClose }) {
 
 export default function LatestNews() {
   const [categories, setCategories] = useState([]);
-  const [activeCategoryId, setActiveCategoryId] = useState("");
+  const [activeCategoryId, setActiveCategoryId] = useState(getStoredCategoryId);
   const [newsRows, setNewsRows] = useState([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [loadingNews, setLoadingNews] = useState(false);
@@ -429,7 +452,19 @@ export default function LatestNews() {
         setCategories(activeRows);
 
         if (activeRows.length > 0) {
-          setActiveCategoryId(String(activeRows[0].news_category_id));
+          const storedCategoryId = getStoredCategoryId();
+          const storedExists = activeRows.some((category) => {
+            return (
+              String(category.news_category_id) === String(storedCategoryId)
+            );
+          });
+
+          const nextCategoryId = storedExists
+            ? storedCategoryId
+            : String(activeRows[0].news_category_id);
+
+          setActiveCategoryId(nextCategoryId);
+          setStoredCategoryId(nextCategoryId);
         }
       } catch (error) {
         if (!alive) return;
@@ -520,6 +555,11 @@ export default function LatestNews() {
     setDetailNews(null);
   };
 
+  const handleCategoryChange = (categoryId) => {
+    setActiveCategoryId(String(categoryId));
+    setStoredCategoryId(categoryId);
+  };
+
   return (
     <Box>
       <Breadcrumb rootLabel="首頁" currentLabel="最新消息" mb="14px" />
@@ -535,7 +575,7 @@ export default function LatestNews() {
           <SidebarMenu
             categories={categories}
             activeCategoryId={activeCategoryId}
-            onChange={setActiveCategoryId}
+            onChange={handleCategoryChange}
           />
         </Box>
 

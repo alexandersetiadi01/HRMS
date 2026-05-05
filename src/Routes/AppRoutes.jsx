@@ -23,7 +23,7 @@ import CompanyAnnouncement from "../Pages/Announcement/Company/CompanyAnnounceme
 import LatestNews from "../Pages/LatestNews";
 import OrderingSystem from "../Pages/OrderingSystem";
 import ToDoList from "../Pages/Task/ToDoList";
-import StickyNotes from "../Pages/StickyNotes";
+import StickyNotes from "../Pages/StickyNote/StickyNotes";
 import Settings from "../Pages/Settings/Settings";
 import MenuShortcuts from "../Pages/Settings/MenuShortcut";
 import RequireAuth from "./RequireAuth";
