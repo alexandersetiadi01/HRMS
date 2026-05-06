@@ -1,10 +1,12 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Box,
   Button,
+  CircularProgress,
   Dialog,
   DialogContent,
   IconButton,
+  Link,
   Typography,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
@@ -14,10 +16,15 @@ import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrow
 import KeyboardDoubleArrowRightIcon from "@mui/icons-material/KeyboardDoubleArrowRight";
 import Breadcrumb from "../../../Utils/Breadcrumb";
 import { DesktopTable, MobileList } from "./Table";
-import { ANNOUNCEMENTS } from "./Data";
+import {
+  fetchDepartmentAnnouncementDetail,
+  fetchDepartmentAnnouncements,
+} from "../../../API/departmentAnnouncement";
 
-function AnnouncementDialog({ open, item, onClose }) {
-  if (!item) return null;
+function AnnouncementDialog({ open, item, loading = false, onClose }) {
+  if (!item && !loading) return null;
+
+  const attachments = Array.isArray(item?.attachments) ? item.attachments : [];
 
   return (
     <Dialog
@@ -55,7 +62,7 @@ function AnnouncementDialog({ open, item, onClose }) {
             color: "#ffffff",
           }}
         >
-          {item.title}
+          {loading ? "讀取中..." : item?.title}
         </Typography>
 
         <IconButton
@@ -77,39 +84,98 @@ function AnnouncementDialog({ open, item, onClose }) {
           pb: "0",
         }}
       >
-        <Box sx={{ px: { xs: 0, md: "0" } }}>
-          <Typography
-            sx={{
-              fontSize: "16px",
-              color: "#444444",
-              mb: "12px",
-            }}
-          >
-            發佈時間：{item.publishTime}
-          </Typography>
-
-          <Typography
-            sx={{
-              fontSize: "16px",
-              color: "#444444",
-              mb: "10px",
-            }}
-          >
-            內容:
-          </Typography>
-
+        {loading ? (
           <Box
             sx={{
-              fontSize: "16px",
-              color: "#444444",
-              whiteSpace: "pre-wrap",
-              lineHeight: 1.8,
-              minHeight: { xs: "auto", md: "260px" },
+              minHeight: { xs: "180px", md: "260px" },
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
           >
-            {item.content.replace(/^發佈時間：.*\n內容:\n?/, "")}
+            <CircularProgress size={28} />
           </Box>
-        </Box>
+        ) : (
+          <Box sx={{ px: { xs: 0, md: "0" } }}>
+            <Typography
+              sx={{
+                fontSize: "16px",
+                color: "#444444",
+                mb: "12px",
+              }}
+            >
+              發佈時間：{item?.publishTime || "-"}
+            </Typography>
+
+            <Typography
+              sx={{
+                fontSize: "16px",
+                color: "#444444",
+                mb: "10px",
+              }}
+            >
+              內容:
+            </Typography>
+
+            <Box
+              sx={{
+                fontSize: "16px",
+                color: "#444444",
+                whiteSpace: "pre-wrap",
+                lineHeight: 1.8,
+                minHeight: { xs: "auto", md: "260px" },
+              }}
+            >
+              {item?.content || "-"}
+            </Box>
+
+            {attachments.length > 0 && (
+              <Box
+                sx={{
+                  mt: "18px",
+                  pt: "12px",
+                  borderTop: "1px solid #e5e7eb",
+                }}
+              >
+                <Typography
+                  sx={{
+                    fontSize: "16px",
+                    color: "#444444",
+                    mb: "8px",
+                  }}
+                >
+                  附件:
+                </Typography>
+
+                {attachments.map((attachment) => (
+                  <Box
+                    key={
+                      attachment.department_attachment_id ||
+                      attachment.id ||
+                      attachment.file_url ||
+                      attachment.file_name
+                    }
+                    sx={{ mb: "6px" }}
+                  >
+                    <Link
+                      href={attachment.file_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      underline="hover"
+                      sx={{
+                        fontSize: "15px",
+                        color: "#1f2f4a",
+                        wordBreak: "break-word",
+                      }}
+                    >
+                      {attachment.file_name || "查看附件"}
+                    </Link>
+                  </Box>
+                ))}
+              </Box>
+            )}
+          </Box>
+        )}
 
         <Box
           sx={{
@@ -156,14 +222,7 @@ function PaginationBar({ totalRows, currentPage }) {
         <Button
           variant="outlined"
           disabled
-          sx={{
-            minWidth: "24px",
-            width: "24px",
-            height: "24px",
-            p: 0,
-            borderColor: "#d9d9d9",
-            color: "#c8c8c8",
-          }}
+          sx={{ minWidth: "24px", width: "24px", height: "24px", p: 0 }}
         >
           <KeyboardDoubleArrowLeftIcon sx={{ fontSize: "18px" }} />
         </Button>
@@ -171,14 +230,7 @@ function PaginationBar({ totalRows, currentPage }) {
         <Button
           variant="outlined"
           disabled
-          sx={{
-            minWidth: "24px",
-            width: "24px",
-            height: "24px",
-            p: 0,
-            borderColor: "#d9d9d9",
-            color: "#c8c8c8",
-          }}
+          sx={{ minWidth: "24px", width: "24px", height: "24px", p: 0 }}
         >
           <KeyboardArrowLeftIcon sx={{ fontSize: "18px" }} />
         </Button>
@@ -210,14 +262,7 @@ function PaginationBar({ totalRows, currentPage }) {
         <Button
           variant="outlined"
           disabled
-          sx={{
-            minWidth: "24px",
-            width: "24px",
-            height: "24px",
-            p: 0,
-            borderColor: "#d9d9d9",
-            color: "#c8c8c8",
-          }}
+          sx={{ minWidth: "24px", width: "24px", height: "24px", p: 0 }}
         >
           <KeyboardArrowRightIcon sx={{ fontSize: "18px" }} />
         </Button>
@@ -225,45 +270,87 @@ function PaginationBar({ totalRows, currentPage }) {
         <Button
           variant="outlined"
           disabled
-          sx={{
-            minWidth: "24px",
-            width: "24px",
-            height: "24px",
-            p: 0,
-            borderColor: "#d9d9d9",
-            color: "#c8c8c8",
-          }}
+          sx={{ minWidth: "24px", width: "24px", height: "24px", p: 0 }}
         >
           <KeyboardDoubleArrowRightIcon sx={{ fontSize: "18px" }} />
         </Button>
       </Box>
 
       <Typography sx={{ fontSize: "15px", color: "#1f2f4a" }}>
-        顯示 1 - {totalRows} 筆，共 {totalRows} 筆
+        顯示 {totalRows > 0 ? 1 : 0} - {totalRows} 筆，共 {totalRows} 筆
       </Typography>
     </Box>
   );
 }
 
 export default function CompanyAnnouncement() {
+  const [rows, setRows] = useState([]);
   const [selectedItem, setSelectedItem] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [error, setError] = useState("");
   const currentPage = 1;
 
-  const rows = useMemo(() => ANNOUNCEMENTS, []);
+  useEffect(() => {
+    let active = true;
 
-  const handleOpenDialog = (item) => {
+    async function loadAnnouncements() {
+      setLoading(true);
+      setError("");
+
+      try {
+        const data = await fetchDepartmentAnnouncements();
+
+        if (active) {
+          setRows(data);
+        }
+      } catch (err) {
+        if (active) {
+          setError(
+            err?.response?.data?.message ||
+              err?.message ||
+              "讀取部門公告失敗。",
+          );
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadAnnouncements();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleOpenDialog = async (item) => {
     setSelectedItem(item);
     setDialogOpen(true);
+    setDetailLoading(true);
+
+    try {
+      const detail = await fetchDepartmentAnnouncementDetail(item.id);
+      setSelectedItem(detail || item);
+    } catch (err) {
+      setSelectedItem(item);
+    } finally {
+      setDetailLoading(false);
+    }
   };
 
   const handleCloseDialog = () => {
     setDialogOpen(false);
+    setDetailLoading(false);
   };
 
   return (
     <Box>
       <Breadcrumb rootLabel="首頁" currentLabel="部門公告" mb="14px" />
+
       <Typography
         sx={{
           fontSize: "18px",
@@ -275,18 +362,60 @@ export default function CompanyAnnouncement() {
         部門公告
       </Typography>
 
-      <Box sx={{ display: { xs: "none", md: "block" } }}>
-        <DesktopTable rows={rows} onOpenItem={handleOpenDialog} />
-        <PaginationBar totalRows={rows.length} currentPage={currentPage} />
-      </Box>
+      {loading && (
+        <Box sx={{ display: "flex", justifyContent: "center", py: "40px" }}>
+          <CircularProgress size={28} />
+        </Box>
+      )}
 
-      <Box sx={{ display: { xs: "block", md: "none" } }}>
-        <MobileList rows={rows} onOpenItem={handleOpenDialog} />
-      </Box>
+      {!loading && error && (
+        <Typography sx={{ fontSize: "15px", color: "#b91c1c" }}>
+          {error}
+        </Typography>
+      )}
+
+      {!loading && !error && (
+        <>
+          <Box sx={{ display: { xs: "none", md: "block" } }}>
+            <DesktopTable rows={rows} onOpenItem={handleOpenDialog} />
+
+            {rows.length === 0 && (
+              <Typography
+                sx={{
+                  fontSize: "15px",
+                  color: "#6b7280",
+                  mt: "14px",
+                }}
+              >
+                目前沒有部門公告。
+              </Typography>
+            )}
+
+            <PaginationBar totalRows={rows.length} currentPage={currentPage} />
+          </Box>
+
+          <Box sx={{ display: { xs: "block", md: "none" } }}>
+            <MobileList rows={rows} onOpenItem={handleOpenDialog} />
+
+            {rows.length === 0 && (
+              <Typography
+                sx={{
+                  fontSize: "15px",
+                  color: "#6b7280",
+                  mt: "14px",
+                }}
+              >
+                目前沒有部門公告。
+              </Typography>
+            )}
+          </Box>
+        </>
+      )}
 
       <AnnouncementDialog
         open={dialogOpen}
         item={selectedItem}
+        loading={detailLoading}
         onClose={handleCloseDialog}
       />
     </Box>
