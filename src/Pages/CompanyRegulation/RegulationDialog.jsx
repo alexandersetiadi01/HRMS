@@ -1,10 +1,11 @@
 import {
   Box,
+  Button,
   CircularProgress,
   Dialog,
+  DialogActions,
   DialogContent,
   DialogTitle,
-  Divider,
   IconButton,
   Typography,
 } from "@mui/material";
@@ -12,23 +13,12 @@ import CloseIcon from "@mui/icons-material/Close";
 
 function Field({ label, value }) {
   return (
-    <Box
-      sx={{
-        display: "grid",
-        gridTemplateColumns: {
-          xs: "90px minmax(0,1fr)",
-          md: "120px minmax(0,1fr)",
-        },
-        columnGap: "12px",
-        rowGap: "6px",
-        alignItems: "start",
-      }}
-    >
+    <Box>
       <Typography
         sx={{
-          fontSize: "13px",
-          color: "#6b7280",
-          lineHeight: 1.7,
+          fontSize: "14px",
+          color: "#9ca3af",
+          mb: "4px",
         }}
       >
         {label}
@@ -36,11 +26,11 @@ function Field({ label, value }) {
 
       <Typography
         sx={{
-          fontSize: "14px",
-          color: "#111827",
-          lineHeight: 1.7,
-          wordBreak: "break-word",
+          fontSize: "18px",
+          color: "#333333",
+          lineHeight: 1.5,
           whiteSpace: "pre-wrap",
+          wordBreak: "break-word",
         }}
       >
         {value || "--"}
@@ -55,60 +45,69 @@ export default function RegulationDialog({
   loading = false,
   onClose,
 }) {
-  const title = item?.title || "--";
-
   return (
     <Dialog
       open={open}
       onClose={onClose}
-      fullWidth
-      maxWidth="md"
+      maxWidth={false}
       PaperProps={{
         sx: {
-          borderRadius: "8px",
+          width: "980px",
+          maxWidth: "calc(100vw - 48px)",
+          borderRadius: "4px",
           overflow: "hidden",
         },
       }}
     >
       <DialogTitle
         sx={{
-          px: "20px",
-          py: "14px",
-          borderBottom: "1px solid #e5e7eb",
+          height: "38px",
+          minHeight: "38px",
+          px: "12px",
+          py: 1,
+          mb: 2,
+          bgcolor: "#000000",
+          color: "#ffffff",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          gap: "12px",
+          fontSize: "15px",
+          fontWeight: 700,
         }}
       >
         <Typography
           sx={{
             fontSize: "18px",
             fontWeight: 700,
-            color: "#111827",
-            lineHeight: 1.4,
+            color: "#ffffff",
           }}
         >
-          {title}
+          規章內容
         </Typography>
 
-        <IconButton onClick={onClose} size="small">
-          <CloseIcon />
+        <IconButton
+          onClick={onClose}
+          size="small"
+          sx={{
+            color: "#ffffff",
+            p: "4px",
+          }}
+        >
+          <CloseIcon sx={{ fontSize: "20px" }} />
         </IconButton>
       </DialogTitle>
 
       <DialogContent
-        dividers
         sx={{
-          px: { xs: "14px", md: "20px" },
-          py: { xs: "14px", md: "18px" },
-          bgcolor: "#f9fafb",
+          px: "24px",
+          py: "14px",
+          bgcolor: "#ffffff",
         }}
       >
         {loading ? (
           <Box
             sx={{
-              minHeight: "240px",
+              minHeight: "520px",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -118,101 +117,80 @@ export default function RegulationDialog({
           </Box>
         ) : (
           <>
-            <Box
+            <Typography
               sx={{
-                bgcolor: "#ffffff",
-                border: "1px solid #e5e7eb",
-                borderRadius: "6px",
-                overflow: "hidden",
+                fontSize: "20px",
+                fontWeight: 500,
+                color: "#333333",
+                mb: "18px",
               }}
             >
-              <Box
-                sx={{
-                  px: { xs: "14px", md: "18px" },
-                  py: { xs: "14px", md: "16px" },
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "14px",
-                }}
-              >
-                <Field
-                  label="文件編號"
-                  value={item?.fileCode}
-                />
+              {item?.title || "--"}
+            </Typography>
 
-                <Field
-                  label="版本"
-                  value={item?.version}
-                />
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                columnGap: "80px",
+                rowGap: "14px",
+                mb: "20px",
+                px: "14px",
+              }}
+            >
+              <Field label="發佈時間" value={item?.publishTime} />
+              <Field label="修訂日期" value={item?.revisedDate} />
 
-                <Field
-                  label="狀態"
-                  value={item?.status}
-                />
+              <Field label="文件編號" value={item?.fileCode} />
+              <Field label="版本" value={item?.version} />
 
-                <Field
-                  label="負責單位"
-                  value={item?.ownerUnit}
-                />
+              <Field label="負責單位" value={item?.ownerUnit} />
+              <Field label="聯絡人" value={item?.contactPerson} />
+            </Box>
 
-                <Field
-                  label="聯絡人"
-                  value={item?.contactPerson}
-                />
-
-                <Field
-                  label="發佈時間"
-                  value={item?.publishTime}
-                />
-
-                <Field
-                  label="修訂日期"
-                  value={item?.revisedDate}
-                />
-              </Box>
-
-              <Divider />
-
-              <Box
-                sx={{
-                  px: { xs: "14px", md: "18px" },
-                  py: { xs: "14px", md: "18px" },
-                  bgcolor: "#ffffff",
-                }}
-              >
-                <Typography
-                  sx={{
-                    fontSize: "15px",
-                    fontWeight: 700,
-                    color: "#111827",
-                    mb: "12px",
-                  }}
-                >
-                  規章內容
-                </Typography>
-
-                <Box
-                  sx={{
-                    minHeight: "220px",
-                    px: { xs: "12px", md: "16px" },
-                    py: { xs: "12px", md: "14px" },
-                    border: "1px solid #e5e7eb",
-                    bgcolor: "#fafafa",
-                    borderRadius: "4px",
-                    fontSize: "14px",
-                    color: "#111827",
-                    lineHeight: 1.9,
-                    whiteSpace: "pre-wrap",
-                    wordBreak: "break-word",
-                  }}
-                >
-                  {item?.content || "--"}
-                </Box>
-              </Box>
+            <Box
+              sx={{
+                height: "500px",
+                overflowY: "auto",
+                border: "1px solid #e5e7eb",
+                bgcolor: "#f3f3f3",
+                px: "14px",
+                py: "16px",
+                fontSize: "16px",
+                color: "#111827",
+                lineHeight: 1.65,
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-word",
+              }}
+            >
+              {item?.content || "--"}
             </Box>
           </>
         )}
       </DialogContent>
+
+      <DialogActions
+        sx={{
+          px: "20px",
+          py: "10px",
+          borderTop: "1px solid #d1d5db",
+          bgcolor: "#ffffff",
+        }}
+      >
+        <Button
+          variant="outlined"
+          onClick={onClose}
+          sx={{
+            minWidth: "74px",
+            height: "34px",
+            fontSize: "14px",
+            color: "#333333",
+            borderColor: "#c7c7c7",
+          }}
+        >
+          關閉
+        </Button>
+      </DialogActions>
     </Dialog>
   );
 }

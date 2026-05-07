@@ -408,6 +408,39 @@ export async function apiLeaveRequests(params = {}) {
 
 export async function apiCreateLeaveRequest(payload = {}) {
   const employeeId = Number(payload.employee_id || getCurrentEmployeeId() || 0);
+  const attachments = Array.isArray(payload.attachments)
+    ? payload.attachments
+    : [];
+
+  const hasAttachments = attachments.some((file) => file instanceof File);
+
+  if (hasAttachments) {
+    const formData = new FormData();
+
+    formData.append("employee_id", employeeId);
+    formData.append("leave_type_id", payload.leave_type_id || "");
+    formData.append("start_datetime", payload.start_datetime || "");
+    formData.append("end_datetime", payload.end_datetime || "");
+    formData.append("reason", payload.reason || "");
+
+    if (payload.entitlement_instance_id) {
+      formData.append("entitlement_instance_id", payload.entitlement_instance_id);
+    }
+
+    attachments.forEach((file) => {
+      if (file instanceof File) {
+        formData.append("attachments[]", file);
+      }
+    });
+
+    const res = await http.post("/leave-requests", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+
+    return res.data;
+  }
 
   const requestPayload = {
     employee_id: employeeId,
