@@ -21,7 +21,7 @@ import AttendanceFormPage from "../Pages/Attendance/AttendanceForm/AttendanceFor
 import CompanyRegulations from "../Pages/CompanyRegulation/CompanyRegulation";
 import CompanyAnnouncement from "../Pages/Announcement/Company/CompanyAnnouncement";
 import LatestNews from "../Pages/LatestNews";
-import OrderingSystem from "../Pages/OrderingSystem";
+import OrderingSystem from "../Pages/OrderSystem/OrderingSystem";
 import ToDoList from "../Pages/Task/ToDoList";
 import StickyNotes from "../Pages/StickyNote/StickyNotes";
 import Settings from "../Pages/Settings/Settings";

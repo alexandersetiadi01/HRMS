@@ -7,6 +7,7 @@ import {
   Dialog,
   DialogContent,
   IconButton,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -509,6 +510,53 @@ function renderSpecialCell(column, row, handlers) {
     );
   }
 
+  if (column.type === "actions") {
+    const actions = Array.isArray(row[column.key]) ? row[column.key] : [];
+
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          gap: "6px",
+          flexWrap: "wrap",
+        }}
+      >
+        {actions.map((action, actionIndex) => (
+          <Tooltip
+            key={`${row.id || "row"}-${action.label || "action"}-${actionIndex}`}
+            title={action.label || ""}
+          >
+            <span>
+              <IconButton
+                size="small"
+                disabled={action.disabled}
+                onClick={(event) => {
+                  event.stopPropagation();
+
+                  if (typeof action.onClick === "function") {
+                    action.onClick(row);
+                  }
+                }}
+                sx={{
+                  p: 0,
+                  color: action.color || "#6d6d6d",
+                  "&:hover": {
+                    color: action.hoverColor || action.color || "#333333",
+                    bgcolor: "transparent",
+                  },
+                }}
+              >
+                {action.icon}
+              </IconButton>
+            </span>
+          </Tooltip>
+        ))}
+      </Box>
+    );
+  }
+
   if (column.type === "search") {
     return (
       <Box sx={{ display: "flex", justifyContent: "center" }}>
@@ -571,6 +619,9 @@ function DataTable({
                 fontWeight: 700,
                 color: "#333333",
                 textAlign: "center",
+                whiteSpace: column.headerWrap === false ? "nowrap" : "normal",
+                wordBreak:
+                  column.headerWrap === false ? "keep-all" : "break-word",
               }}
             >
               {column.label}
