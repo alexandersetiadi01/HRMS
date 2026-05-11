@@ -725,6 +725,7 @@ export default function InternalModule({
   sidebarTitle,
   sidebarItems,
   actionButtons = [],
+  toolbarContent = null,
   columns,
   rows,
   emptyText = "查無資料",
@@ -935,31 +936,44 @@ export default function InternalModule({
           <Box
             sx={{
               display: "flex",
-              justifyContent: "flex-end",
+              justifyContent: toolbarContent ? "space-between" : "flex-end",
+              alignItems: "center",
               gap: "10px",
               mb: "12px",
               minHeight: "34px",
+              flexWrap: "wrap",
             }}
           >
-            {actionButtons.map((button) => (
-              <Button
-                key={button.label}
-                variant="outlined"
-                onClick={button.onClick}
-                sx={{
-                  minWidth: button.minWidth || "98px",
-                  height: "34px",
-                  px: "14px",
-                  borderColor: "#c5c5c5",
-                  color: "#333333",
-                  fontSize: "15px",
-                  bgcolor: "#ffffff",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {button.label}
-              </Button>
-            ))}
+            {toolbarContent ? <Box>{toolbarContent}</Box> : <Box />}
+
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                flexWrap: "wrap",
+              }}
+            >
+              {actionButtons.map((button) => (
+                <Button
+                  key={button.label}
+                  variant="outlined"
+                  onClick={button.onClick}
+                  sx={{
+                    minWidth: button.minWidth || "98px",
+                    height: "34px",
+                    px: "14px",
+                    borderColor: "#c5c5c5",
+                    color: "#333333",
+                    fontSize: "15px",
+                    bgcolor: "#ffffff",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {button.label}
+                </Button>
+              ))}
+            </Box>
           </Box>
 
           <DataTable

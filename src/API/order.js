@@ -130,3 +130,28 @@ export async function getOrderEmployees(params = {}) {
 
   return unwrapResponse(response, []);
 }
+
+export async function getOrderSpendingRecords(params = {}) {
+  const response = await http.get("/order-spending", {
+    params: buildParams(params),
+  });
+
+  return unwrapResponse(response, []);
+}
+
+export async function getOrderMonthlySpendingSummary(params = {}) {
+  const response = await http.get("/order-spending/monthly-summary", {
+    params: buildParams(params),
+  });
+
+  return unwrapResponse(response, []);
+}
+
+export async function downloadOrderSpendingReport(params = {}) {
+  const response = await http.get("/order-spending/export", {
+    params: buildParams(params),
+    responseType: "blob",
+  });
+
+  return response;
+}

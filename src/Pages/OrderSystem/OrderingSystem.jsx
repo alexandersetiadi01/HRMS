@@ -1,13 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
+  Box,
   Button,
   Dialog,
   DialogActions,
   DialogContent,
   DialogContentText,
   DialogTitle,
+  MenuItem,
   Snackbar,
+  TextField,
 } from "@mui/material";
 
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
@@ -17,10 +20,12 @@ import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 
 import InternalModule from "../../Components/InternalModule";
 import {
+  downloadOrderSpendingReport,
   completeOrder,
   deleteOrder,
   getOrderDetail,
   getOrderList,
+  getOrderSpendingRecords,
 } from "../../API/order";
 
 import CreateOrderDialog from "./CreateOrderDialog";
@@ -130,12 +135,96 @@ const deadlineOrderColumns = [
   },
 ];
 
+const spendingColumns = [
+  {
+    key: "recordedAt",
+    label: "消費時間",
+    width: "150px",
+    align: "center",
+    withDivider: true,
+  },
+  {
+    key: "orderTitle",
+    label: "訂單名稱",
+    width: "1fr",
+    withDivider: true,
+  },
+  {
+    key: "storeName",
+    label: "店家",
+    width: "170px",
+    align: "center",
+    withDivider: true,
+  },
+  {
+    key: "totalQty",
+    label: "數量",
+    width: "80px",
+    align: "center",
+    withDivider: true,
+  },
+  {
+    key: "totalAmount",
+    label: "金額",
+    width: "110px",
+    align: "center",
+  },
+];
+
+function getMonthOptions() {
+  return Array.from({ length: 12 }, (_, index) => index + 1);
+}
+
+function getYearOptions() {
+  const currentYear = new Date().getFullYear();
+
+  return Array.from({ length: 6 }, (_, index) => currentYear - index);
+}
+
+function getDefaultFilterDate() {
+  const now = new Date();
+
+  return {
+    year: now.getFullYear(),
+    month: now.getMonth() + 1,
+  };
+}
+
+function buildMonthRange(year, month) {
+  const safeYear = Number(year);
+  const safeMonth = Number(month);
+
+  if (!safeYear || !safeMonth) {
+    return {
+      start_date: "",
+      end_date: "",
+    };
+  }
+
+  const startDate = `${safeYear}-${String(safeMonth).padStart(2, "0")}-01`;
+  const endDate = new Date(safeYear, safeMonth, 0);
+  const endDateText = `${safeYear}-${String(safeMonth).padStart(2, "0")}-${String(
+    endDate.getDate(),
+  ).padStart(2, "0")}`;
+
+  return {
+    start_date: startDate,
+    end_date: endDateText,
+  };
+}
+
 function getStoreLabel(order) {
   return [order.store_name, order.branch_name].filter(Boolean).join(" / ");
 }
 
 export default function OrderingSystem() {
+  const defaultFilterDate = useMemo(() => getDefaultFilterDate(), []);
+  const [activeTab, setActiveTab] = useState("ongoing");
   const [orders, setOrders] = useState([]);
+  const [spendingRecords, setSpendingRecords] = useState([]);
+  const [spendingFilter, setSpendingFilter] = useState(defaultFilterDate);
+  const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
+  const [downloadFilter, setDownloadFilter] = useState(defaultFilterDate);
   const [storeManagementOpen, setStoreManagementOpen] = useState(false);
   const [createOrderOpen, setCreateOrderOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -213,9 +302,30 @@ export default function OrderingSystem() {
     }
   };
 
+  const loadSpendingRecords = async () => {
+    try {
+      const range = buildMonthRange(spendingFilter.year, spendingFilter.month);
+      const response = await getOrderSpendingRecords(range);
+
+      setSpendingRecords(Array.isArray(response) ? response : []);
+      setRowsVersion((previous) => previous + 1);
+    } catch (error) {
+      console.error(error);
+      setSpendingRecords([]);
+      setRowsVersion((previous) => previous + 1);
+      showSnackbar("讀取消費紀錄失敗，請稍後再試。", "error");
+    }
+  };
+
   useEffect(() => {
     loadOrders();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === "spending") {
+      loadSpendingRecords();
+    }
+  }, [activeTab, spendingFilter.year, spendingFilter.month]);
 
   const openOrderDetail = async (row) => {
     try {
@@ -283,6 +393,41 @@ export default function OrderingSystem() {
     });
   };
 
+  const handleDownloadSpending = async () => {
+    try {
+      const response = await downloadOrderSpendingReport({
+        year: downloadFilter.year,
+        month: downloadFilter.month,
+      });
+
+      const blob = new Blob([response.data], {
+        type:
+          response.headers["content-type"] ||
+          "application/vnd.ms-excel;charset=UTF-8",
+      });
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      link.href = url;
+      link.download = `${downloadFilter.year}-${String(
+        downloadFilter.month,
+      ).padStart(2, "0")}-消費紀錄.xls`;
+
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      window.URL.revokeObjectURL(url);
+
+      setDownloadDialogOpen(false);
+      showSnackbar("消費紀錄下載成功。", "success");
+    } catch (error) {
+      console.error(error);
+      showSnackbar("下載消費紀錄失敗，請稍後再試。", "error");
+    }
+  };
+
   const buildOngoingActions = () => [
     {
       label: "查看",
@@ -343,6 +488,17 @@ export default function OrderingSystem() {
     manage: buildDeadlineActions(),
   });
 
+  const mapSpendingRow = (record) => ({
+    id: record.spending_id || `${record.order_id}-${record.order_item_id}`,
+    recordedAt: formatDateTime(record.recorded_at),
+    orderTitle: record.order_title || "-",
+    storeName:
+      [record.store_name, record.branch_name].filter(Boolean).join(" / ") ||
+      "-",
+    totalQty: String(record.total_qty || 0),
+    totalAmount: formatCurrency(record.total_amount || 0),
+  });
+
   const ongoingRows = useMemo(() => {
     return orders.filter(isOrderInProgress).map(mapOngoingRow);
   }, [orders]);
@@ -351,6 +507,109 @@ export default function OrderingSystem() {
     return orders.filter(isOrderClosed).map(mapDeadlineRow);
   }, [orders]);
 
+  const spendingRows = useMemo(() => {
+    return spendingRecords.map(mapSpendingRow);
+  }, [spendingRecords]);
+
+  const toolbarContent =
+    activeTab === "spending" ? (
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: "10px",
+          flexWrap: "wrap",
+        }}
+      >
+        <TextField
+          select
+          size="small"
+          label="年份"
+          value={spendingFilter.year}
+          onChange={(event) => {
+            setSpendingFilter((previous) => ({
+              ...previous,
+              year: Number(event.target.value),
+            }));
+          }}
+          sx={{
+            width: "110px",
+            "& .MuiInputBase-root": {
+              height: "34px",
+              fontSize: "14px",
+            },
+            "& .MuiInputLabel-root": {
+              fontSize: "14px",
+            },
+          }}
+        >
+          {getYearOptions().map((year) => (
+            <MenuItem key={year} value={year}>
+              {year}
+            </MenuItem>
+          ))}
+        </TextField>
+
+        <TextField
+          select
+          size="small"
+          label="月份"
+          value={spendingFilter.month}
+          onChange={(event) => {
+            setSpendingFilter((previous) => ({
+              ...previous,
+              month: Number(event.target.value),
+            }));
+          }}
+          sx={{
+            width: "100px",
+            "& .MuiInputBase-root": {
+              height: "34px",
+              fontSize: "14px",
+            },
+            "& .MuiInputLabel-root": {
+              fontSize: "14px",
+            },
+          }}
+        >
+          {getMonthOptions().map((month) => (
+            <MenuItem key={month} value={month}>
+              {month} 月
+            </MenuItem>
+          ))}
+        </TextField>
+      </Box>
+    ) : null;
+
+  const actionButtons =
+    activeTab === "spending"
+      ? [
+          {
+            label: "下載",
+            minWidth: "90px",
+            onClick: () => {
+              setDownloadFilter(spendingFilter);
+              setDownloadDialogOpen(true);
+            },
+          },
+        ]
+      : [
+          {
+            label: "新增訂單",
+            minWidth: "110px",
+            onClick: () => {
+              setCreateOrderOpen(true);
+            },
+          },
+          {
+            label: "店家管理",
+            minWidth: "110px",
+            onClick: () => {
+              setStoreManagementOpen(true);
+            },
+          },
+        ];
+
   return (
     <>
       <InternalModule
@@ -358,7 +617,10 @@ export default function OrderingSystem() {
         accentColor="#29b34a"
         sidebarTitle="訂單"
         defaultSidebarKey="ongoing"
+        activeSidebarKey={activeTab}
+        onSidebarChange={setActiveTab}
         rowsVersion={rowsVersion}
+        toolbarContent={toolbarContent}
         sidebarItems={[
           {
             key: "ongoing",
@@ -374,23 +636,15 @@ export default function OrderingSystem() {
             rows: deadlineRows,
             emptyText: "查無資料",
           },
-        ]}
-        actionButtons={[
           {
-            label: "新增訂單",
-            minWidth: "110px",
-            onClick: () => {
-              setCreateOrderOpen(true);
-            },
-          },
-          {
-            label: "店家管理",
-            minWidth: "110px",
-            onClick: () => {
-              setStoreManagementOpen(true);
-            },
+            key: "spending",
+            label: "消費紀錄",
+            columns: spendingColumns,
+            rows: spendingRows,
+            emptyText: "查無資料",
           },
         ]}
+        actionButtons={actionButtons}
         columns={ongoingColumns}
         rows={ongoingRows}
         emptyText="查無資料"
@@ -439,6 +693,84 @@ export default function OrderingSystem() {
           showSnackbar("訂單更新成功。", "success");
         }}
       />
+
+      <Dialog
+        open={downloadDialogOpen}
+        onClose={() => {
+          setDownloadDialogOpen(false);
+        }}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>下載消費紀錄</DialogTitle>
+
+        <DialogContent>
+          <DialogContentText sx={{ mb: "16px" }}>
+            請選擇要下載的年月。
+          </DialogContentText>
+
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "12px",
+              mt: "4px",
+            }}
+          >
+            <TextField
+              select
+              label="年份"
+              value={downloadFilter.year}
+              onChange={(event) => {
+                setDownloadFilter((previous) => ({
+                  ...previous,
+                  year: Number(event.target.value),
+                }));
+              }}
+              size="small"
+            >
+              {getYearOptions().map((year) => (
+                <MenuItem key={year} value={year}>
+                  {year}
+                </MenuItem>
+              ))}
+            </TextField>
+
+            <TextField
+              select
+              label="月份"
+              value={downloadFilter.month}
+              onChange={(event) => {
+                setDownloadFilter((previous) => ({
+                  ...previous,
+                  month: Number(event.target.value),
+                }));
+              }}
+              size="small"
+            >
+              {getMonthOptions().map((month) => (
+                <MenuItem key={month} value={month}>
+                  {month} 月
+                </MenuItem>
+              ))}
+            </TextField>
+          </Box>
+        </DialogContent>
+
+        <DialogActions>
+          <Button
+            onClick={() => {
+              setDownloadDialogOpen(false);
+            }}
+          >
+            取消
+          </Button>
+
+          <Button variant="contained" onClick={handleDownloadSpending}>
+            下載
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog
         open={confirmDialog.open}
