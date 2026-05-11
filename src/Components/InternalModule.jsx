@@ -741,32 +741,24 @@ export default function InternalModule({
     [location.pathname],
   );
 
-  const restoreKey = useMemo(
-    () => `internal-module-restore:${location.pathname}`,
-    [location.pathname],
-  );
-
   const fallbackKey =
     defaultSidebarKey ||
     sidebarItems?.[0]?.key ||
     sidebarItems?.[0]?.label ||
     "";
 
-  const [internalActiveKey, setInternalActiveKey] = useState(() => {
+  const getSavedActiveKey = () => {
     try {
-      const shouldRestore = window.sessionStorage.getItem(restoreKey) === "1";
+      const saved = window.localStorage.getItem(storageKey);
+      const valid = sidebarItems?.some((item) => item.key === saved);
 
-      if (shouldRestore) {
-        const saved = window.sessionStorage.getItem(storageKey);
-        const valid = sidebarItems?.some((item) => item.key === saved);
-        return valid ? saved : fallbackKey;
-      }
-
-      return fallbackKey;
+      return valid ? saved : fallbackKey;
     } catch {
       return fallbackKey;
     }
-  });
+  };
+
+  const [internalActiveKey, setInternalActiveKey] = useState(getSavedActiveKey);
   const activeKey = activeSidebarKey ?? internalActiveKey;
 
   const handleSidebarChange = (nextKey) => {
@@ -790,38 +782,24 @@ export default function InternalModule({
   }, [activeKey, fallbackKey, sidebarItems]);
 
   useEffect(() => {
+    const savedKey = getSavedActiveKey();
+
+    if (savedKey && savedKey !== activeKey) {
+      setInternalActiveKey(savedKey);
+
+      if (typeof onSidebarChange === "function") {
+        onSidebarChange(savedKey);
+      }
+    }
+  }, [storageKey]);
+
+  useEffect(() => {
     try {
-      window.sessionStorage.setItem(storageKey, activeKey);
+      window.localStorage.setItem(storageKey, activeKey);
     } catch {
       //
     }
   }, [activeKey, storageKey]);
-
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      try {
-        window.sessionStorage.setItem(restoreKey, "1");
-      } catch {
-        //
-      }
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
-  }, [restoreKey]);
-
-  useEffect(() => {
-    return () => {
-      try {
-        window.sessionStorage.removeItem(restoreKey);
-      } catch {
-        //
-      }
-    };
-  }, [location.pathname, restoreKey]);
 
   const activeItem = useMemo(() => {
     return (
