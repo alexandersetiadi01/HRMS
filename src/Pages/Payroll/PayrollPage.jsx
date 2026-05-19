@@ -1,202 +1,39 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
+  Alert,
   Box,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  IconButton,
-  Link,
+  CircularProgress,
+  Snackbar,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableRow,
-  TextField,
   Typography,
   useMediaQuery,
   useTheme,
 } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
 import { useNavigate } from "react-router-dom";
 import Breadcrumb from "../../Utils/Breadcrumb";
-import { payrollList } from "./PayrollMockData";
+import { getMyPayslipDetail, getMyPayslips } from "../../API/payroll";
+import PayrollPasswordDialog, {
+  PAYROLL_VERIFICATION_STORAGE_KEY,
+} from "./PayrollPasswordDialog";
 
-function PasswordConfirmDialog({
-  open,
-  onClose,
-  password,
-  onPasswordChange,
-  onConfirm,
-}) {
-  return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      fullWidth
-      maxWidth={false}
-      PaperProps={{
-        sx: {
-          width: "404px",
-          maxWidth: "95vw",
-          borderRadius: "6px",
-          overflow: "hidden",
-        },
-      }}
-    >
-      <Box
-        sx={{
-          height: "36px",
-          px: "18px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          bgcolor: "#1f86cc",
-          color: "#ffffff",
-        }}
-      >
-        <Typography
-          sx={{
-            fontSize: "14px",
-            fontWeight: 700,
-          }}
-        >
-          請再次輸入密碼
-        </Typography>
+function formatDate(value) {
+  if (!value) return "-";
 
-        <IconButton
-          onClick={onClose}
-          size="small"
-          sx={{
-            p: 0,
-            color: "#ffffff",
-          }}
-        >
-          <CloseIcon sx={{ fontSize: "18px" }} />
-        </IconButton>
-      </Box>
+  const date = new Date(value);
 
-      <DialogContent
-        sx={{
-          px: "30px",
-          pt: "26px",
-          pb: "10px",
-          bgcolor: "#ffffff",
-        }}
-      >
-        <Typography
-          sx={{
-            fontSize: "14px",
-            color: "#4b5563",
-            lineHeight: 1.7,
-            mb: "18px",
-          }}
-        >
-          為了保障資料隱私安全，輸入密碼時，請留意身旁是否有人或監視器。
-        </Typography>
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
 
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: "72px minmax(0, 1fr)",
-            columnGap: "10px",
-            alignItems: "center",
-          }}
-        >
-          <Typography
-            sx={{
-              fontSize: "14px",
-              color: "#374151",
-              whiteSpace: "nowrap",
-            }}
-          >
-            輸入密碼
-          </Typography>
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
 
-          <TextField
-            type="password"
-            value={password}
-            onChange={onPasswordChange}
-            placeholder="請輸入您的密碼"
-            fullWidth
-            sx={{
-              "& .MuiInputBase-root": {
-                height: "32px",
-                fontSize: "14px",
-                bgcolor: "#ffffff",
-              },
-              "& .MuiOutlinedInput-input": {
-                px: "10px",
-                py: "6px",
-              },
-            }}
-          />
-        </Box>
-
-        <Box
-          sx={{
-            mt: "18px",
-            display: "flex",
-            justifyContent: "flex-end",
-          }}
-        >
-          <Link
-            component="button"
-            type="button"
-            underline="none"
-            sx={{
-              fontSize: "14px",
-              color: "#1f86cc",
-              cursor: "pointer",
-            }}
-          >
-            忘記HR系統密碼
-          </Link>
-        </Box>
-      </DialogContent>
-
-      <DialogActions
-        sx={{
-          px: "12px",
-          py: "8px",
-          bgcolor: "#ffffff",
-          borderTop: "1px solid #d1d5db",
-          justifyContent: "flex-end",
-          gap: "2px",
-        }}
-      >
-        <Button
-          onClick={onConfirm}
-          variant="outlined"
-          sx={{
-            minWidth: "52px",
-            height: "34px",
-            fontSize: "14px",
-            color: "#fff",
-            border: "none",
-            bgcolor: "#1f86cc",
-          }}
-        >
-          確定
-        </Button>
-
-        <Button
-          onClick={onClose}
-          variant="outlined"
-          sx={{
-            minWidth: "52px",
-            height: "34px",
-            fontSize: "14px",
-            color: "#ffffff",
-            border: "none",
-            bgcolor: "#ff0000",
-          }}
-        >
-          取消
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
+  return `${year}/${month}/${day}`;
 }
 
 export default function PayrollPage() {
@@ -204,31 +41,154 @@ export default function PayrollPage() {
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const navigate = useNavigate();
 
+  const [payrollList, setPayrollList] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [openPasswordDialog, setOpenPasswordDialog] = useState(false);
   const [selectedPayrollId, setSelectedPayrollId] = useState("");
-  const [password, setPassword] = useState("");
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    severity: "success",
+    message: "",
+  });
+
+  const showSnackbar = (severity, message) => {
+    setSnackbar({
+      open: true,
+      severity,
+      message,
+    });
+  };
+
+  const fetchPayrollList = async () => {
+    setLoading(true);
+
+    try {
+      const rows = await getMyPayslips();
+      setPayrollList(Array.isArray(rows) ? rows : []);
+    } catch (error) {
+      const message =
+        error?.response?.data?.message ||
+        error?.response?.data?.data?.message ||
+        "讀取薪資單失敗，請稍後再試。";
+
+      showSnackbar("error", message);
+      setPayrollList([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPayrollList();
+  }, []);
 
   const handleOpenPasswordDialog = (payrollId) => {
     setSelectedPayrollId(payrollId);
-    setPassword("");
     setOpenPasswordDialog(true);
   };
 
   const handleClosePasswordDialog = () => {
     setOpenPasswordDialog(false);
     setSelectedPayrollId("");
-    setPassword("");
   };
 
-  const handleConfirmPassword = () => {
-    if (!selectedPayrollId) return;
-    navigate(`/payroll/${selectedPayrollId}`);
-    handleClosePasswordDialog();
+  const handlePasswordVerified = async (token) => {
+    if (!selectedPayrollId) {
+      throw new Error("找不到要查看的薪資單。");
+    }
+
+    const detail = await getMyPayslipDetail(selectedPayrollId, token);
+
+    if (!detail || !detail.payroll_result_id) {
+      throw new Error("薪資單明細資料格式不正確，請聯絡管理人員確認後端資料。");
+    }
+
+    sessionStorage.setItem(PAYROLL_VERIFICATION_STORAGE_KEY, token);
+
+    navigate(`/payroll/${selectedPayrollId}`, {
+      state: {
+        payrollVerificationToken: token,
+        payrollDetail: detail,
+      },
+    });
+  };
+
+  const renderTableBody = () => {
+    if (loading) {
+      return (
+        <TableRow>
+          <TableCell colSpan={2} align="center" sx={{ py: "30px" }}>
+            <CircularProgress size={24} />
+            <Typography sx={{ mt: "10px", fontSize: "14px", color: "#6b7280" }}>
+              薪資單讀取中...
+            </Typography>
+          </TableCell>
+        </TableRow>
+      );
+    }
+
+    if (payrollList.length === 0) {
+      return (
+        <TableRow>
+          <TableCell colSpan={2} align="center" sx={{ py: "30px" }}>
+            <Typography sx={{ fontSize: "15px", color: "#6b7280" }}>
+              目前沒有可查看的薪資單。
+            </Typography>
+          </TableCell>
+        </TableRow>
+      );
+    }
+
+    return payrollList.map((item) => (
+      <TableRow
+        key={item.payroll_result_id}
+        hover={!isMobile}
+        onClick={() => handleOpenPasswordDialog(item.payroll_result_id)}
+        sx={{
+          cursor: "pointer",
+          transition: "background-color 0.2s ease",
+          "&:hover": {
+            bgcolor: isMobile ? "transparent" : "#eaf4fb",
+          },
+        }}
+      >
+        <TableCell
+          sx={{
+            minWidth: 0,
+            px: isMobile ? "8px" : "10px",
+            py: isMobile ? "12px" : "16px",
+            fontSize: isMobile ? "15px" : "16px",
+            color: isMobile ? "#0c93d4" : "#1f2937",
+            fontWeight: isMobile ? 700 : 400,
+            wordBreak: "break-word",
+          }}
+        >
+          {item.title ||
+            `${item.year}/${String(item.month).padStart(2, "0")} 薪資單`}
+        </TableCell>
+
+        <TableCell
+          sx={{
+            px: isMobile ? "8px" : "10px",
+            py: isMobile ? "12px" : "16px",
+            fontSize: isMobile ? "15px" : "16px",
+            color: "#1f2937",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {formatDate(item.pay_date)}
+        </TableCell>
+      </TableRow>
+    ));
   };
 
   return (
     <Box>
-      <Breadcrumb currentLabel="我的薪資單" rootLabel="Payroll" rootTo="/payroll" />
+      <Breadcrumb
+        currentLabel="我的薪資單"
+        rootLabel="Payroll"
+        rootTo="/payroll"
+      />
 
       {!isMobile && (
         <Box
@@ -277,7 +237,9 @@ export default function PayrollPage() {
           >
             <TableHead>
               <TableRow sx={{ bgcolor: "#d1d1d1" }}>
-                <TableCell sx={{ fontSize: "15px", fontWeight: 700, color: "#111827" }}>
+                <TableCell
+                  sx={{ fontSize: "15px", fontWeight: 700, color: "#111827" }}
+                >
                   項目
                 </TableCell>
                 <TableCell
@@ -293,41 +255,7 @@ export default function PayrollPage() {
               </TableRow>
             </TableHead>
 
-            <TableBody>
-              {payrollList.map((item) => (
-                <TableRow
-                  key={item.id}
-                  onClick={() => handleOpenPasswordDialog(item.id)}
-                  sx={{
-                    cursor: "pointer",
-                  }}
-                >
-                  <TableCell sx={{ minWidth: 0 }}>
-                    <Typography
-                      sx={{
-                        display: "block",
-                        fontSize: "15px",
-                        color: "#0c93d4",
-                        fontWeight: 700,
-                        wordBreak: "break-word",
-                      }}
-                    >
-                      {item.title}
-                    </Typography>
-                  </TableCell>
-
-                  <TableCell
-                    sx={{
-                      fontSize: "15px",
-                      color: "#111827",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {item.depositDate}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
+            <TableBody>{renderTableBody()}</TableBody>
           </Table>
         </Box>
       ) : (
@@ -341,66 +269,49 @@ export default function PayrollPage() {
         >
           <TableHead>
             <TableRow sx={{ bgcolor: "#d1d1d1" }}>
-              <TableCell sx={{ fontSize: "16px", fontWeight: 700, color: "#111827" }}>
+              <TableCell
+                sx={{ fontSize: "16px", fontWeight: 700, color: "#111827" }}
+              >
                 項目
               </TableCell>
               <TableCell
                 align="left"
-                sx={{ width: "260px", fontSize: "16px", fontWeight: 700, color: "#111827" }}
+                sx={{
+                  width: "260px",
+                  fontSize: "16px",
+                  fontWeight: 700,
+                  color: "#111827",
+                }}
               >
                 入帳日
               </TableCell>
             </TableRow>
           </TableHead>
 
-          <TableBody>
-            {payrollList.map((item) => (
-              <TableRow
-                key={item.id}
-                hover
-                onClick={() => handleOpenPasswordDialog(item.id)}
-                sx={{
-                  cursor: "pointer",
-                  transition: "background-color 0.2s ease",
-                  "&:hover": {
-                    bgcolor: "#eaf4fb",
-                  },
-                }}
-              >
-                <TableCell
-                  sx={{
-                    px: "10px",
-                    py: "16px",
-                    fontSize: "16px",
-                    color: "#1f2937",
-                  }}
-                >
-                  {item.title}
-                </TableCell>
-
-                <TableCell
-                  sx={{
-                    px: "10px",
-                    py: "16px",
-                    fontSize: "16px",
-                    color: "#1f2937",
-                  }}
-                >
-                  {item.depositDate}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
+          <TableBody>{renderTableBody()}</TableBody>
         </Table>
       )}
 
-      <PasswordConfirmDialog
+      <PayrollPasswordDialog
         open={openPasswordDialog}
         onClose={handleClosePasswordDialog}
-        password={password}
-        onPasswordChange={(event) => setPassword(event.target.value)}
-        onConfirm={handleConfirmPassword}
+        onVerified={handlePasswordVerified}
       />
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3500}
+        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          severity={snackbar.severity}
+          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

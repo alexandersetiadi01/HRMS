@@ -1,7 +1,11 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  Alert,
   Box,
   Button,
+  CircularProgress,
   Paper,
+  Snackbar,
   Table,
   TableBody,
   TableCell,
@@ -12,9 +16,75 @@ import {
   useTheme,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
-import { Navigate, useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import Breadcrumb from "../../Utils/Breadcrumb";
-import { formatMoney, getPayrollById } from "./PayrollMockData";
+import {
+  downloadMyPayslipAttendance,
+  downloadMyPayslipExcel,
+  getMyPayslipDetail,
+} from "../../API/payroll";
+import PayrollPasswordDialog, {
+  PAYROLL_VERIFICATION_STORAGE_KEY,
+} from "./PayrollPasswordDialog";
+
+function formatMoney(value) {
+  const number = Number(value || 0);
+
+  return number.toLocaleString("zh-TW", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  });
+}
+
+function formatDate(value) {
+  if (!value) return "-";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return value;
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}/${month}/${day}`;
+}
+
+function formatLineName(line) {
+  const name = String(line?.item_name || line?.label || "").trim();
+  const description = String(line?.description || "").trim();
+
+  if (description && description !== name) return `${name}（${description}）`;
+
+  return name || description || "-";
+}
+
+function formatEmployeeCodeName(employee) {
+  const employeeNo = String(employee?.employee_no || "").trim();
+  const displayName = String(employee?.display_name || "").trim();
+
+  if (employeeNo && displayName) return `${employeeNo}/${displayName}`;
+
+  return employeeNo || displayName || "-";
+}
+
+function buildNoteLines(notes) {
+  const commonNotes = Array.isArray(notes?.common) ? notes.common : [];
+  const personalNotes = Array.isArray(notes?.personal) ? notes.personal : [];
+  const lines = [];
+
+  commonNotes.forEach((note) => {
+    const content = String(note?.note_content || "").trim();
+    if (content) lines.push(content);
+  });
+
+  personalNotes.forEach((note) => {
+    const content = String(note?.note_content || "").trim();
+    if (content) lines.push(content);
+  });
+
+  return lines.length > 0 ? lines : ["無"];
+}
 
 function SectionFrame({ title, children, sx = {} }) {
   return (
@@ -85,7 +155,7 @@ function KeyValueRows({ rows, compact = false }) {
               wordBreak: "break-word",
             }}
           >
-            {row.value}
+            {row.value || "-"}
           </Typography>
         </Box>
       ))}
@@ -100,14 +170,20 @@ function PayrollAmountSection({
   totalValue,
   isMobile,
 }) {
+  const safeItems = Array.isArray(items) ? items : [];
+
   return (
     <SectionFrame title={title}>
-      {isMobile ? (
+      {safeItems.length === 0 ? (
+        <Typography sx={{ fontSize: "16px", color: "#6b7280" }}>
+          無資料
+        </Typography>
+      ) : isMobile ? (
         <Box sx={{ display: "grid", gap: "18px" }}>
           <KeyValueRows
             compact
-            rows={items.map((item) => ({
-              label: item.label,
+            rows={safeItems.map((item, index) => ({
+              label: formatLineName(item) || `項目 ${index + 1}`,
               value: formatMoney(item.amount),
             }))}
           />
@@ -122,11 +198,7 @@ function PayrollAmountSection({
             }}
           >
             <Typography
-              sx={{
-                fontSize: "16px",
-                color: "#000000",
-                textAlign: "right",
-              }}
+              sx={{ fontSize: "16px", color: "#000000", textAlign: "right" }}
             >
               {totalLabel}：
             </Typography>
@@ -144,28 +216,17 @@ function PayrollAmountSection({
             justifyContent: "space-between",
           }}
         >
-          <Box
-            sx={{
-              width: "420px",
-              ml: "auto",
-              mr: "auto",
-            }}
-          >
+          <Box sx={{ width: "420px", ml: "auto", mr: "auto" }}>
             <KeyValueRows
               compact
-              rows={items.map((item) => ({
-                label: item.label,
+              rows={safeItems.map((item, index) => ({
+                label: formatLineName(item) || `項目 ${index + 1}`,
                 value: formatMoney(item.amount),
               }))}
             />
           </Box>
 
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "flex-end",
-            }}
-          >
+          <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
             <Box
               sx={{
                 width: "220px",
@@ -195,30 +256,202 @@ function PayrollAmountSection({
     </SectionFrame>
   );
 }
+
 export default function PayrollDetail() {
   const { payrollId } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-  const payroll = getPayrollById(payrollId);
 
-  if (!payroll) {
-    return <Navigate to="/payroll" replace />;
+  const [payroll, setPayroll] = useState(location.state?.payrollDetail || null);
+  const [loading, setLoading] = useState(!location.state?.payrollDetail);
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [passwordAction, setPasswordAction] = useState("view");
+  const [downloading, setDownloading] = useState("");
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    severity: "success",
+    message: "",
+  });
+
+  const showSnackbar = (severity, message) => {
+    setSnackbar({ open: true, severity, message });
+  };
+
+  const getStoredVerificationToken = useCallback(() => {
+    return (
+      location.state?.payrollVerificationToken ||
+      sessionStorage.getItem(PAYROLL_VERIFICATION_STORAGE_KEY) ||
+      ""
+    );
+  }, [location.state?.payrollVerificationToken]);
+
+  const fetchPayrollDetail = useCallback(
+    async (token) => {
+      if (!payrollId || !token) {
+        setLoading(false);
+        setPasswordAction("view");
+        setPasswordDialogOpen(true);
+        return;
+      }
+
+      setLoading(true);
+
+      try {
+        const detail = await getMyPayslipDetail(payrollId, token);
+
+        if (!detail || !detail.payroll_result_id) {
+          setPayroll(null);
+          setPasswordAction("view");
+          setPasswordDialogOpen(true);
+          return;
+        }
+
+        setPayroll(detail);
+      } catch (error) {
+        const status = error?.response?.status;
+
+        if (status === 401 || status === 403) {
+          sessionStorage.removeItem(PAYROLL_VERIFICATION_STORAGE_KEY);
+          setPasswordAction("view");
+          setPasswordDialogOpen(true);
+          return;
+        }
+
+        const message =
+          error?.response?.data?.message ||
+          error?.response?.data?.data?.message ||
+          "讀取薪資單失敗，請稍後再試。";
+
+        showSnackbar("error", message);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [payrollId],
+  );
+
+  useEffect(() => {
+    if (location.state?.payrollDetail) {
+      return;
+    }
+
+    fetchPayrollDetail(getStoredVerificationToken());
+  }, [fetchPayrollDetail, getStoredVerificationToken, location.state?.payrollDetail]);
+
+  const handleClosePasswordDialog = () => {
+    setPasswordDialogOpen(false);
+
+    if (!payroll && passwordAction === "view") {
+      navigate("/payroll");
+    }
+  };
+
+  const handlePasswordVerified = async (token) => {
+    if (passwordAction === "attendance") {
+      await downloadMyPayslipAttendance(payrollId, token);
+      showSnackbar("success", "出勤明細下載完成。");
+      return;
+    }
+
+    if (passwordAction === "payslip") {
+      await downloadMyPayslipExcel(payrollId, token);
+      showSnackbar("success", "薪資單下載完成。");
+      return;
+    }
+
+    const detail = await getMyPayslipDetail(payrollId, token);
+
+    if (!detail || !detail.payroll_result_id) {
+      throw new Error("薪資單明細資料格式不正確，請聯絡管理人員確認後端資料。");
+    }
+
+    setPayroll(detail);
+  };
+
+  const requirePasswordForAction = (action) => {
+    setPasswordAction(action);
+    setPasswordDialogOpen(true);
+  };
+
+  const handleDownloadAttendance = async () => {
+    requirePasswordForAction("attendance");
+  };
+
+  const handleDownloadPayslip = async () => {
+    requirePasswordForAction("payslip");
+  };
+
+  const noteLines = useMemo(() => buildNoteLines(payroll?.notes), [payroll]);
+
+  if (loading) {
+    return (
+      <Box>
+        <Breadcrumb currentLabel="薪資單" rootLabel="Payroll" rootTo="/payroll" />
+
+        <Box
+          sx={{
+            minHeight: "260px",
+            display: "grid",
+            placeItems: "center",
+          }}
+        >
+          <Box sx={{ textAlign: "center" }}>
+            <CircularProgress size={28} />
+            <Typography sx={{ mt: "12px", fontSize: "15px", color: "#6b7280" }}>
+              薪資單讀取中...
+            </Typography>
+          </Box>
+        </Box>
+
+        <PayrollPasswordDialog
+          open={passwordDialogOpen}
+          onClose={handleClosePasswordDialog}
+          onVerified={handlePasswordVerified}
+        />
+      </Box>
+    );
   }
 
-  const earningTotal = payroll.earnings.reduce(
-    (sum, item) => sum + item.amount,
-    0,
-  );
-  const deductionTotal = payroll.deductions.reduce(
-    (sum, item) => sum + item.amount,
-    0,
-  );
+  if (!payroll) {
+    return (
+      <Box>
+        <Breadcrumb currentLabel="薪資單" rootLabel="Payroll" rootTo="/payroll" />
+
+        <Alert severity="warning" sx={{ mb: "16px" }}>
+          尚未完成薪資單驗證，或找不到可查看的薪資單。
+        </Alert>
+
+        <Button
+          variant="contained"
+          onClick={() => requirePasswordForAction("view")}
+          sx={{
+            bgcolor: "#1f86cc",
+            "&:hover": { bgcolor: "#1976b8" },
+          }}
+        >
+          重新驗證
+        </Button>
+
+        <PayrollPasswordDialog
+          open={passwordDialogOpen}
+          onClose={handleClosePasswordDialog}
+          onVerified={handlePasswordVerified}
+        />
+      </Box>
+    );
+  }
+
+  const employee = payroll.employee || {};
+  const summary = payroll.summary || {};
+  const earningTotal = Number(summary.gross_pay || 0);
+  const deductionTotal = Number(summary.total_deduction || 0);
 
   return (
     <Box>
       <Breadcrumb
-        currentLabel={payroll.title}
+        currentLabel={payroll.title || "薪資單"}
         rootLabel="Payroll"
         rootTo="/payroll"
       />
@@ -247,6 +480,8 @@ export default function PayrollDetail() {
         }}
       >
         <Button
+          onClick={handleDownloadAttendance}
+          disabled={downloading === "attendance"}
           variant="outlined"
           sx={{
             borderColor: "#bdbdbd",
@@ -257,10 +492,12 @@ export default function PayrollDetail() {
             fontSize: "15px",
           }}
         >
-          下載出勤明細
+          {downloading === "attendance" ? "下載中..." : "下載出勤明細"}
         </Button>
 
         <Button
+          onClick={handleDownloadPayslip}
+          disabled={downloading === "payslip"}
           variant="outlined"
           sx={{
             borderColor: "#bdbdbd",
@@ -271,7 +508,7 @@ export default function PayrollDetail() {
             fontSize: "15px",
           }}
         >
-          下載薪資單
+          {downloading === "payslip" ? "下載中..." : "下載薪資單"}
         </Button>
       </Box>
 
@@ -280,11 +517,11 @@ export default function PayrollDetail() {
           <KeyValueRows
             rows={[
               { label: "年度", value: payroll.year },
-              { label: "月份/名稱", value: payroll.periodName },
-              { label: "單位", value: payroll.department },
-              { label: "工號/姓名", value: payroll.employeeCodeName },
-              { label: "入帳日", value: payroll.depositDate },
-              { label: "匯入帳號", value: payroll.payrollAccount },
+              { label: "月份/名稱", value: payroll.run_name || payroll.title },
+              { label: "單位", value: employee.unit_name },
+              { label: "工號/姓名", value: formatEmployeeCodeName(employee) },
+              { label: "入帳日", value: formatDate(payroll.pay_date) },
+              { label: "匯入帳號", value: employee.bank_account_no },
             ]}
           />
         </SectionFrame>
@@ -321,54 +558,30 @@ export default function PayrollDetail() {
               rowGap: "12px",
             }}
           >
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: "1fr auto",
-                columnGap: "16px",
-              }}
-            >
-              <Typography
-                sx={{ fontSize: "16px", color: "#111827", textAlign: "right" }}
-              >
+            <Box sx={{ display: "grid", gridTemplateColumns: "1fr auto", columnGap: "16px" }}>
+              <Typography sx={{ fontSize: "16px", color: "#111827", textAlign: "right" }}>
                 實發金額：
               </Typography>
               <Typography sx={{ fontSize: "16px", color: "#111827" }}>
-                {formatMoney(payroll.summary.actualPaid)}
+                {formatMoney(summary.net_pay)}
               </Typography>
             </Box>
 
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: "1fr auto",
-                columnGap: "16px",
-              }}
-            >
-              <Typography
-                sx={{ fontSize: "16px", color: "#111827", textAlign: "right" }}
-              >
+            <Box sx={{ display: "grid", gridTemplateColumns: "1fr auto", columnGap: "16px" }}>
+              <Typography sx={{ fontSize: "16px", color: "#111827", textAlign: "right" }}>
                 應稅金額：
               </Typography>
               <Typography sx={{ fontSize: "16px", color: "#111827" }}>
-                {formatMoney(payroll.summary.taxableTotal)}
+                {formatMoney(summary.taxable_income)}
               </Typography>
             </Box>
 
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: "1fr auto",
-                columnGap: "16px",
-              }}
-            >
-              <Typography
-                sx={{ fontSize: "16px", color: "#111827", textAlign: "right" }}
-              >
+            <Box sx={{ display: "grid", gridTemplateColumns: "1fr auto", columnGap: "16px" }}>
+              <Typography sx={{ fontSize: "16px", color: "#111827", textAlign: "right" }}>
                 年度應稅總計：
               </Typography>
               <Typography sx={{ fontSize: "16px", color: "#111827" }}>
-                {formatMoney(payroll.summary.yearlyTaxableTotal)}
+                {formatMoney(summary.yearly_taxable_income || summary.taxable_income)}
               </Typography>
             </Box>
           </Box>
@@ -376,7 +589,7 @@ export default function PayrollDetail() {
 
         <SectionFrame title="備註">
           <Box sx={{ px: { xs: 0, md: "10px" } }}>
-            {payroll.noteLines.map((line, index) => (
+            {noteLines.map((line, index) => (
               <Typography
                 key={`${line}-${index}`}
                 sx={{
@@ -403,9 +616,7 @@ export default function PayrollDetail() {
               color: "#0c93d4",
               mb: "12px",
               cursor: "pointer",
-              "&:hover": {
-                opacity: 0.8,
-              },
+              "&:hover": { opacity: 0.8 },
             }}
           >
             <SearchIcon sx={{ fontSize: "20px" }} />
@@ -415,48 +626,23 @@ export default function PayrollDetail() {
           </Box>
 
           {isMobile ? (
-            <Box sx={{ display: "grid", gap: "12px" }}>
-              {payroll.leaveBalanceRows.map((row) => (
-                <Paper
-                  key={row.leaveType}
-                  elevation={0}
-                  sx={{
-                    border: "1px solid #d1d5db",
-                    borderRadius: 0,
-                    overflow: "hidden",
-                  }}
-                >
-                  <Box
-                    sx={{
-                      bgcolor: "#d1d1d1",
-                      px: "14px",
-                      py: "10px",
-                      fontWeight: 700,
-                    }}
-                  >
-                    {row.leaveType}
-                  </Box>
-                  <Box
-                    sx={{
-                      px: "14px",
-                      py: "12px",
-                      display: "grid",
-                      rowGap: "8px",
-                    }}
-                  >
-                    <Typography sx={{ fontSize: "15px" }}>
-                      可用：{row.available}
-                    </Typography>
-                    <Typography sx={{ fontSize: "15px" }}>
-                      已用：{row.used}
-                    </Typography>
-                    <Typography sx={{ fontSize: "15px" }}>
-                      剩餘：{row.remaining}
-                    </Typography>
-                  </Box>
-                </Paper>
-              ))}
-            </Box>
+            <Paper
+              elevation={0}
+              sx={{
+                border: "1px solid #d1d5db",
+                borderRadius: 0,
+                overflow: "hidden",
+              }}
+            >
+              <Box sx={{ bgcolor: "#d1d1d1", px: "14px", py: "10px", fontWeight: 700 }}>
+                提醒
+              </Box>
+              <Box sx={{ px: "14px", py: "12px" }}>
+                <Typography sx={{ fontSize: "15px", lineHeight: 1.7 }}>
+                  剩餘假別/時數請以請假模組中的最新資料為準。
+                </Typography>
+              </Box>
+            </Paper>
           ) : (
             <Table
               sx={{
@@ -469,35 +655,17 @@ export default function PayrollDetail() {
               <TableHead>
                 <TableRow sx={{ bgcolor: "#d1d1d1" }}>
                   <TableCell sx={{ fontSize: "16px", fontWeight: 700 }}>
-                    假別
-                  </TableCell>
-                  <TableCell sx={{ fontSize: "16px", fontWeight: 700 }}>
-                    可用
-                  </TableCell>
-                  <TableCell sx={{ fontSize: "16px", fontWeight: 700 }}>
-                    已用
-                  </TableCell>
-                  <TableCell sx={{ fontSize: "16px", fontWeight: 700 }}>
-                    剩餘
+                    說明
                   </TableCell>
                 </TableRow>
               </TableHead>
 
               <TableBody>
-                {payroll.leaveBalanceRows.map((row) => (
-                  <TableRow key={row.leaveType}>
-                    <TableCell sx={{ fontSize: "16px" }}>
-                      {row.leaveType}
-                    </TableCell>
-                    <TableCell sx={{ fontSize: "16px" }}>
-                      {row.available}
-                    </TableCell>
-                    <TableCell sx={{ fontSize: "16px" }}>{row.used}</TableCell>
-                    <TableCell sx={{ fontSize: "16px" }}>
-                      {row.remaining}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                <TableRow>
+                  <TableCell sx={{ fontSize: "16px" }}>
+                    剩餘假別/時數請以請假模組中的最新資料為準。
+                  </TableCell>
+                </TableRow>
               </TableBody>
             </Table>
           )}
@@ -510,10 +678,31 @@ export default function PayrollDetail() {
               lineHeight: 1.7,
             }}
           >
-            {payroll.leaveBalanceNote}
+            若薪資單顯示剩餘假別，後續可再接入後端薪資單假別快照資料。
           </Typography>
         </SectionFrame>
       </Box>
+
+      <PayrollPasswordDialog
+        open={passwordDialogOpen}
+        onClose={handleClosePasswordDialog}
+        onVerified={handlePasswordVerified}
+      />
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3500}
+        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          severity={snackbar.severity}
+          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }
