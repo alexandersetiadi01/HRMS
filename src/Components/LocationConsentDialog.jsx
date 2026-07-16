@@ -15,12 +15,16 @@ import {
   shouldPromptLocationConsent,
 } from "../Utils/LocationConsent";
 
-export default function LocationConsentDialog() {
-  const [open, setOpen] = useState(false);
+export default function LocationConsentDialog({ onResolved }) {
+  const [open, setOpen] = useState(
+    () => shouldPromptLocationConsent(),
+  );
 
   useEffect(() => {
-    setOpen(shouldPromptLocationConsent());
-  }, []);
+    if (!open && typeof onResolved === "function") {
+      onResolved();
+    }
+  }, [onResolved, open]);
 
   function handleAllow() {
     grantLocationConsent();

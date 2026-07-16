@@ -19,6 +19,7 @@ import {
 } from "../../Utils/Menu/MenuRegistry";
 import { loadMobileDrawerShortcutIds } from "../../Utils/Menu/MobileShortcutSettings";
 import { getStoredAuthUser, logoutFromServer } from "../../API/auth";
+import NotificationBell from "../Notifications/NotificationBell";
 
 export default function MobileNavbar() {
   const [open, setOpen] = useState(false);
@@ -140,9 +141,25 @@ export default function MobileNavbar() {
             </Box>
           </Box>
 
-          <IconButton onClick={() => setOpen(true)} sx={{ color: "#b6bcc8" }}>
-            <MenuIcon sx={{ fontSize: "30px" }} />
-          </IconButton>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: "2px",
+            }}
+          >
+            <NotificationBell
+              iconColor="#b6bcc8"
+              iconSize={28}
+            />
+
+            <IconButton
+              onClick={() => setOpen(true)}
+              sx={{ color: "#b6bcc8" }}
+            >
+              <MenuIcon sx={{ fontSize: "30px" }} />
+            </IconButton>
+          </Box>
         </Box>
       </Box>
 

@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Box,
   ClickAwayListener,
@@ -13,11 +19,18 @@ import { Outlet, useNavigate } from "react-router-dom";
 import Navbar from "../Components/Navbar/Navbar";
 import { getStoredAuthUser, logoutFromServer } from "../API/auth";
 import LocationConsentDialog from "../Components/LocationConsentDialog";
+import NotificationConsentDialog from "../Components/NotificationConsentDialog";
+import { shouldPromptLocationConsent } from "../Utils/LocationConsent";
+import NotificationProvider from "../Contexts/NotificationProvider";
+import NotificationBell from "../Components/Notifications/NotificationBell";
 
 function MainLayout() {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [authUser, setAuthUser] = useState(getStoredAuthUser());
+  const [locationConsentResolved, setLocationConsentResolved] = (
+    useState(() => !shouldPromptLocationConsent())
+  );
   const menuRef = useRef(null);
 
   useEffect(() => {
@@ -40,6 +53,15 @@ function MainLayout() {
     return employeeDisplayName || userDisplayName || userLogin || "帳戶";
   }, [authUser]);
 
+  const employeeId = useMemo(
+    () => Number(authUser?.employee?.employee_id || 0),
+    [authUser],
+  );
+
+  const handleLocationConsentResolved = useCallback(() => {
+    setLocationConsentResolved(true);
+  }, []);
+
   async function handleLogout() {
     try {
       await logoutFromServer();
@@ -50,8 +72,18 @@ function MainLayout() {
   }
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "#f3f4f6" }}>
-      <LocationConsentDialog />
+    <NotificationProvider
+      key={employeeId || "no-employee"}
+      employeeId={employeeId}
+    >
+      <Box sx={{ minHeight: "100vh", bgcolor: "#f3f4f6" }}>
+      <LocationConsentDialog
+        onResolved={handleLocationConsentResolved}
+      />
+      <NotificationConsentDialog
+        enabled={locationConsentResolved}
+        employeeId={employeeId}
+      />
       <Box
         sx={{
           display: { xs: "none", md: "block" },
@@ -133,6 +165,8 @@ function MainLayout() {
                 }}
               />
             </Box>
+
+            <NotificationBell />
 
             <ClickAwayListener onClickAway={() => setMenuOpen(false)}>
               <Box
@@ -236,7 +270,8 @@ function MainLayout() {
       >
         <Outlet />
       </Box>
-    </Box>
+      </Box>
+    </NotificationProvider>
   );
 }
 
