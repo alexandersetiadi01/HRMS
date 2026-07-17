@@ -117,7 +117,7 @@ export default function MobileNavbar() {
             <Typography
               sx={{
                 fontSize: "24px",
-                fontWeight: 800,
+                fontWeight: 700,
                 color: "#2196d3",
                 lineHeight: 1,
               }}
@@ -222,7 +222,7 @@ export default function MobileNavbar() {
               <Typography
                 sx={{
                   fontSize: "25px",
-                  fontWeight: 800,
+                  fontWeight: 700,
                   color: "#2d3945",
                   lineHeight: 1.2,
                   mb: "4px",

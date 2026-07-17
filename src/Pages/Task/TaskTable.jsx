@@ -78,11 +78,19 @@ export default function TaskTable({
                 .join(" "),
               minHeight: "50px",
               alignItems: "center",
-              borderBottom:
-                rowIndex === rows.length - 1 ? "none" : "1px solid #d3d3d3",
+              borderBottom: (
+                rowIndex === rows.length - 1
+                  ? "none"
+                  : "1px solid #d3d3d3"
+              ),
               cursor: "pointer",
+              bgcolor: row.isHighlighted
+                ? "#fff7cc"
+                : "transparent",
               "&:hover": {
-                bgcolor: "#fafafa",
+                bgcolor: row.isHighlighted
+                  ? "#fff1a8"
+                  : "#fafafa",
               },
             }}
           >
@@ -113,19 +121,61 @@ export default function TaskTable({
                     }}
                   />
                 ) : (
-                  <Typography
+                  <Box
                     sx={{
-                      fontSize: "15px",
-                      color: column.cellSx?.color || "#333333",
-                      textAlign: column.align || "left",
-                      whiteSpace: column.wrap === false ? "nowrap" : "normal",
-                      overflow: column.wrap === false ? "hidden" : "visible",
-                      textOverflow: column.wrap === false ? "ellipsis" : "clip",
-                      wordBreak: "break-word",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      minWidth: 0,
                     }}
                   >
-                    {row[column.key] || "-"}
-                  </Typography>
+                    {column.key === "title"
+                      && row.isUnreadNotification ? (
+                        <Box
+                          component="span"
+                          aria-label="未讀指派事項"
+                          sx={{
+                            width: "8px",
+                            height: "8px",
+                            borderRadius: "50%",
+                            bgcolor: "#ef4444",
+                            flexShrink: 0,
+                          }}
+                        />
+                      ) : null}
+
+                    <Typography
+                      sx={{
+                        fontSize: "15px",
+                        color: (
+                          column.cellSx?.color
+                          || "#333333"
+                        ),
+                        textAlign: (
+                          column.align
+                          || "left"
+                        ),
+                        whiteSpace: (
+                          column.wrap === false
+                            ? "nowrap"
+                            : "normal"
+                        ),
+                        overflow: (
+                          column.wrap === false
+                            ? "hidden"
+                            : "visible"
+                        ),
+                        textOverflow: (
+                          column.wrap === false
+                            ? "ellipsis"
+                            : "clip"
+                        ),
+                        wordBreak: "break-word",
+                      }}
+                    >
+                      {row[column.key] || "-"}
+                    </Typography>
+                  </Box>
                 )}
               </Box>
             ))}

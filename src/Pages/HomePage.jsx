@@ -6,6 +6,7 @@ import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import { NavLink } from "react-router-dom";
 import MenuTile from "../Components/MenuTile";
 import { getHomeShortcutItems } from "../Utils/Menu/MenuRegistry";
+import useNotifications from "../Contexts/UseNotification";
 
 const mobileWidgets = [
   {
@@ -287,6 +288,7 @@ function MobileHomePage() {
 
 function DesktopHomePage() {
   const shortcutItems = getHomeShortcutItems();
+  const { shortcutCounts } = useNotifications();
 
   return (
     <Box sx={{ display: { xs: "none", md: "block" } }}>
@@ -356,7 +358,12 @@ function DesktopHomePage() {
           }}
         >
           {shortcutItems.map((item) => (
-            <MenuTile key={item.id} item={item} iconSize={52} />
+            <MenuTile
+              key={item.id}
+              item={item}
+              iconSize={52}
+              badgeCount={shortcutCounts?.[item.id] || 0}
+            />
           ))}
         </Box>
       </Box>

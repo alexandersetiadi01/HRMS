@@ -1,4 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Box,
   Button,
@@ -19,6 +24,8 @@ import {
   fetchNewsDetail,
   fetchNewsList,
 } from "../API/news";
+import { useSearchParams } from "react-router-dom";
+import useNotifications from "../Contexts/UseNotification";
 
 const ACCENT_COLOR = "#35b8ec";
 const DEFAULT_ROWS_PER_PAGE = 10;
@@ -458,6 +465,19 @@ function NewsDetailDialog({ open, loading, news, onClose }) {
 }
 
 export default function LatestNews() {
+  const [searchParams] = useSearchParams();
+
+  const {
+    isSourceUnread,
+    markSourceAsRead,
+  } = useNotifications();
+
+  const highlightedNewsId = Number(
+    searchParams.get("highlight") || 0,
+  );
+
+  const resolvedHighlightRef = useRef(0);
+
   const [categories, setCategories] = useState([]);
   const [activeCategoryId, setActiveCategoryId] = useState(getStoredCategoryId);
   const [currentPage, setCurrentPage] = useState(() => {
@@ -524,6 +544,66 @@ export default function LatestNews() {
   }, []);
 
   useEffect(() => {
+    if (
+      highlightedNewsId <= 0
+      || categories.length === 0
+      || resolvedHighlightRef.current
+        === highlightedNewsId
+    ) {
+      return undefined;
+    }
+
+    let alive = true;
+
+    resolvedHighlightRef.current =
+      highlightedNewsId;
+
+    async function selectHighlightedCategory() {
+      try {
+        const detail = await fetchNewsDetail(
+          highlightedNewsId,
+        );
+
+        const categoryId = String(
+          detail?.news_category_id || "",
+        );
+
+        const categoryExists = categories.some(
+          (item) => {
+            return (
+              String(item.news_category_id)
+              === categoryId
+            );
+          },
+        );
+
+        if (
+          alive
+          && categoryId
+          && categoryExists
+        ) {
+          setActiveCategoryId(categoryId);
+          setStoredCategoryId(categoryId);
+        }
+      } catch {
+        /*
+         * Keep the current category if the notification
+         * target cannot be resolved.
+         */
+      }
+    }
+
+    selectHighlightedCategory();
+
+    return () => {
+      alive = false;
+    };
+  }, [
+    categories,
+    highlightedNewsId,
+  ]);
+
+  useEffect(() => {
     if (!activeCategoryId) {
       setNewsRows([]);
       return;
@@ -571,7 +651,48 @@ export default function LatestNews() {
       setCurrentPage(totalPages);
       setStoredPage(activeCategoryId, totalPages);
     }
-  }, [activeCategoryId, currentPage, newsRows.length]);
+  }, [
+    activeCategoryId,
+    currentPage,
+    newsRows.length,
+  ]);
+
+  useEffect(() => {
+    if (
+      highlightedNewsId <= 0
+      || newsRows.length === 0
+    ) {
+      return;
+    }
+
+    const rowIndex = newsRows.findIndex((row) => {
+      return (
+        Number(row.news_id)
+        === highlightedNewsId
+      );
+    });
+
+    if (rowIndex < 0) {
+      return;
+    }
+
+    const targetPage = (
+      Math.floor(
+        rowIndex / DEFAULT_ROWS_PER_PAGE,
+      ) + 1
+    );
+
+    setCurrentPage(targetPage);
+
+    setStoredPage(
+      activeCategoryId,
+      targetPage,
+    );
+  }, [
+    activeCategoryId,
+    highlightedNewsId,
+    newsRows,
+  ]);
 
   const visibleRows = useMemo(() => {
     const startIndex = (currentPage - 1) * DEFAULT_ROWS_PER_PAGE;
@@ -591,7 +712,20 @@ export default function LatestNews() {
 
     try {
       const detail = await fetchNewsDetail(newsId);
+
       setDetailNews(detail || row);
+
+      try {
+        await markSourceAsRead(
+          "news",
+          newsId,
+        );
+      } catch {
+        /*
+         * Keep the news detail open if notification
+         * synchronization temporarily fails.
+         */
+      }
     } catch (error) {
       setDetailNews({
         ...row,
@@ -764,6 +898,12 @@ export default function LatestNews() {
                   key={row.news_id || index}
                   onClick={() => handleOpenDetail(row)}
                   sx={{
+                    bgcolor: (
+                      Number(row.news_id)
+                      === highlightedNewsId
+                    )
+                      ? "#fff7cc"
+                      : "transparent",
                     display: "grid",
                     gridTemplateColumns: "1fr 160px 160px",
                     minHeight: "50px",
@@ -775,7 +915,12 @@ export default function LatestNews() {
                     cursor: "pointer",
                     transition: "background-color 0.2s ease",
                     "&:hover": {
-                      bgcolor: "#fafafa",
+                      bgcolor: (
+                        Number(row.news_id)
+                        === highlightedNewsId
+                      )
+                        ? "#fff1a8"
+                        : "#fafafa",
                     },
                   }}
                 >
@@ -787,6 +932,24 @@ export default function LatestNews() {
                       alignItems: "center",
                     }}
                   >
+                    {isSourceUnread(
+                      "news",
+                      row.news_id,
+                    ) ? (
+                      <Box
+                        component="span"
+                        aria-label="未讀最新消息"
+                        sx={{
+                          width: "8px",
+                          height: "8px",
+                          borderRadius: "50%",
+                          bgcolor: "#ef4444",
+                          flexShrink: 0,
+                          mr: "8px",
+                        }}
+                      />
+                    ) : null}
+
                     <Typography
                       sx={{
                         fontSize: "15px",

@@ -87,7 +87,14 @@ function isRelatedToEmployee(row, employeeId) {
 }
 
 const PendingTaskTab = forwardRef(function PendingTaskTab(
-  { employeeId, active, onOpenDetail, onRowsChange },
+  {
+    employeeId,
+    active,
+    onOpenDetail,
+    onRowsChange,
+    isSourceUnread,
+    highlightedId = 0,
+  },
   ref,
 ) {
   const [rows, setRows] = useState([]);

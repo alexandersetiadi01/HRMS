@@ -20,6 +20,8 @@ import {
   fetchDepartmentAnnouncementDetail,
   fetchDepartmentAnnouncements,
 } from "../../../API/departmentAnnouncement";
+import { useSearchParams } from "react-router-dom";
+import useNotifications from "../../../Contexts/UseNotification";
 
 function AnnouncementDialog({ open, item, loading = false, onClose }) {
   if (!item && !loading) return null;
@@ -284,6 +286,17 @@ function PaginationBar({ totalRows, currentPage }) {
 }
 
 export default function CompanyAnnouncement() {
+  const [searchParams] = useSearchParams();
+
+  const {
+    isSourceUnread,
+    markSourceAsRead,
+  } = useNotifications();
+
+  const highlightedId = Number(
+    searchParams.get("highlight") || 0,
+  );
+
   const [rows, setRows] = useState([]);
   const [selectedItem, setSelectedItem] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -333,9 +346,26 @@ export default function CompanyAnnouncement() {
     setDetailLoading(true);
 
     try {
-      const detail = await fetchDepartmentAnnouncementDetail(item.id);
+      const detail = (
+        await fetchDepartmentAnnouncementDetail(
+          item.id,
+        )
+      );
+
       setSelectedItem(detail || item);
-    } catch (err) {
+
+      try {
+        await markSourceAsRead(
+          "department_announcement",
+          item.id,
+        );
+      } catch {
+        /*
+         * Keep the announcement open if notification
+         * synchronization temporarily fails.
+         */
+      }
+    } catch {
       setSelectedItem(item);
     } finally {
       setDetailLoading(false);
@@ -377,7 +407,17 @@ export default function CompanyAnnouncement() {
       {!loading && !error && (
         <>
           <Box sx={{ display: { xs: "none", md: "block" } }}>
-            <DesktopTable rows={rows} onOpenItem={handleOpenDialog} />
+            <DesktopTable
+              rows={rows}
+              onOpenItem={handleOpenDialog}
+              highlightedId={highlightedId}
+              isSourceUnread={(sourceId) => {
+                return isSourceUnread(
+                  "department_announcement",
+                  sourceId,
+                );
+              }}
+            />
 
             {rows.length === 0 && (
               <Typography
@@ -395,7 +435,17 @@ export default function CompanyAnnouncement() {
           </Box>
 
           <Box sx={{ display: { xs: "block", md: "none" } }}>
-            <MobileList rows={rows} onOpenItem={handleOpenDialog} />
+            <MobileList
+              rows={rows}
+              onOpenItem={handleOpenDialog}
+              highlightedId={highlightedId}
+              isSourceUnread={(sourceId) => {
+                return isSourceUnread(
+                  "department_announcement",
+                  sourceId,
+                );
+              }}
+            />
 
             {rows.length === 0 && (
               <Typography

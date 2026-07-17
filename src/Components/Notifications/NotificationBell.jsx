@@ -10,6 +10,7 @@ import {
   Typography,
 } from "@mui/material";
 import NotificationsIcon from "@mui/icons-material/Notifications";
+import CloseIcon from "@mui/icons-material/Close";
 import { useNavigate } from "react-router-dom";
 import useNotifications from "../../Contexts/UseNotification";
 
@@ -45,6 +46,37 @@ function normalizeTargetPath(value) {
     : "";
 }
 
+function getNotificationTargetPath(notification) {
+  const sourceType = String(
+    notification?.source_type || "",
+  );
+
+  const sourceId = Number(
+    notification?.source_id || 0,
+  );
+
+  if (sourceId > 0) {
+    const sourceRoutes = {
+      payroll_result: "/payroll",
+      department_announcement: "/announcement",
+      news: "/latest-news",
+      task_assignee: "/to-do-list",
+      sticky_note_recipient: "/sticky-note",
+    };
+
+    if (sourceRoutes[sourceType]) {
+      return (
+        `${sourceRoutes[sourceType]}`
+        + `?highlight=${sourceId}`
+      );
+    }
+  }
+
+  return normalizeTargetPath(
+    notification?.target_path,
+  );
+}
+
 export default function NotificationBell({
   iconColor = "#8b8b8b",
   iconSize = 27,
@@ -52,7 +84,9 @@ export default function NotificationBell({
   const navigate = useNavigate();
   const menuId = useId();
 
-  const [anchorElement, setAnchorElement] = useState(null);
+  const [anchorElement, setAnchorElement] =
+    useState(null);
+
   const [opening, setOpening] = useState(false);
   const [selectedId, setSelectedId] = useState(0);
   const [actionError, setActionError] = useState("");
@@ -64,6 +98,7 @@ export default function NotificationBell({
     error,
     refreshNotifications,
     markAsRead,
+    dismissNotification,
   } = useNotifications();
 
   const open = Boolean(anchorElement);
@@ -87,13 +122,15 @@ export default function NotificationBell({
     setActionError("");
   }
 
-  async function handleNotificationClick(notification) {
+  async function handleNotificationClick(
+    notification,
+  ) {
     const notificationId = Number(
       notification?.notification_id || 0,
     );
 
-    const targetPath = normalizeTargetPath(
-      notification?.target_path,
+    const targetPath = getNotificationTargetPath(
+      notification,
     );
 
     setActionError("");
@@ -103,6 +140,8 @@ export default function NotificationBell({
       if (
         notificationId
         && !notification?.is_read
+        && notification?.notification_type
+          === "clock_out_reminder"
       ) {
         await markAsRead(notificationId);
       }
@@ -118,6 +157,37 @@ export default function NotificationBell({
         || clickError?.response?.data?.data?.message
         || clickError?.message
         || "無法更新通知狀態，請稍後再試。",
+      );
+    } finally {
+      setSelectedId(0);
+    }
+  }
+
+  async function handleDismiss(
+    event,
+    notification,
+  ) {
+    event.stopPropagation();
+
+    const notificationId = Number(
+      notification?.notification_id || 0,
+    );
+
+    if (!notificationId) {
+      return;
+    }
+
+    setActionError("");
+    setSelectedId(notificationId);
+
+    try {
+      await dismissNotification(notificationId);
+    } catch (dismissError) {
+      setActionError(
+        dismissError?.response?.data?.message
+        || dismissError?.response?.data?.data?.message
+        || dismissError?.message
+        || "無法移除通知，請稍後再試。",
       );
     } finally {
       setSelectedId(0);
@@ -160,7 +230,9 @@ export default function NotificationBell({
           }}
         >
           <NotificationsIcon
-            sx={{ fontSize: iconSize }}
+            sx={{
+              fontSize: iconSize,
+            }}
           />
         </Badge>
       </IconButton>
@@ -190,7 +262,8 @@ export default function NotificationBell({
               borderRadius: "14px",
               overflow: "hidden",
               boxShadow: (
-                "0 14px 34px rgba(15, 23, 42, 0.18)"
+                "0 14px 34px "
+                + "rgba(15, 23, 42, 0.18)"
               ),
             },
           },
@@ -293,97 +366,154 @@ export default function NotificationBell({
               </Box>
             ) : null}
 
-          {notifications.map((notification, index) => {
-            const notificationId = Number(
-              notification?.notification_id || 0,
-            );
+                   {notifications.map((notification, index) => {
+              const notificationId = Number(
+                notification?.notification_id || 0,
+              );
 
-            const isUnread = !notification?.is_read;
-            const isSelected = (
-              selectedId === notificationId
-            );
+              const isUnread =
+                !notification?.is_read;
 
-            return (
-              <Box key={notificationId || `${index}`}>
+              const isSelected =
+                selectedId === notificationId;
+
+              return (
                 <Box
-                  component="button"
-                  type="button"
-                  disabled={isSelected}
-                  onClick={() => (
-                    handleNotificationClick(notification)
-                  )}
-                  sx={{
-                    width: "100%",
-                    border: 0,
-                    px: "16px",
-                    py: "13px",
-                    bgcolor: isUnread
-                      ? "#f0f9ff"
-                      : "#ffffff",
-                    display: "grid",
-                    gridTemplateColumns: (
-                      "10px minmax(0, 1fr) auto"
-                    ),
-                    gap: "10px",
-                    alignItems: "start",
-                    textAlign: "left",
-                    cursor: isSelected
-                      ? "wait"
-                      : "pointer",
-                    opacity: isSelected ? 0.65 : 1,
-                    "&:hover": {
-                      bgcolor: isUnread
-                        ? "#e0f2fe"
-                        : "#f9fafb",
-                    },
-                  }}
+                  key={
+                    notificationId
+                    || `${index}`
+                  }
                 >
                   <Box
+                    role="button"
+                    tabIndex={isSelected ? -1 : 0}
+                    aria-disabled={isSelected}
+                    onClick={() => {
+                      handleNotificationClick(
+                        notification,
+                      );
+                    }}
+                    onKeyDown={(event) => {
+                      if (
+                        !isSelected
+                        && (
+                          event.key === "Enter"
+                          || event.key === " "
+                        )
+                      ) {
+                        event.preventDefault();
+
+                        handleNotificationClick(
+                          notification,
+                        );
+                      }
+                    }}
                     sx={{
-                      width: "8px",
-                      height: "8px",
-                      mt: "6px",
-                      borderRadius: "50%",
+                      width: "100%",
+                      border: 0,
+                      px: "16px",
+                      py: "13px",
                       bgcolor: isUnread
-                        ? "#ef4444"
-                        : "transparent",
-                    }}
-                  />
-
-                  <Typography
-                    sx={{
-                      minWidth: 0,
-                      fontSize: "14px",
-                      lineHeight: 1.45,
-                      fontWeight: isUnread ? 700 : 400,
-                      color: "#1f2937",
-                      overflowWrap: "anywhere",
-                    }}
-                  >
-                    {notification?.subject
-                      || "未命名通知"}
-                  </Typography>
-
-                  <Typography
-                    sx={{
-                      pt: "2px",
-                      fontSize: "11px",
-                      color: "#9ca3af",
-                      whiteSpace: "nowrap",
+                        ? "#f0f9ff"
+                        : "#ffffff",
+                      display: "grid",
+                      gridTemplateColumns: (
+                        "10px minmax(0, 1fr) "
+                        + "auto 24px"
+                      ),
+                      gap: "10px",
+                      alignItems: "start",
+                      textAlign: "left",
+                      cursor: isSelected
+                        ? "wait"
+                        : "pointer",
+                      opacity: isSelected
+                        ? 0.65
+                        : 1,
+                      "&:hover": {
+                        bgcolor: isUnread
+                          ? "#e0f2fe"
+                          : "#f9fafb",
+                      },
                     }}
                   >
-                    {formatNotificationTime(
-                      notification?.created_at,
-                    )}
-                  </Typography>
+                    <Box
+                      sx={{
+                        width: "8px",
+                        height: "8px",
+                        mt: "6px",
+                        borderRadius: "50%",
+                        bgcolor: isUnread
+                          ? "#ef4444"
+                          : "transparent",
+                      }}
+                    />
+
+                    <Typography
+                      sx={{
+                        minWidth: 0,
+                        fontSize: "14px",
+                        lineHeight: 1.45,
+                        fontWeight: isUnread
+                          ? 700
+                          : 400,
+                        color: "#1f2937",
+                        overflowWrap: "anywhere",
+                      }}
+                    >
+                      {notification?.subject
+                        || "未命名通知"}
+                    </Typography>
+
+                    <Typography
+                      sx={{
+                        pt: "2px",
+                        fontSize: "11px",
+                        color: "#9ca3af",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {formatNotificationTime(
+                        notification?.created_at,
+                      )}
+                    </Typography>
+
+                    <IconButton
+                      type="button"
+                      size="small"
+                      aria-label="移除此通知"
+                      disabled={isSelected}
+                      onClick={(event) => {
+                        handleDismiss(
+                          event,
+                          notification,
+                        );
+                      }}
+                      sx={{
+                        width: "24px",
+                        height: "24px",
+                        p: 0,
+                        color: "#9ca3af",
+                        "&:hover": {
+                          color: "#dc2626",
+                          bgcolor: "#fee2e2",
+                        },
+                      }}
+                    >
+                      <CloseIcon
+                        sx={{
+                          fontSize: "17px",
+                        }}
+                      />
+                    </IconButton>
+                  </Box>
+
+                  {index < notifications.length - 1 ? (
+                    <Divider />
+                  ) : null}
                 </Box>
-
-                {index < notifications.length - 1 ? (
-                  <Divider />
-                ) : null}
-              </Box>
-            );
-          })}
+              );
+            })}
         </Box>
       </Popover>
     </>

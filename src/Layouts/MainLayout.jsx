@@ -23,6 +23,7 @@ import NotificationConsentDialog from "../Components/NotificationConsentDialog";
 import { shouldPromptLocationConsent } from "../Utils/LocationConsent";
 import NotificationProvider from "../Contexts/NotificationProvider";
 import NotificationBell from "../Components/Notifications/NotificationBell";
+import NotificationRouteReadTracker from "../Components/Notifications/NotificationRouteReadTracker";
 
 function MainLayout() {
   const navigate = useNavigate();
@@ -76,6 +77,8 @@ function MainLayout() {
       key={employeeId || "no-employee"}
       employeeId={employeeId}
     >
+      <NotificationRouteReadTracker />
+
       <Box sx={{ minHeight: "100vh", bgcolor: "#f3f4f6" }}>
       <LocationConsentDialog
         onResolved={handleLocationConsentResolved}

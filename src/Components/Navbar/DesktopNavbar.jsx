@@ -1,22 +1,51 @@
-import { Box } from "@mui/material";
+import { Badge, Box } from "@mui/material";
 import { NavLink } from "react-router-dom";
+import useNotifications from "../../Contexts/UseNotification";
 
 const NAV_ITEMS = [
-  { label: "首頁", to: "/", disable: false },
-  { label: "考勤", to: "/attendance", disable: false },
-  { label: "帳戶資訊", to: "/account", disable: false },
-  { label: "薪資單", to: "/payroll", disable: false },
-  { label: "儀表板", to: "/dashboard", disable: true },
+  {
+    label: "首頁",
+    to: "/",
+    disable: false,
+    notificationKey: "home",
+  },
+  {
+    label: "考勤",
+    to: "/attendance",
+    disable: false,
+    notificationKey: "attendance",
+  },
+  {
+    label: "帳戶資訊",
+    to: "/account",
+    disable: false,
+  },
+  {
+    label: "薪資單",
+    to: "/payroll",
+    disable: false,
+    notificationKey: "payroll",
+  },
+  {
+    label: "儀表板",
+    to: "/dashboard",
+    disable: true,
+  },
 ];
 
 export default function DesktopNavbar() {
+  const { menuDots } = useNotifications();
+
   return (
     <Box
       sx={{
         width: "100%",
         height: "40px",
         bgcolor: "#0c93d4",
-        display: { xs: "none", md: "block" },
+        display: {
+          xs: "none",
+          md: "block",
+        },
       }}
     >
       <Box
@@ -24,7 +53,9 @@ export default function DesktopNavbar() {
           width: "100%",
           maxWidth: "1180px",
           mx: "auto",
-          px: { md: "24px" },
+          px: {
+            md: "24px",
+          },
           height: "40px",
           display: "flex",
           alignItems: "center",
@@ -34,12 +65,21 @@ export default function DesktopNavbar() {
         {NAV_ITEMS.map((item) => {
           const isDisabled = item.disable;
 
+          const showNotificationDot = Boolean(
+            item.notificationKey
+            && menuDots?.[item.notificationKey],
+          );
+
           return (
             <Box
               key={item.label}
               component={isDisabled ? "div" : NavLink}
               to={isDisabled ? undefined : item.to}
-              onClick={isDisabled ? (e) => e.preventDefault() : undefined}
+              onClick={
+                isDisabled
+                  ? (event) => event.preventDefault()
+                  : undefined
+              }
               sx={{
                 minWidth: "fit-content",
                 px: "18px",
@@ -51,8 +91,12 @@ export default function DesktopNavbar() {
                 textDecoration: "none",
                 position: "relative",
                 flexShrink: 0,
-                color: isDisabled ? "#93c5fd" : "#dbeafe",
-                cursor: isDisabled ? "not-allowed" : "pointer",
+                color: isDisabled
+                  ? "#93c5fd"
+                  : "#dbeafe",
+                cursor: isDisabled
+                  ? "not-allowed"
+                  : "pointer",
                 opacity: isDisabled ? 0.6 : 1,
 
                 ...(isDisabled
@@ -69,14 +113,43 @@ export default function DesktopNavbar() {
                         transform: "translateX(-50%)",
                         width: 0,
                         height: 0,
-                        borderLeft: "6px solid transparent",
-                        borderRight: "6px solid transparent",
-                        borderBottom: "6px solid #ffffff",
+                        borderLeft: (
+                          "6px solid transparent"
+                        ),
+                        borderRight: (
+                          "6px solid transparent"
+                        ),
+                        borderBottom: (
+                          "6px solid #ffffff"
+                        ),
                       },
                     }),
               }}
             >
-              {item.label}
+              <Badge
+                color="error"
+                variant="dot"
+                overlap="rectangular"
+                invisible={!showNotificationDot}
+                anchorOrigin={{
+                  vertical: "top",
+                  horizontal: "right",
+                }}
+                sx={{
+                  "& .MuiBadge-badge": {
+                    top: "1px",
+                    right: "-7px",
+                    width: "8px",
+                    minWidth: "8px",
+                    height: "8px",
+                    borderRadius: "50%",
+                  },
+                }}
+              >
+                <Box component="span">
+                  {item.label}
+                </Box>
+              </Badge>
             </Box>
           );
         })}

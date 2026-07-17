@@ -6,9 +6,13 @@ import {
   useState,
 } from "react";
 import {
+  dismissNotification,
   fetchNotifications,
   fetchNotificationSummary,
+  fetchUnreadNotificationSources,
   markNotificationRead,
+  markNotificationSourceRead,
+  markNotificationTypesRead,
 } from "../API/notification";
 import NotificationContext from "./NotificationContext";
 
@@ -27,6 +31,7 @@ const EMPTY_SUMMARY = Object.freeze({
     announcement: 0,
     "latest-news": 0,
     "to-do-list": 0,
+    "sticky-note": 0,
   },
   menu_dots: {
     home: false,
@@ -65,6 +70,9 @@ function normalizeSummary(summary) {
       "to-do-list": normalizeCount(
         summary?.shortcuts?.["to-do-list"],
       ),
+      "sticky-note": normalizeCount(
+        summary?.shortcuts?.["sticky-note"],
+      ),
     },
     menu_dots: {
       home: Boolean(summary?.menu_dots?.home),
@@ -90,6 +98,7 @@ export default function NotificationProvider({
   const normalizedEmployeeId = Number(employeeId || 0);
 
   const [notifications, setNotifications] = useState([]);
+  const [unreadSources, setUnreadSources] = useState([]);
   const [summary, setSummary] = useState(EMPTY_SUMMARY);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -110,15 +119,18 @@ export default function NotificationProvider({
       setLoading(true);
     }
 
-    const [summaryResult, notificationsResult] = (
-      await Promise.allSettled([
-        fetchNotificationSummary(),
-        fetchNotifications({
-          page: 1,
-          per_page: 20,
-        }),
-      ])
-    );
+    const [
+      summaryResult,
+      notificationsResult,
+      unreadSourcesResult,
+    ] = await Promise.allSettled([
+      fetchNotificationSummary(),
+      fetchNotifications({
+        page: 1,
+        per_page: 20,
+      }),
+      fetchUnreadNotificationSources(),
+    ]);
 
     if (requestId !== requestIdRef.current) {
       return;
@@ -127,7 +139,9 @@ export default function NotificationProvider({
     const errors = [];
 
     if (summaryResult.status === "fulfilled") {
-      setSummary(normalizeSummary(summaryResult.value));
+      setSummary(
+        normalizeSummary(summaryResult.value),
+      );
     } else {
       errors.push(summaryResult.reason);
     }
@@ -142,6 +156,16 @@ export default function NotificationProvider({
       errors.push(notificationsResult.reason);
     }
 
+    if (unreadSourcesResult.status === "fulfilled") {
+      const items = unreadSourcesResult.value?.items;
+
+      setUnreadSources(
+        Array.isArray(items) ? items : [],
+      );
+    } else {
+      errors.push(unreadSourcesResult.reason);
+    }
+
     setError(
       errors.length
         ? getErrorMessage(errors[0])
@@ -151,15 +175,19 @@ export default function NotificationProvider({
     setLoading(false);
   }, [normalizedEmployeeId]);
 
-  const markAsRead = useCallback(async (notificationId) => {
-    const normalizedId = Number(notificationId || 0);
+  const markAsRead = useCallback(async (
+    notificationId,
+  ) => {
+    const normalizedId = Number(
+      notificationId || 0,
+    );
 
     if (!normalizedId) {
       return null;
     }
 
-    const updatedNotification = await markNotificationRead(
-      normalizedId,
+    const updatedNotification = (
+      await markNotificationRead(normalizedId)
     );
 
     await refreshNotifications({
@@ -169,6 +197,124 @@ export default function NotificationProvider({
     return updatedNotification;
   }, [refreshNotifications]);
 
+  const markTypesAsRead = useCallback(async (
+    notificationTypes,
+  ) => {
+    const normalizedTypes = Array.from(
+      new Set(
+        (
+          Array.isArray(notificationTypes)
+            ? notificationTypes
+            : []
+        )
+          .map((type) => String(type || "").trim())
+          .filter(Boolean),
+      ),
+    );
+
+    if (normalizedTypes.length === 0) {
+      return null;
+    }
+
+    try {
+      const result = await markNotificationTypesRead(
+        normalizedTypes,
+      );
+
+      await refreshNotifications({
+        silent: true,
+      });
+
+      return result;
+    } catch (markError) {
+      setError(getErrorMessage(markError));
+      throw markError;
+    }
+  }, [refreshNotifications]);
+
+  const markSourceAsRead = useCallback(async (
+    sourceType,
+    sourceId,
+  ) => {
+    const normalizedType = String(
+      sourceType || "",
+    ).trim();
+
+    const normalizedId = Number(sourceId || 0);
+
+    if (!normalizedType || !normalizedId) {
+      return null;
+    }
+
+    const result = await markNotificationSourceRead(
+      normalizedType,
+      normalizedId,
+    );
+
+    await refreshNotifications({
+      silent: true,
+    });
+
+    return result;
+  }, [refreshNotifications]);
+
+  const dismiss = useCallback(async (
+    notificationId,
+  ) => {
+    const normalizedId = Number(
+      notificationId || 0,
+    );
+
+    if (!normalizedId) {
+      return null;
+    }
+
+    const result = await dismissNotification(
+      normalizedId,
+    );
+
+    await refreshNotifications({
+      silent: true,
+    });
+
+    return result;
+  }, [refreshNotifications]);
+
+  const unreadSourceKeys = useMemo(() => {
+    return new Set(
+      unreadSources.map((item) => {
+        const sourceType = String(
+          item?.source_type || "",
+        );
+
+        const sourceId = Number(
+          item?.source_id || 0,
+        );
+
+        return `${sourceType}:${sourceId}`;
+      }),
+    );
+  }, [unreadSources]);
+
+  const isSourceUnread = useCallback((
+    sourceType,
+    sourceId,
+  ) => {
+    const normalizedType = String(
+      sourceType || "",
+    ).trim();
+
+    const normalizedId = Number(sourceId || 0);
+
+    if (!normalizedType || !normalizedId) {
+      return false;
+    }
+
+    return unreadSourceKeys.has(
+      `${normalizedType}:${normalizedId}`,
+    );
+  }, [unreadSourceKeys]);
+
   useEffect(() => {
     requestIdRef.current += 1;
 
@@ -176,9 +322,12 @@ export default function NotificationProvider({
       return undefined;
     }
 
-    const initialRefreshId = window.setTimeout(() => {
-      refreshNotifications();
-    }, 0);
+    const initialRefreshId = window.setTimeout(
+      () => {
+        refreshNotifications();
+      },
+      0,
+    );
 
     const handleFocus = () => {
       refreshNotifications({
@@ -187,22 +336,32 @@ export default function NotificationProvider({
     };
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
+      if (
+        document.visibilityState === "visible"
+      ) {
         refreshNotifications({
           silent: true,
         });
       }
     };
 
-    const intervalId = window.setInterval(() => {
-      if (document.visibilityState === "visible") {
-        refreshNotifications({
-          silent: true,
-        });
-      }
-    }, REFRESH_INTERVAL_MS);
+    const intervalId = window.setInterval(
+      () => {
+        if (
+          document.visibilityState === "visible"
+        ) {
+          refreshNotifications({
+            silent: true,
+          });
+        }
+      },
+      REFRESH_INTERVAL_MS,
+    );
 
-    window.addEventListener("focus", handleFocus);
+    window.addEventListener(
+      "focus",
+      handleFocus,
+    );
 
     document.addEventListener(
       "visibilitychange",
@@ -232,6 +391,7 @@ export default function NotificationProvider({
 
   const value = useMemo(() => ({
     notifications,
+    unreadSources,
     summary,
     totalUnread: summary.total,
     unreadSections: summary.sections,
@@ -241,13 +401,22 @@ export default function NotificationProvider({
     error,
     refreshNotifications,
     markAsRead,
+    markTypesAsRead,
+    markSourceAsRead,
+    dismissNotification: dismiss,
+    isSourceUnread,
   }), [
+    dismiss,
     error,
+    isSourceUnread,
     loading,
     markAsRead,
+    markSourceAsRead,
+    markTypesAsRead,
     notifications,
     refreshNotifications,
     summary,
+    unreadSources,
   ]);
 
   return (

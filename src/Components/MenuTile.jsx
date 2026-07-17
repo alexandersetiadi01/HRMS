@@ -1,4 +1,4 @@
-import { Box, Typography } from "@mui/material";
+import { Badge, Box, Typography } from "@mui/material";
 import { NavLink } from "react-router-dom";
 import { renderMenuIcon } from "../Utils/Menu/MenuRegistry";
 
@@ -10,8 +10,14 @@ export default function MenuTile({
   iconBoxSx = {},
   labelSx = {},
   onClick,
+  badgeCount = 0,
 }) {
   const isDisabled = !!item.disable;
+
+  const normalizedBadgeCount = Math.max(
+    0,
+    Math.floor(Number(badgeCount) || 0),
+  );
 
   return (
     <Box
@@ -37,22 +43,45 @@ export default function MenuTile({
         ...wrapperSx,
       }}
     >
-      <Box
+      <Badge
+        color="error"
+        badgeContent={normalizedBadgeCount}
+        max={99}
+        overlap="rectangular"
+        invisible={normalizedBadgeCount <= 0}
+        anchorOrigin={{
+          vertical: "top",
+          horizontal: "right",
+        }}
         sx={{
-          width: "72px",
-          height: "72px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          filter: isDisabled ? "grayscale(100%) opacity(0.6)" : "none",
-          ...iconBoxSx,
+          "& .MuiBadge-badge": {
+            minWidth: "20px",
+            height: "20px",
+            px: "5px",
+            fontSize: "11px",
+            fontWeight: 700,
+          },
         }}
       >
-        {renderMenuIcon(item.iconKey, {
-          size: iconSize,
-          color: iconColor,
-        })}
-      </Box>
+        <Box
+          sx={{
+            width: "72px",
+            height: "72px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            filter: isDisabled
+              ? "grayscale(100%) opacity(0.6)"
+              : "none",
+            ...iconBoxSx,
+          }}
+        >
+          {renderMenuIcon(item.iconKey, {
+            size: iconSize,
+            color: iconColor,
+          })}
+        </Box>
+      </Badge>
 
       <Typography
         sx={{

@@ -13,12 +13,16 @@ import {
   useMediaQuery,
   useTheme,
 } from "@mui/material";
-import { useNavigate } from "react-router-dom";
+import {
+  useNavigate,
+  useSearchParams,
+} from "react-router-dom";
 import Breadcrumb from "../../Utils/Breadcrumb";
 import { getMyPayslipDetail, getMyPayslips } from "../../API/payroll";
 import PayrollPasswordDialog, {
   PAYROLL_VERIFICATION_STORAGE_KEY,
 } from "./PayrollPasswordDialog";
+import useNotifications from "../../Contexts/UseNotification";
 
 function formatDate(value) {
   if (!value) return "-";
@@ -38,8 +42,21 @@ function formatDate(value) {
 
 export default function PayrollPage() {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const isMobile = useMediaQuery(
+    theme.breakpoints.down("md"),
+  );
+
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  const {
+    isSourceUnread,
+    markSourceAsRead,
+  } = useNotifications();
+
+  const highlightedPayrollId = Number(
+    searchParams.get("highlight") || 0,
+  );
 
   const [payrollList, setPayrollList] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -103,7 +120,22 @@ export default function PayrollPage() {
       throw new Error("薪資單明細資料格式不正確，請聯絡管理人員確認後端資料。");
     }
 
-    sessionStorage.setItem(PAYROLL_VERIFICATION_STORAGE_KEY, token);
+    sessionStorage.setItem(
+      PAYROLL_VERIFICATION_STORAGE_KEY,
+      token,
+    );
+
+    try {
+      await markSourceAsRead(
+        "payroll_result",
+        selectedPayrollId,
+      );
+    } catch {
+      /*
+       * The payroll detail must still open if notification
+       * synchronization temporarily fails.
+       */
+    }
 
     navigate(`/payroll/${selectedPayrollId}`, {
       state: {
@@ -139,47 +171,103 @@ export default function PayrollPage() {
       );
     }
 
-    return payrollList.map((item) => (
-      <TableRow
-        key={item.payroll_result_id}
-        hover={!isMobile}
-        onClick={() => handleOpenPasswordDialog(item.payroll_result_id)}
-        sx={{
-          cursor: "pointer",
-          transition: "background-color 0.2s ease",
-          "&:hover": {
-            bgcolor: isMobile ? "transparent" : "#eaf4fb",
-          },
-        }}
-      >
-        <TableCell
-          sx={{
-            minWidth: 0,
-            px: isMobile ? "8px" : "10px",
-            py: isMobile ? "12px" : "16px",
-            fontSize: isMobile ? "15px" : "16px",
-            color: isMobile ? "#0c93d4" : "#1f2937",
-            fontWeight: isMobile ? 700 : 400,
-            wordBreak: "break-word",
-          }}
-        >
-          {item.title ||
-            `${item.year}/${String(item.month).padStart(2, "0")} 薪資單`}
-        </TableCell>
+    return payrollList.map((item) => {
+      const payrollId = Number(
+        item.payroll_result_id || 0,
+      );
 
-        <TableCell
+      const isUnread = isSourceUnread(
+        "payroll_result",
+        payrollId,
+      );
+
+      const isHighlighted = (
+        payrollId > 0
+        && payrollId === highlightedPayrollId
+      );
+
+      return (
+        <TableRow
+          key={item.payroll_result_id}
+          hover={!isMobile}
+          onClick={() => {
+            handleOpenPasswordDialog(
+              item.payroll_result_id,
+            );
+          }}
           sx={{
-            px: isMobile ? "8px" : "10px",
-            py: isMobile ? "12px" : "16px",
-            fontSize: isMobile ? "15px" : "16px",
-            color: "#1f2937",
-            whiteSpace: "nowrap",
+            cursor: "pointer",
+            transition: "background-color 0.2s ease",
+            bgcolor: isHighlighted
+              ? "#fff7cc"
+              : "transparent",
+            "&:hover": {
+              bgcolor: isHighlighted
+                ? "#fff1a8"
+                : isMobile
+                  ? "transparent"
+                  : "#eaf4fb",
+            },
           }}
         >
-          {formatDate(item.pay_date)}
-        </TableCell>
-      </TableRow>
-    ));
+          <TableCell
+            sx={{
+              minWidth: 0,
+              px: isMobile ? "8px" : "10px",
+              py: isMobile ? "12px" : "16px",
+              fontSize: isMobile ? "15px" : "16px",
+              color: isMobile
+                ? "#0c93d4"
+                : "#1f2937",
+              fontWeight: isMobile ? 700 : 400,
+              wordBreak: "break-word",
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+              }}
+            >
+              {isUnread ? (
+                <Box
+                  component="span"
+                  aria-label="未讀薪資單"
+                  sx={{
+                    width: "8px",
+                    height: "8px",
+                    borderRadius: "50%",
+                    bgcolor: "#ef4444",
+                    flexShrink: 0,
+                  }}
+                />
+              ) : null}
+
+              <Box component="span">
+                {item.title || (
+                  `${item.year}/`
+                  + `${String(item.month).padStart(2, "0")}`
+                  + " 薪資單"
+                )}
+              </Box>
+            </Box>
+          </TableCell>
+
+          <TableCell
+            sx={{
+              px: isMobile ? "8px" : "10px",
+              py: isMobile ? "12px" : "16px",
+              fontSize: isMobile ? "15px" : "16px",
+              color: "#1f2937",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {formatDate(item.pay_date)}
+          </TableCell>
+        </TableRow>
+      );
+    });
   };
 
   return (
