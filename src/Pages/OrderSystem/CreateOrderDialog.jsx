@@ -125,8 +125,7 @@ export default function CreateOrderDialog({
     }
 
     if (
-      new Date(form.deadline_at).getTime() <=
-      new Date(form.start_at).getTime()
+      new Date(form.deadline_at).getTime() <= new Date(form.start_at).getTime()
     ) {
       notify("截止時間必須晚於開始時間。", "warning");
       return false;
@@ -208,14 +207,53 @@ export default function CreateOrderDialog({
       onClose={submitting ? undefined : onClose}
       fullWidth
       maxWidth="lg"
+      PaperProps={{
+        sx: {
+          width: {
+            xs: "calc(100vw - 16px)",
+            sm: "calc(100vw - 64px)",
+          },
+          m: { xs: "8px", sm: "32px" },
+          maxHeight: {
+            xs: "calc(100dvh - 16px)",
+            sm: "calc(100dvh - 64px)",
+          },
+        },
+      }}
     >
-      <DialogTitle sx={{ fontSize: "20px", fontWeight: 700 }}>
+      <DialogTitle
+        sx={{
+          px: { xs: "16px", sm: "24px" },
+          py: { xs: "12px", sm: "16px" },
+          fontSize: { xs: "18px", sm: "20px" },
+          fontWeight: 700,
+        }}
+      >
         新增訂單
       </DialogTitle>
 
-      <DialogContent dividers>
-        <Stack spacing={3}>
-          <Stepper activeStep={activeStep}>
+      <DialogContent
+        dividers
+        sx={{
+          px: { xs: "12px", sm: "24px" },
+          py: { xs: "16px", sm: "20px" },
+        }}
+      >
+        <Stack spacing={{ xs: 2, sm: 3 }}>
+          <Stepper
+            activeStep={activeStep}
+            sx={{
+              px: { xs: 0, sm: "16px" },
+              "& .MuiStep-root": {
+                px: { xs: "4px", sm: "8px" },
+              },
+              "& .MuiStepLabel-label": {
+                mt: { xs: "4px", sm: 0 },
+                fontSize: { xs: "12px", sm: "14px" },
+                lineHeight: 1.35,
+              },
+            }}
+          >
             <Step>
               <StepLabel>建立訂單資料</StepLabel>
             </Step>
@@ -298,12 +336,13 @@ export default function CreateOrderDialog({
                 }
               />
 
-              <Stack direction={{ xs: "column", md: "row" }} spacing={1.5}>
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
                 <Box
                   sx={{
+                    flex: 1,
                     border: "1px solid #d8d8d8",
                     p: "12px",
-                    minWidth: "160px",
+                    minWidth: 0,
                   }}
                 >
                   <Typography sx={{ fontSize: "13px", color: "#6b7280" }}>
@@ -316,9 +355,10 @@ export default function CreateOrderDialog({
 
                 <Box
                   sx={{
+                    flex: 1,
                     border: "1px solid #d8d8d8",
                     p: "12px",
-                    minWidth: "160px",
+                    minWidth: 0,
                   }}
                 >
                   <Typography sx={{ fontSize: "13px", color: "#6b7280" }}>
@@ -331,9 +371,10 @@ export default function CreateOrderDialog({
 
                 <Box
                   sx={{
+                    flex: 1,
                     border: "1px solid #d8d8d8",
                     p: "12px",
-                    minWidth: "160px",
+                    minWidth: 0,
                   }}
                 >
                   <Typography sx={{ fontSize: "13px", color: "#6b7280" }}>
@@ -363,12 +404,13 @@ export default function CreateOrderDialog({
                 onChange={(value) => updateField("order_items", value)}
               />
 
-              <Stack direction={{ xs: "column", md: "row" }} spacing={1.5}>
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
                 <Box
                   sx={{
+                    flex: 1,
                     border: "1px solid #d8d8d8",
                     p: "12px",
-                    minWidth: "160px",
+                    minWidth: 0,
                   }}
                 >
                   <Typography sx={{ fontSize: "13px", color: "#6b7280" }}>
@@ -381,9 +423,10 @@ export default function CreateOrderDialog({
 
                 <Box
                   sx={{
+                    flex: 1,
                     border: "1px solid #d8d8d8",
                     p: "12px",
-                    minWidth: "160px",
+                    minWidth: 0,
                   }}
                 >
                   <Typography sx={{ fontSize: "13px", color: "#6b7280" }}>
@@ -396,9 +439,10 @@ export default function CreateOrderDialog({
 
                 <Box
                   sx={{
+                    flex: 1,
                     border: "1px solid #d8d8d8",
                     p: "12px",
-                    minWidth: "160px",
+                    minWidth: 0,
                   }}
                 >
                   <Typography sx={{ fontSize: "13px", color: "#6b7280" }}>
@@ -414,13 +458,31 @@ export default function CreateOrderDialog({
         </Stack>
       </DialogContent>
 
-      <DialogActions sx={{ p: "16px 24px" }}>
-        <Button disabled={submitting} onClick={onClose}>
+      <DialogActions
+        sx={{
+          px: { xs: "12px", sm: "24px" },
+          py: { xs: "12px", sm: "16px" },
+          flexDirection: { xs: "column-reverse", sm: "row" },
+          gap: { xs: "8px", sm: 0 },
+          "& > :not(style) ~ :not(style)": {
+            ml: { xs: 0, sm: "8px" },
+          },
+        }}
+      >
+        <Button
+          disabled={submitting}
+          onClick={onClose}
+          sx={{ width: { xs: "100%", sm: "auto" } }}
+        >
           取消
         </Button>
 
         {activeStep > 0 ? (
-          <Button disabled={submitting} onClick={handleBack}>
+          <Button
+            disabled={submitting}
+            onClick={handleBack}
+            sx={{ width: { xs: "100%", sm: "auto" } }}
+          >
             上一步
           </Button>
         ) : null}
@@ -430,6 +492,7 @@ export default function CreateOrderDialog({
             variant="contained"
             disabled={loading || submitting}
             onClick={handleNext}
+            sx={{ width: { xs: "100%", sm: "auto" } }}
           >
             下一步
           </Button>
@@ -438,6 +501,7 @@ export default function CreateOrderDialog({
             variant="contained"
             disabled={loading || submitting}
             onClick={handleSubmit}
+            sx={{ width: { xs: "100%", sm: "auto" } }}
           >
             儲存訂單
           </Button>

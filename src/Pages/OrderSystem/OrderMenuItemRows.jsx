@@ -68,12 +68,7 @@ export default function OrderMenuItemRows({
     onChange(nextRows);
   };
 
-  const updateDetailRow = (
-    employeeIndex,
-    detailIndex,
-    field,
-    fieldValue,
-  ) => {
+  const updateDetailRow = (employeeIndex, detailIndex, field, fieldValue) => {
     const nextRows = rows.map((row, rowIndex) => {
       if (rowIndex !== employeeIndex) {
         return row;
@@ -174,14 +169,15 @@ export default function OrderMenuItemRows({
             sx={{
               border: "1px solid #d8d8d8",
               borderRadius: "4px",
-              p: "14px",
+              p: { xs: "10px", sm: "14px" },
               bgcolor: "#ffffff",
             }}
           >
             <Stack
-              direction="row"
+              direction={{ xs: "column", sm: "row" }}
               justifyContent="space-between"
-              alignItems="center"
+              alignItems={{ xs: "stretch", sm: "center" }}
+              spacing={{ xs: 1, sm: 0 }}
               sx={{ mb: "12px" }}
             >
               <Typography sx={{ fontSize: "15px", fontWeight: 700 }}>
@@ -194,6 +190,7 @@ export default function OrderMenuItemRows({
                 disabled={disabled}
                 onClick={() => removeEmployeeRow(employeeIndex)}
                 sx={{
+                  width: { xs: "100%", sm: "auto" },
                   minWidth: "90px",
                   height: "30px",
                   fontSize: "13px",
@@ -209,9 +206,11 @@ export default function OrderMenuItemRows({
                   display: "grid",
                   gridTemplateColumns: {
                     xs: "1fr",
+                    sm: "120px minmax(0, 1fr)",
                     md: "150px minmax(0, 1fr)",
                   },
                   columnGap: "10px",
+                  rowGap: { xs: "6px", sm: 0 },
                   alignItems: "center",
                 }}
               >
@@ -248,9 +247,11 @@ export default function OrderMenuItemRows({
                   display: "grid",
                   gridTemplateColumns: {
                     xs: "1fr",
+                    sm: "120px minmax(0, 1fr)",
                     md: "150px minmax(0, 1fr)",
                   },
                   columnGap: "10px",
+                  rowGap: { xs: "6px", sm: 0 },
                   alignItems: "center",
                 }}
               >
@@ -281,13 +282,20 @@ export default function OrderMenuItemRows({
                   display: "grid",
                   gridTemplateColumns: {
                     xs: "1fr",
+                    sm: "120px minmax(0, 1fr)",
                     md: "150px minmax(0, 1fr)",
                   },
                   columnGap: "10px",
+                  rowGap: { xs: "6px", sm: 0 },
                   alignItems: "flex-start",
                 }}
               >
-                <Typography sx={{ fontSize: "14px", pt: "8px" }}>
+                <Typography
+                  sx={{
+                    fontSize: "14px",
+                    pt: { xs: 0, sm: "8px" },
+                  }}
+                >
                   備註
                 </Typography>
 
@@ -299,11 +307,7 @@ export default function OrderMenuItemRows({
                   value={row.note || ""}
                   disabled={disabled}
                   onChange={(event) =>
-                    updateEmployeeRow(
-                      employeeIndex,
-                      "note",
-                      event.target.value,
-                    )
+                    updateEmployeeRow(employeeIndex, "note", event.target.value)
                   }
                 />
               </Box>
@@ -320,11 +324,18 @@ export default function OrderMenuItemRows({
                       sx={{
                         display: "grid",
                         gridTemplateColumns: {
-                          xs: "1fr",
+                          xs: "minmax(0, 1fr) 84px 34px 34px",
+                          sm: "minmax(0, 1fr) 82px 82px 34px 34px",
                           md: "minmax(0, 1fr) 90px 90px 38px 38px",
                         },
                         gap: "8px",
                         alignItems: "center",
+                        border: {
+                          xs: "1px solid #e5e7eb",
+                          sm: "none",
+                        },
+                        borderRadius: { xs: "4px", sm: 0 },
+                        p: { xs: "8px", sm: 0 },
                       }}
                     >
                       <TextField
@@ -333,6 +344,10 @@ export default function OrderMenuItemRows({
                         size="small"
                         value={detail.menu_id || ""}
                         disabled={disabled}
+                        sx={{
+                          gridColumn: { xs: "1 / -1", sm: "auto" },
+                          minWidth: 0,
+                        }}
                         onChange={(event) =>
                           updateDetailRow(
                             employeeIndex,
@@ -355,7 +370,7 @@ export default function OrderMenuItemRows({
                         type="number"
                         value={detail.quantity ?? 1}
                         disabled={disabled}
-                        inputProps={{ min: 1 }}
+                        inputProps={{ min: 1, "aria-label": "數量" }}
                         onChange={(event) =>
                           updateDetailRow(
                             employeeIndex,
@@ -371,9 +386,10 @@ export default function OrderMenuItemRows({
                           fontSize: "13px",
                           fontWeight: 700,
                           textAlign: {
-                            xs: "left",
+                            xs: "right",
                             md: "right",
                           },
+                          whiteSpace: "nowrap",
                         }}
                       >
                         ${formatCurrency(subtotal)}
@@ -382,10 +398,9 @@ export default function OrderMenuItemRows({
                       <IconButton
                         size="small"
                         disabled={disabled}
-                        onClick={() =>
-                          addDetailRow(employeeIndex)
-                        }
+                        onClick={() => addDetailRow(employeeIndex)}
                         sx={{
+                          justifySelf: "center",
                           border: "1px solid #d8d8d8",
                           borderRadius: "4px",
                           width: "34px",
@@ -402,6 +417,7 @@ export default function OrderMenuItemRows({
                           removeDetailRow(employeeIndex, detailIndex)
                         }
                         sx={{
+                          justifySelf: "center",
                           border: "1px solid #d8d8d8",
                           borderRadius: "4px",
                           width: "34px",
@@ -424,7 +440,8 @@ export default function OrderMenuItemRows({
         disabled={disabled}
         onClick={addEmployeeRow}
         sx={{
-          alignSelf: "flex-start",
+          alignSelf: { xs: "stretch", sm: "flex-start" },
+          width: { xs: "100%", sm: "auto" },
           fontSize: "14px",
         }}
       >

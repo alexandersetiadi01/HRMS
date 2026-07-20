@@ -515,9 +515,10 @@ export default function OrderingSystem() {
     activeTab === "spending" ? (
       <Box
         sx={{
+          width: "100%",
           display: "flex",
           alignItems: "center",
-          gap: "10px",
+          gap: { xs: "8px", sm: "10px" },
           flexWrap: "wrap",
         }}
       >
@@ -533,7 +534,8 @@ export default function OrderingSystem() {
             }));
           }}
           sx={{
-            width: "110px",
+            flex: { xs: "1 1 120px", sm: "0 0 110px" },
+            minWidth: 0,
             "& .MuiInputBase-root": {
               height: "34px",
               fontSize: "14px",
@@ -562,7 +564,8 @@ export default function OrderingSystem() {
             }));
           }}
           sx={{
-            width: "100px",
+            flex: { xs: "1 1 120px", sm: "0 0 100px" },
+            minWidth: 0,
             "& .MuiInputBase-root": {
               height: "34px",
               fontSize: "14px",
@@ -701,6 +704,12 @@ export default function OrderingSystem() {
         }}
         maxWidth="xs"
         fullWidth
+        PaperProps={{
+          sx: {
+            width: { xs: "calc(100vw - 16px)", sm: "100%" },
+            m: { xs: "8px", sm: "32px" },
+          },
+        }}
       >
         <DialogTitle>下載消費紀錄</DialogTitle>
 
@@ -712,7 +721,10 @@ export default function OrderingSystem() {
           <Box
             sx={{
               display: "grid",
-              gridTemplateColumns: "1fr 1fr",
+              gridTemplateColumns: {
+                xs: "minmax(0, 1fr)",
+                sm: "repeat(2, minmax(0, 1fr))",
+              },
               gap: "12px",
               mt: "4px",
             }}
@@ -757,16 +769,28 @@ export default function OrderingSystem() {
           </Box>
         </DialogContent>
 
-        <DialogActions>
+        <DialogActions
+          sx={{
+            px: { xs: "24px", sm: "16px" },
+            pb: { xs: "20px", sm: "8px" },
+            flexDirection: { xs: "column", sm: "row" },
+            gap: { xs: "8px", sm: 0 },
+          }}
+        >
           <Button
             onClick={() => {
               setDownloadDialogOpen(false);
             }}
+            sx={{ width: { xs: "100%", sm: "auto" } }}
           >
             取消
           </Button>
 
-          <Button variant="contained" onClick={handleDownloadSpending}>
+          <Button
+            variant="contained"
+            onClick={handleDownloadSpending}
+            sx={{ width: { xs: "100%", sm: "auto" } }}
+          >
             下載
           </Button>
         </DialogActions>
@@ -777,6 +801,12 @@ export default function OrderingSystem() {
         onClose={closeConfirmDialog}
         maxWidth="xs"
         fullWidth
+        PaperProps={{
+          sx: {
+            width: { xs: "calc(100vw - 16px)", sm: "100%" },
+            m: { xs: "8px", sm: "32px" },
+          },
+        }}
       >
         <DialogTitle>{confirmDialog.title}</DialogTitle>
 
@@ -784,12 +814,25 @@ export default function OrderingSystem() {
           <DialogContentText>{confirmDialog.content}</DialogContentText>
         </DialogContent>
 
-        <DialogActions>
-          <Button onClick={closeConfirmDialog}>取消</Button>
+        <DialogActions
+          sx={{
+            px: { xs: "24px", sm: "16px" },
+            pb: { xs: "20px", sm: "8px" },
+            flexDirection: { xs: "column", sm: "row" },
+            gap: { xs: "8px", sm: 0 },
+          }}
+        >
+          <Button
+            onClick={closeConfirmDialog}
+            sx={{ width: { xs: "100%", sm: "auto" } }}
+          >
+            取消
+          </Button>
 
           <Button
             variant="contained"
             color={confirmDialog.confirmColor}
+            sx={{ width: { xs: "100%", sm: "auto" } }}
             onClick={() => {
               if (typeof confirmDialog.onConfirm === "function") {
                 confirmDialog.onConfirm();
