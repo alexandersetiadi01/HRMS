@@ -151,8 +151,9 @@ function NoteDetailDialog({ open, row, onClose }) {
       maxWidth={false}
       PaperProps={{
         sx: {
-          width: "390px",
-          maxWidth: "calc(100vw - 32px)",
+          width: { xs: "calc(100vw - 16px)", sm: "390px" },
+          maxWidth: "390px",
+          m: { xs: "8px", sm: "32px" },
           borderRadius: "4px",
           overflow: "hidden",
         },
@@ -189,15 +190,35 @@ function NoteDetailDialog({ open, row, onClose }) {
         </IconButton>
       </Box>
 
-      <DialogContent sx={{ px: "16px", py: "14px" }}>
+      <DialogContent
+        sx={{
+          px: { xs: "12px", sm: "16px" },
+          py: { xs: "12px", sm: "14px" },
+        }}
+      >
         <Box sx={{ display: "grid", rowGap: "14px" }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <Typography sx={{ fontSize: "15px", color: "#555555" }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: "8px",
+            }}
+          >
+            <Typography
+              sx={{
+                flexShrink: 0,
+                fontSize: "15px",
+                color: "#555555",
+              }}
+            >
               寄件人：
             </Typography>
 
             <Box
               sx={{
+                minWidth: 0,
+                maxWidth: "100%",
                 bgcolor: "#3b82c4",
                 color: "#ffffff",
                 px: "10px",
@@ -205,6 +226,7 @@ function NoteDetailDialog({ open, row, onClose }) {
                 borderRadius: "3px",
                 fontSize: "14px",
                 fontWeight: 700,
+                overflowWrap: "anywhere",
               }}
             >
               {row.sender_display_name || row.sender_name || "-"}
@@ -225,9 +247,11 @@ function NoteDetailDialog({ open, row, onClose }) {
               bgcolor: "#f7f7f7",
               borderRadius: "4px",
               p: "14px",
-              minHeight: "220px",
+              minHeight: { xs: "140px", sm: "220px" },
+              maxHeight: { xs: "45vh", sm: "55vh" },
+              overflowY: "auto",
               whiteSpace: "pre-wrap",
-              wordBreak: "break-word",
+              overflowWrap: "anywhere",
               fontSize: "15px",
               lineHeight: 1.7,
               color: "#444444",

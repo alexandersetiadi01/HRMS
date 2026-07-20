@@ -53,7 +53,7 @@ export default function RecipientSelectDialog({
   const handleAdd = () => {
     const ids = new Set(leftSelectedIds.map(Number));
     const toAdd = availableEmployees.filter((employee) =>
-      ids.has(Number(employee.employee_id))
+      ids.has(Number(employee.employee_id)),
     );
 
     setDraftSelected((prev) => [...prev, ...toAdd]);
@@ -64,7 +64,7 @@ export default function RecipientSelectDialog({
     const ids = new Set(rightSelectedIds.map(Number));
 
     setDraftSelected((prev) =>
-      prev.filter((employee) => !ids.has(Number(employee.employee_id)))
+      prev.filter((employee) => !ids.has(Number(employee.employee_id))),
     );
 
     setRightSelectedIds([]);
@@ -74,7 +74,7 @@ export default function RecipientSelectDialog({
     setLeftSelectedIds((prev) =>
       prev.includes(employeeId)
         ? prev.filter((id) => id !== employeeId)
-        : [...prev, employeeId]
+        : [...prev, employeeId],
     );
   };
 
@@ -82,7 +82,7 @@ export default function RecipientSelectDialog({
     setRightSelectedIds((prev) =>
       prev.includes(employeeId)
         ? prev.filter((id) => id !== employeeId)
-        : [...prev, employeeId]
+        : [...prev, employeeId],
     );
   };
 
@@ -93,8 +93,9 @@ export default function RecipientSelectDialog({
       maxWidth={false}
       PaperProps={{
         sx: {
-          width: "700px",
-          maxWidth: "calc(100vw - 48px)",
+          width: { xs: "calc(100vw - 16px)", sm: "700px" },
+          maxWidth: "700px",
+          m: { xs: "8px", sm: "32px" },
           borderRadius: "4px",
           overflow: "hidden",
         },
@@ -131,22 +132,33 @@ export default function RecipientSelectDialog({
         </IconButton>
       </Box>
 
-      <DialogContent sx={{ p: "8px" }}>
+      <DialogContent sx={{ p: { xs: "10px", sm: "12px" } }}>
         <Box
           sx={{
             display: "grid",
-            gridTemplateColumns: "1fr 90px 1fr",
+            gridTemplateColumns: {
+              xs: "minmax(0, 1fr)",
+              sm: "minmax(0, 1fr) 80px minmax(0, 1fr)",
+            },
             gap: "10px",
             alignItems: "center",
           }}
         >
-          <Box>
-            <Box sx={{ display: "flex", gap: "6px", mb: "6px" }}>
+          <Box sx={{ minWidth: 0 }}>
+            <Box
+              sx={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "6px",
+                mb: "6px",
+              }}
+            >
               <TextField
                 size="small"
                 placeholder="選擇部門"
                 sx={{
-                  width: "118px",
+                  flex: "1 1 118px",
+                  minWidth: 0,
                   "& input": { fontSize: "14px", py: "5px" },
                 }}
               />
@@ -178,14 +190,16 @@ export default function RecipientSelectDialog({
 
             <Box
               sx={{
-                height: "380px",
+                height: { xs: "220px", sm: "360px" },
                 border: "1px solid #d0d0d0",
                 bgcolor: "#ffffff",
                 overflowY: "auto",
               }}
             >
               {availableEmployees.length === 0 ? (
-                <Typography sx={{ fontSize: "14px", textAlign: "center", mt: "18px" }}>
+                <Typography
+                  sx={{ fontSize: "14px", textAlign: "center", mt: "18px" }}
+                >
                   查無資料
                 </Typography>
               ) : (
@@ -215,26 +229,76 @@ export default function RecipientSelectDialog({
             </Box>
           </Box>
 
-          <Box sx={{ display: "grid", gap: "12px", justifyContent: "center" }}>
-            <Button variant="outlined" onClick={handleAdd}>
-              加入 &gt;&gt;
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: { xs: "row", sm: "column" },
+              justifyContent: "center",
+              gap: { xs: "8px", sm: "12px" },
+            }}
+          >
+            <Button
+              variant="outlined"
+              disabled={leftSelectedIds.length === 0}
+              onClick={handleAdd}
+              sx={{
+                flex: { xs: 1, sm: "initial" },
+                whiteSpace: "nowrap",
+              }}
+            >
+              <Box
+                component="span"
+                sx={{ display: { xs: "inline", sm: "none" } }}
+              >
+                加入 ↓
+              </Box>
+
+              <Box
+                component="span"
+                sx={{ display: { xs: "none", sm: "inline" } }}
+              >
+                加入 &gt;&gt;
+              </Box>
             </Button>
 
-            <Button variant="outlined" onClick={handleRemove}>
-              &lt;&lt; 移除
+            <Button
+              variant="outlined"
+              disabled={rightSelectedIds.length === 0}
+              onClick={handleRemove}
+              sx={{
+                flex: { xs: 1, sm: "initial" },
+                whiteSpace: "nowrap",
+              }}
+            >
+              <Box
+                component="span"
+                sx={{ display: { xs: "inline", sm: "none" } }}
+              >
+                ↑ 移除
+              </Box>
+
+              <Box
+                component="span"
+                sx={{ display: { xs: "none", sm: "inline" } }}
+              >
+                &lt;&lt; 移除
+              </Box>
             </Button>
           </Box>
 
           <Box
             sx={{
-              height: "421px",
+              minWidth: 0,
+              height: { xs: "220px", sm: "401px" },
               border: "1px solid #d0d0d0",
               bgcolor: "#ffffff",
               overflowY: "auto",
             }}
           >
             {draftSelected.length === 0 ? (
-              <Typography sx={{ fontSize: "14px", textAlign: "center", mt: "18px" }}>
+              <Typography
+                sx={{ fontSize: "14px", textAlign: "center", mt: "18px" }}
+              >
                 查無資料
               </Typography>
             ) : (
@@ -270,6 +334,7 @@ export default function RecipientSelectDialog({
             pt: "6px",
             borderTop: "1px solid #d7d7d7",
             display: "flex",
+            flexDirection: { xs: "column", sm: "row" },
             justifyContent: "flex-end",
             gap: "6px",
           }}
@@ -277,7 +342,11 @@ export default function RecipientSelectDialog({
           <Button
             variant="outlined"
             onClick={() => onConfirm(draftSelected)}
-            sx={{ minWidth: "76px", height: "34px" }}
+            sx={{
+              width: { xs: "100%", sm: "auto" },
+              minWidth: "76px",
+              height: "34px",
+            }}
           >
             確定
           </Button>
@@ -285,7 +354,11 @@ export default function RecipientSelectDialog({
           <Button
             variant="outlined"
             onClick={onClose}
-            sx={{ minWidth: "76px", height: "34px" }}
+            sx={{
+              width: { xs: "100%", sm: "auto" },
+              minWidth: "76px",
+              height: "34px",
+            }}
           >
             取消
           </Button>

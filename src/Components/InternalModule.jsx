@@ -1,4 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import {
+  isValidElement,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { useLocation } from "react-router-dom";
 import {
   Box,
@@ -9,6 +14,8 @@ import {
   IconButton,
   Tooltip,
   Typography,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import SearchIcon from "@mui/icons-material/Search";
@@ -254,12 +261,34 @@ function PaginationBar({
   onNext,
   onLast,
 }) {
-  const displayFrom =
-    totalRows === 0 ? 0 : (currentPage - 1) * DEFAULT_ROWS_PER_PAGE + 1;
-  const displayTo =
-    totalRows === 0
-      ? 0
-      : Math.min(currentPage * DEFAULT_ROWS_PER_PAGE, totalRows);
+  const displayFrom = totalRows === 0
+    ? 0
+    : (
+      (currentPage - 1)
+      * DEFAULT_ROWS_PER_PAGE
+    ) + 1;
+
+  const displayTo = totalRows === 0
+    ? 0
+    : Math.min(
+      currentPage * DEFAULT_ROWS_PER_PAGE,
+      totalRows,
+    );
+
+  const firstPageDisabled = currentPage <= 1;
+
+  const lastPageDisabled = (
+    currentPage >= totalPages
+  );
+
+  const navigationButtonSx = {
+    minWidth: "24px",
+    width: "24px",
+    height: "24px",
+    p: 0,
+    flexShrink: 0,
+    borderColor: "#d9d9d9",
+  };
 
   return (
     <Box
@@ -267,115 +296,192 @@ function PaginationBar({
         mt: "18px",
         display: "flex",
         alignItems: "center",
-        justifyContent: "space-between",
+        justifyContent: {
+          xs: "center",
+          md: "space-between",
+        },
         flexWrap: "wrap",
         gap: "12px",
       }}
     >
-      <Box sx={{ display: "flex", alignItems: "center", gap: "8px" }}>
+      <Box
+        sx={{
+          width: {
+            xs: "100%",
+            md: "auto",
+          },
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: {
+            xs: "5px",
+            sm: "8px",
+          },
+          whiteSpace: "nowrap",
+        }}
+      >
         <Button
           variant="outlined"
-          disabled={currentPage === 1}
+          aria-label="第一頁"
+          disabled={firstPageDisabled}
           onClick={onFirst}
           sx={{
-            minWidth: "24px",
-            width: "24px",
-            height: "24px",
-            p: 0,
-            borderColor: "#d9d9d9",
-            color: currentPage === 1 ? "#c8c8c8" : "#8a8a8a",
+            ...navigationButtonSx,
+            color: firstPageDisabled
+              ? "#c8c8c8"
+              : "#8a8a8a",
           }}
         >
-          <KeyboardDoubleArrowLeftIcon sx={{ fontSize: "18px" }} />
+          <KeyboardDoubleArrowLeftIcon
+            sx={{ fontSize: "18px" }}
+          />
         </Button>
 
         <Button
           variant="outlined"
-          disabled={currentPage === 1}
+          aria-label="上一頁"
+          disabled={firstPageDisabled}
           onClick={onPrev}
           sx={{
-            minWidth: "24px",
-            width: "24px",
-            height: "24px",
-            p: 0,
-            borderColor: "#d9d9d9",
-            color: currentPage === 1 ? "#c8c8c8" : "#8a8a8a",
+            ...navigationButtonSx,
+            color: firstPageDisabled
+              ? "#c8c8c8"
+              : "#8a8a8a",
           }}
         >
-          <KeyboardArrowLeftIcon sx={{ fontSize: "18px" }} />
+          <KeyboardArrowLeftIcon
+            sx={{ fontSize: "18px" }}
+          />
         </Button>
 
-        <Typography sx={{ fontSize: "15px", color: "#333333", ml: "4px" }}>
+        <Typography
+          sx={{
+            ml: {
+              xs: 0,
+              sm: "4px",
+            },
+            fontSize: {
+              xs: "14px",
+              sm: "15px",
+            },
+            color: "#333333",
+          }}
+        >
           第
         </Typography>
 
         <Box
           sx={{
-            width: "40px",
+            width: {
+              xs: "34px",
+              sm: "40px",
+            },
             height: "24px",
             border: "1px solid #8f8f8f",
             display: "flex",
             alignItems: "center",
-            px: "8px",
-            fontSize: "15px",
-            color: "#333333",
+            justifyContent: "center",
+            px: "4px",
             bgcolor: "#ffffff",
+            color: "#333333",
+            fontSize: {
+              xs: "14px",
+              sm: "15px",
+            },
+            flexShrink: 0,
           }}
         >
           {currentPage}
         </Box>
 
-        <Typography sx={{ fontSize: "15px", color: "#333333" }}>
+        <Typography
+          sx={{
+            fontSize: {
+              xs: "14px",
+              sm: "15px",
+            },
+            color: "#333333",
+          }}
+        >
           頁，共 {totalPages} 頁
         </Typography>
 
         <Button
           variant="outlined"
-          disabled={currentPage === totalPages}
+          aria-label="下一頁"
+          disabled={lastPageDisabled}
           onClick={onNext}
           sx={{
-            minWidth: "24px",
-            width: "24px",
-            height: "24px",
-            p: 0,
-            borderColor: "#d9d9d9",
-            color: currentPage === totalPages ? "#c8c8c8" : "#8a8a8a",
+            ...navigationButtonSx,
+            color: lastPageDisabled
+              ? "#c8c8c8"
+              : "#8a8a8a",
           }}
         >
-          <KeyboardArrowRightIcon sx={{ fontSize: "18px" }} />
+          <KeyboardArrowRightIcon
+            sx={{ fontSize: "18px" }}
+          />
         </Button>
 
         <Button
           variant="outlined"
-          disabled={currentPage === totalPages}
+          aria-label="最後一頁"
+          disabled={lastPageDisabled}
           onClick={onLast}
           sx={{
-            minWidth: "24px",
-            width: "24px",
-            height: "24px",
-            p: 0,
-            borderColor: "#d9d9d9",
-            color: currentPage === totalPages ? "#c8c8c8" : "#8a8a8a",
+            ...navigationButtonSx,
+            color: lastPageDisabled
+              ? "#c8c8c8"
+              : "#8a8a8a",
           }}
         >
-          <KeyboardDoubleArrowRightIcon sx={{ fontSize: "18px" }} />
+          <KeyboardDoubleArrowRightIcon
+            sx={{ fontSize: "18px" }}
+          />
         </Button>
       </Box>
 
-      <Typography sx={{ fontSize: "15px", color: "#1f2f4a" }}>
-        顯示 {displayFrom} - {displayTo} 筆，共 {totalRows} 筆
+      <Typography
+        sx={{
+          width: {
+            xs: "100%",
+            md: "auto",
+          },
+          fontSize: {
+            xs: "14px",
+            sm: "15px",
+          },
+          color: "#1f2f4a",
+          textAlign: {
+            xs: "center",
+            md: "right",
+          },
+        }}
+      >
+        顯示 {displayFrom} - {displayTo} 筆，共{" "}
+        {totalRows} 筆
       </Typography>
     </Box>
   );
 }
 
-function SidebarMenu({ accentColor, title, items, activeKey, onChange }) {
+function SidebarMenu({
+  accentColor,
+  title,
+  items,
+  activeKey,
+  onChange,
+}) {
   return (
     <Box
       sx={{
-        width: "168px",
+        width: {
+          xs: "100%",
+          lg: "168px",
+        },
         border: "1px solid #e0e0e0",
         bgcolor: "#f7f7f7",
+        overflow: "hidden",
       }}
     >
       <Box
@@ -401,36 +507,67 @@ function SidebarMenu({ accentColor, title, items, activeKey, onChange }) {
         </Typography>
       </Box>
 
-      {items.map((item) => {
-        const isActive = item.key === activeKey;
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: {
+            xs: "row",
+            lg: "column",
+          },
+          overflowX: {
+            xs: "auto",
+            lg: "visible",
+          },
+        }}
+      >
+        {items.map((item) => {
+          const isActive = item.key === activeKey;
 
-        return (
-          <Box
-            key={item.key}
-            onClick={() => onChange(item.key)}
-            sx={{
-              minHeight: "42px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              px: "12px",
-              borderBottom: "1px solid #e5e5e5",
-              color: isActive ? accentColor : "#c9c9c9",
-              fontWeight: isActive ? 700 : 500,
-              fontSize: "15px",
-              textAlign: "center",
-              cursor: "pointer",
-              userSelect: "none",
-              "&:hover": {
-                color: accentColor,
-                bgcolor: "#fafafa",
-              },
-            }}
-          >
-            {item.label}
-          </Box>
-        );
-      })}
+          return (
+            <Box
+              key={item.key}
+              onClick={() => onChange(item.key)}
+              sx={{
+                minWidth: {
+                  xs: "140px",
+                  sm: 0,
+                  lg: "auto",
+                },
+                flex: {
+                  xs: "1 0 auto",
+                  sm: "1 1 0",
+                  lg: "0 0 auto",
+                },
+                minHeight: "42px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                px: "12px",
+                borderRight: {
+                  xs: "1px solid #e5e5e5",
+                  lg: "none",
+                },
+                borderBottom: "1px solid #e5e5e5",
+                color: isActive
+                  ? accentColor
+                  : "#c9c9c9",
+                fontWeight: isActive ? 700 : 500,
+                fontSize: "15px",
+                textAlign: "center",
+                whiteSpace: "nowrap",
+                cursor: "pointer",
+                userSelect: "none",
+                "&:hover": {
+                  color: accentColor,
+                  bgcolor: "#fafafa",
+                },
+              }}
+            >
+              {item.label}
+            </Box>
+          );
+        })}
+      </Box>
     </Box>
   );
 }
@@ -582,112 +719,105 @@ function DataTable({
   onDeleteRow,
   onOpenDetail,
 }) {
-  return (
-    <Box
-      sx={{
-        border: "1px solid #d3d3d3",
-        bgcolor: "#ffffff",
-      }}
-    >
+  const theme = useTheme();
+
+  const useCardLayout = useMediaQuery(
+    theme.breakpoints.down("md"),
+  );
+
+  const handlers = {
+    onToggleCheckbox,
+    onDeleteRow,
+    onOpenDetail,
+  };
+
+  const renderCell = (
+    column,
+    row,
+    compact = false,
+  ) => {
+    if (column.type) {
+      return renderSpecialCell(
+        column,
+        row,
+        handlers,
+      );
+    }
+
+    const value = row[column.key];
+
+    if (isValidElement(value)) {
+      return value;
+    }
+
+    return (
+      <DefaultCell
+        value={value}
+        align={
+          compact
+            ? "left"
+            : column.align || "left"
+        }
+        wrap={
+          compact
+            ? true
+            : column.wrap !== false
+        }
+        sx={column.cellSx || {}}
+      />
+    );
+  };
+
+  if (useCardLayout) {
+    if (rows.length === 0) {
+      return (
+        <Box
+          sx={{
+            border: "1px solid #d3d3d3",
+            bgcolor: "#ffffff",
+            px: "14px",
+            py: "22px",
+          }}
+        >
+          <Typography
+            sx={{
+              fontSize: "15px",
+              color: "#6b7280",
+              textAlign: "center",
+            }}
+          >
+            {emptyText}
+          </Typography>
+        </Box>
+      );
+    }
+
+    return (
       <Box
         sx={{
           display: "grid",
-          gridTemplateColumns: columns
-            .map((item) => item.width || "1fr")
-            .join(" "),
-          minHeight: "38px",
-          alignItems: "center",
-          background: "linear-gradient(to bottom, #f7f7f7, #dddddd)",
-          borderBottom: "1px solid #d3d3d3",
+          gap: "12px",
         }}
       >
-        {columns.map((column) => (
-          <Box
-            key={column.key}
-            sx={{
-              px: "12px",
-              minHeight: "38px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              borderRight: column.withDivider ? "1px solid #d3d3d3" : "none",
-            }}
-          >
-            <Typography
-              sx={{
-                fontSize: "15px",
-                fontWeight: 700,
-                color: "#333333",
-                textAlign: "center",
-                whiteSpace: column.headerWrap === false ? "nowrap" : "normal",
-                wordBreak:
-                  column.headerWrap === false ? "keep-all" : "break-word",
-              }}
-            >
-              {column.label}
-            </Typography>
-          </Box>
-        ))}
-      </Box>
-
-      {rows.length === 0 ? (
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: columns
-              .map((item) => item.width || "1fr")
-              .join(" "),
-            minHeight: "36px",
-            alignItems: "center",
-          }}
-        >
-          <Box
-            sx={{
-              px: "12px",
-              py: "10px",
-              display: "flex",
-              alignItems: "center",
-            }}
-          >
-            <Typography
-              sx={{
-                fontSize: "15px",
-                color: "#333333",
-              }}
-            >
-              {emptyText}
-            </Typography>
-          </Box>
-
-          {columns.slice(1).map((col) => (
-            <Box key={col.key} />
-          ))}
-        </Box>
-      ) : (
-        rows.map((row, rowIndex) => (
+        {rows.map((row, rowIndex) => (
           <Box
             key={row.id || rowIndex}
-            onClick={row.onRowClick || undefined}
+            onClick={
+              row.onRowClick || undefined
+            }
             sx={{
               position: "relative",
-              display: "grid",
-              gridTemplateColumns: columns
-                .map((item) => item.width || "1fr")
-                .join(" "),
-              minHeight: "50px",
-              alignItems: "center",
-              borderBottom: (
-                rowIndex === rows.length - 1
-                  ? "none"
-                  : "1px solid #d3d3d3"
-              ),
-              transition: "background-color 0.2s ease",
+              border: "1px solid #d3d3d3",
+              borderRadius: "6px",
+              bgcolor: row.isHighlighted
+                ? "#fff7cc"
+                : "#ffffff",
+              overflow: "hidden",
               cursor: row.onRowClick
                 ? "pointer"
                 : "default",
-              bgcolor: row.isHighlighted
-                ? "#fff7cc"
-                : "transparent",
+              transition:
+                "background-color 0.2s ease",
               "&:hover": {
                 bgcolor: row.isHighlighted
                   ? "#fff1a8"
@@ -701,8 +831,8 @@ function DataTable({
                 aria-label="未讀項目"
                 sx={{
                   position: "absolute",
-                  top: "6px",
-                  left: "6px",
+                  top: "8px",
+                  right: "8px",
                   width: "8px",
                   height: "8px",
                   borderRadius: "50%",
@@ -712,37 +842,248 @@ function DataTable({
               />
             ) : null}
 
-            {columns.map((column) => (
-              <Box
-                key={column.key}
+            {columns.map(
+              (column, columnIndex) => (
+                <Box
+                  key={column.key}
+                  sx={{
+                    display: "grid",
+                    gridTemplateColumns: {
+                      xs: "88px minmax(0, 1fr)",
+                      sm: "140px minmax(0, 1fr)",
+                    },
+                    alignItems: "start",
+                    borderBottom: (
+                      columnIndex
+                      === columns.length - 1
+                    )
+                      ? "none"
+                      : "1px solid #e5e7eb",
+                  }}
+                >
+                  <Typography
+                    sx={{
+                      alignSelf: "stretch",
+                      display: "flex",
+                      alignItems: "center",
+                      px: "10px",
+                      py: "10px",
+                      bgcolor: "#f7f7f7",
+                      fontSize: "13px",
+                      fontWeight: 700,
+                      color: "#475569",
+                      wordBreak: "keep-all",
+                    }}
+                  >
+                    {column.mobileLabel
+                      || column.label}
+                  </Typography>
+
+                  <Box
+                    sx={{
+                      minWidth: 0,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent:
+                        "flex-start",
+                      px: "12px",
+                      py: "10px",
+                      overflowWrap: "anywhere",
+                    }}
+                  >
+                    {renderCell(
+                      column,
+                      row,
+                      true,
+                    )}
+                  </Box>
+                </Box>
+              ),
+            )}
+          </Box>
+        ))}
+      </Box>
+    );
+  }
+
+  return (
+    <Box
+      sx={{
+        width: "100%",
+        overflowX: "auto",
+      }}
+    >
+      <Box
+        sx={{
+          minWidth: "900px",
+          border: "1px solid #d3d3d3",
+          bgcolor: "#ffffff",
+        }}
+      >
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: columns
+              .map(
+                (column) => (
+                  column.width || "1fr"
+                ),
+              )
+              .join(" "),
+            minHeight: "38px",
+            alignItems: "center",
+            background: (
+              "linear-gradient("
+              + "to bottom, "
+              + "#f7f7f7, "
+              + "#dddddd"
+              + ")"
+            ),
+            borderBottom:
+              "1px solid #d3d3d3",
+          }}
+        >
+          {columns.map((column) => (
+            <Box
+              key={column.key}
+              sx={{
+                px: "12px",
+                minHeight: "38px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRight:
+                  column.withDivider
+                    ? "1px solid #d3d3d3"
+                    : "none",
+              }}
+            >
+              <Typography
                 sx={{
-                  px: "12px",
-                  py: "10px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent:
-                    column.align === "center" ? "center" : "flex-start",
+                  fontSize: "15px",
+                  fontWeight: 700,
+                  color: "#333333",
+                  textAlign: "center",
+                  whiteSpace:
+                    column.headerWrap === false
+                      ? "nowrap"
+                      : "normal",
+                  wordBreak:
+                    column.headerWrap === false
+                      ? "keep-all"
+                      : "break-word",
                 }}
               >
-                {column.type ? (
-                  renderSpecialCell(column, row, {
-                    onToggleCheckbox,
-                    onDeleteRow,
-                    onOpenDetail,
-                  })
-                ) : (
-                  <DefaultCell
-                    value={row[column.key]}
-                    align={column.align || "left"}
-                    wrap={column.wrap !== false}
-                    sx={column.cellSx || {}}
-                  />
-                )}
-              </Box>
-            ))}
+                {column.label}
+              </Typography>
+            </Box>
+          ))}
+        </Box>
+
+        {rows.length === 0 ? (
+          <Box
+            sx={{
+              minHeight: "60px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              px: "12px",
+              py: "10px",
+            }}
+          >
+            <Typography
+              sx={{
+                fontSize: "15px",
+                color: "#6b7280",
+              }}
+            >
+              {emptyText}
+            </Typography>
           </Box>
-        ))
-      )}
+        ) : (
+          rows.map((row, rowIndex) => (
+            <Box
+              key={row.id || rowIndex}
+              onClick={
+                row.onRowClick || undefined
+              }
+              sx={{
+                position: "relative",
+                display: "grid",
+                gridTemplateColumns: columns
+                  .map(
+                    (column) => (
+                      column.width || "1fr"
+                    ),
+                  )
+                  .join(" "),
+                minHeight: "50px",
+                alignItems: "center",
+                borderBottom: (
+                  rowIndex
+                  === rows.length - 1
+                )
+                  ? "none"
+                  : "1px solid #d3d3d3",
+                transition:
+                  "background-color 0.2s ease",
+                cursor: row.onRowClick
+                  ? "pointer"
+                  : "default",
+                bgcolor: row.isHighlighted
+                  ? "#fff7cc"
+                  : "transparent",
+                "&:hover": {
+                  bgcolor: row.isHighlighted
+                    ? "#fff1a8"
+                    : row.hoverBg
+                      || "#fafafa",
+                },
+              }}
+            >
+              {row.isUnreadNotification ? (
+                <Box
+                  component="span"
+                  aria-label="未讀項目"
+                  sx={{
+                    position: "absolute",
+                    top: "6px",
+                    left: "6px",
+                    width: "8px",
+                    height: "8px",
+                    borderRadius: "50%",
+                    bgcolor: "#ef4444",
+                    zIndex: 1,
+                  }}
+                />
+              ) : null}
+
+              {columns.map((column) => (
+                <Box
+                  key={column.key}
+                  sx={{
+                    minWidth: 0,
+                    px: "12px",
+                    py: "10px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent:
+                      column.align === "center"
+                        ? "center"
+                        : "flex-start",
+                  }}
+                >
+                  {renderCell(
+                    column,
+                    row,
+                    false,
+                  )}
+                </Box>
+              ))}
+            </Box>
+          ))
+        )}
+      </Box>
     </Box>
   );
 }
@@ -919,14 +1260,28 @@ export default function InternalModule({
       <Box
         sx={{
           display: "flex",
+          flexDirection: {
+            xs: "column",
+            lg: "row",
+          },
           alignItems: "flex-start",
-          gap: "20px",
+          gap: {
+            xs: "16px",
+            lg: "20px",
+          },
         }}
       >
         <Box
           sx={{
+            width: {
+              xs: "100%",
+              lg: "auto",
+            },
             flexShrink: 0,
-            mt: "46px",
+            mt: {
+              xs: 0,
+              lg: "46px",
+            },
           }}
         >
           <SidebarMenu
@@ -938,24 +1293,60 @@ export default function InternalModule({
           />
         </Box>
 
-        <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Box
+          sx={{
+            width: "100%",
+            flex: 1,
+            minWidth: 0,
+          }}
+        >
           <Box
             sx={{
               display: "flex",
-              justifyContent: toolbarContent ? "space-between" : "flex-end",
-              alignItems: "center",
+              flexDirection: {
+                xs: "column",
+                sm: "row",
+              },
+              justifyContent: toolbarContent
+                ? "space-between"
+                : "flex-end",
+              alignItems: {
+                xs: "stretch",
+                sm: "center",
+              },
               gap: "10px",
               mb: "12px",
               minHeight: "34px",
               flexWrap: "wrap",
             }}
           >
-            {toolbarContent ? <Box>{toolbarContent}</Box> : <Box />}
+            {toolbarContent ? (
+              <Box
+                sx={{
+                  width: {
+                    xs: "100%",
+                    sm: "auto",
+                  },
+                }}
+              >
+                {toolbarContent}
+              </Box>
+            ) : (
+              <Box />
+            )}
 
             <Box
               sx={{
+                width: {
+                  xs: "100%",
+                  sm: "auto",
+                },
                 display: "flex",
                 alignItems: "center",
+                justifyContent: {
+                  xs: "stretch",
+                  sm: "flex-end",
+                },
                 gap: "10px",
                 flexWrap: "wrap",
               }}
@@ -966,7 +1357,14 @@ export default function InternalModule({
                   variant="outlined"
                   onClick={button.onClick}
                   sx={{
-                    minWidth: button.minWidth || "98px",
+                    flex: {
+                      xs: "1 1 140px",
+                      sm: "0 0 auto",
+                    },
+                    minWidth: {
+                      xs: 0,
+                      sm: button.minWidth || "98px",
+                    },
                     height: "34px",
                     px: "14px",
                     borderColor: "#c5c5c5",
