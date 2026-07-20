@@ -669,21 +669,49 @@ function DataTable({
             key={row.id || rowIndex}
             onClick={row.onRowClick || undefined}
             sx={{
+              position: "relative",
               display: "grid",
               gridTemplateColumns: columns
                 .map((item) => item.width || "1fr")
                 .join(" "),
               minHeight: "50px",
               alignItems: "center",
-              borderBottom:
-                rowIndex === rows.length - 1 ? "none" : "1px solid #d3d3d3",
+              borderBottom: (
+                rowIndex === rows.length - 1
+                  ? "none"
+                  : "1px solid #d3d3d3"
+              ),
               transition: "background-color 0.2s ease",
-              cursor: row.onRowClick ? "pointer" : "default",
+              cursor: row.onRowClick
+                ? "pointer"
+                : "default",
+              bgcolor: row.isHighlighted
+                ? "#fff7cc"
+                : "transparent",
               "&:hover": {
-                bgcolor: row.hoverBg || "#fafafa",
+                bgcolor: row.isHighlighted
+                  ? "#fff1a8"
+                  : row.hoverBg || "#fafafa",
               },
             }}
           >
+            {row.isUnreadNotification ? (
+              <Box
+                component="span"
+                aria-label="未讀項目"
+                sx={{
+                  position: "absolute",
+                  top: "6px",
+                  left: "6px",
+                  width: "8px",
+                  height: "8px",
+                  borderRadius: "50%",
+                  bgcolor: "#ef4444",
+                  zIndex: 1,
+                }}
+              />
+            ) : null}
+
             {columns.map((column) => (
               <Box
                 key={column.key}

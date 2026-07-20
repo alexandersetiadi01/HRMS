@@ -1,4 +1,9 @@
-import { useCallback, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { Box, Button, Typography } from "@mui/material";
 import Breadcrumb from "../../Utils/Breadcrumb";
 import { getCurrentEmployeeId } from "../../API/account";
@@ -14,6 +19,8 @@ import AssignedTaskTab from "./Tabs/AssignedTaskTab";
 import TaskDetailDialog from "./dialogs/TaskDetailDialog";
 import TaskReplyDialog from "./dialogs/TaskReplyDialog";
 import TaskCreateAssignDialog from "./dialogs/TaskCreateAssignDialog";
+import useNotifications from "../../Contexts/UseNotification";
+import useNotificationHighlight from "../../Utils/Notifications/UseNotificationHighlight";
 
 const accentColor = "#677986";
 
@@ -23,12 +30,29 @@ const tabs = [
 ];
 
 export default function TodoList() {
-  const employeeId = Number(getCurrentEmployeeId() || 0);
+  const {
+    isSourceUnread,
+    markSourceAsRead,
+  } = useNotifications();
+
+  const {
+    highlightedId: highlightedTaskAssigneeId,
+  } = useNotificationHighlight();
+
+  const employeeId = Number(  
+    getCurrentEmployeeId() || 0,
+  );
 
   const pendingRef = useRef(null);
   const assignedRef = useRef(null);
 
   const [activeTab, setActiveTab] = useState("pending");
+
+  useEffect(() => {
+    if (highlightedTaskAssigneeId > 0) {
+      setActiveTab("pending");
+    }
+  }, [highlightedTaskAssigneeId]);
 
   const [pendingCount, setPendingCount] = useState(0);
   const [assignedCount, setAssignedCount] = useState(0);
@@ -79,6 +103,18 @@ export default function TodoList() {
         setDetailAttachments(taskAttachments);
         setDetailReplies(replyRows);
 
+        try {
+          await markSourceAsRead(
+            "task_assignee",
+            row.task_assignee_id,
+          );
+        } catch {
+          /*
+           * Keep the task detail open if notification
+           * synchronization temporarily fails.
+           */
+        }
+
         const replyAttachmentPairs = await Promise.all(
           replyRows.map(async (reply) => {
             try {
@@ -101,7 +137,10 @@ export default function TodoList() {
         console.error("Failed to load task detail:", error);
       }
     },
-    [employeeId],
+    [
+      employeeId,
+      markSourceAsRead,
+    ],
   );
 
   const handleOpenReply = (row) => {
@@ -248,6 +287,15 @@ export default function TodoList() {
               active={activeTab === "pending"}
               onOpenDetail={handleOpenDetail}
               onRowsChange={setPendingCount}
+              highlightedId={
+                highlightedTaskAssigneeId
+              }
+              isSourceUnread={(sourceId) => {
+                return isSourceUnread(
+                  "task_assignee",
+                  sourceId,
+                );
+              }}
             />
           )}
 

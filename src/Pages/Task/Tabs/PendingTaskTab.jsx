@@ -143,17 +143,47 @@ const PendingTaskTab = forwardRef(function PendingTaskTab(
 
   const mappedRows = useMemo(() => {
     return rows.map((row) => {
+      const taskAssigneeId = Number(
+        row.task_assignee_id || 0,
+      );
+
       return {
         ...row,
-        id: row.task_assignee_id || `${row.task_id}-${row.employee_id}`,
-        status: row.assigned_status || row.task_status || "-",
+        id: (
+          row.task_assignee_id
+          || `${row.task_id}-${row.employee_id}`
+        ),
+        status: (
+          row.assigned_status
+          || row.task_status
+          || "-"
+        ),
         title: row.title || "-",
-        assigner: row.creator_display_name || "-",
-        handoverTarget: row.display_name || "-",
+        assigner: (
+          row.creator_display_name
+          || "-"
+        ),
+        handoverTarget: (
+          row.display_name
+          || "-"
+        ),
         deadline: formatDateTime(row.due_date),
+        isUnreadNotification: (
+          isSourceUnread?.(taskAssigneeId)
+          || false
+        ),
+        isHighlighted: (
+          taskAssigneeId > 0
+          && taskAssigneeId
+            === Number(highlightedId)
+        ),
       };
     });
-  }, [rows]);
+  }, [
+    highlightedId,
+    isSourceUnread,
+    rows,
+  ]);
 
   useEffect(() => {
     onRowsChange?.(mappedRows.length);

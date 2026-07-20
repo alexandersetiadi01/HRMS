@@ -20,8 +20,8 @@ import {
   fetchDepartmentAnnouncementDetail,
   fetchDepartmentAnnouncements,
 } from "../../../API/departmentAnnouncement";
-import { useSearchParams } from "react-router-dom";
 import useNotifications from "../../../Contexts/UseNotification";
+import useNotificationHighlight from "../../../Utils/Notifications/UseNotificationHighlight";
 
 function AnnouncementDialog({ open, item, loading = false, onClose }) {
   if (!item && !loading) return null;
@@ -286,16 +286,14 @@ function PaginationBar({ totalRows, currentPage }) {
 }
 
 export default function CompanyAnnouncement() {
-  const [searchParams] = useSearchParams();
-
   const {
     isSourceUnread,
     markSourceAsRead,
   } = useNotifications();
 
-  const highlightedId = Number(
-    searchParams.get("highlight") || 0,
-  );
+  const {
+    highlightedId,
+  } = useNotificationHighlight();
 
   const [rows, setRows] = useState([]);
   const [selectedItem, setSelectedItem] = useState(null);

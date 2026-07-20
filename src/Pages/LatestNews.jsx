@@ -24,8 +24,8 @@ import {
   fetchNewsDetail,
   fetchNewsList,
 } from "../API/news";
-import { useSearchParams } from "react-router-dom";
 import useNotifications from "../Contexts/UseNotification";
+import useNotificationHighlight from "../Utils/Notifications/UseNotificationHighlight";
 
 const ACCENT_COLOR = "#35b8ec";
 const DEFAULT_ROWS_PER_PAGE = 10;
@@ -465,16 +465,14 @@ function NewsDetailDialog({ open, loading, news, onClose }) {
 }
 
 export default function LatestNews() {
-  const [searchParams] = useSearchParams();
-
   const {
     isSourceUnread,
     markSourceAsRead,
   } = useNotifications();
 
-  const highlightedNewsId = Number(
-    searchParams.get("highlight") || 0,
-  );
+  const {
+    highlightedId: highlightedNewsId,
+  } = useNotificationHighlight();
 
   const resolvedHighlightRef = useRef(0);
 
@@ -543,20 +541,21 @@ export default function LatestNews() {
     };
   }, []);
 
-  useEffect(() => {
+   useEffect(() => {
+    if (highlightedNewsId <= 0) {
+      resolvedHighlightRef.current = 0;
+      return undefined;
+    }
+
     if (
-      highlightedNewsId <= 0
-      || categories.length === 0
-      || resolvedHighlightRef.current
-        === highlightedNewsId
+      categories.length === 0
+      || resolvedHighlightRef.current === highlightedNewsId
     ) {
       return undefined;
     }
 
     let alive = true;
-
-    resolvedHighlightRef.current =
-      highlightedNewsId;
+    resolvedHighlightRef.current = highlightedNewsId;
 
     async function selectHighlightedCategory() {
       try {
@@ -569,12 +568,10 @@ export default function LatestNews() {
         );
 
         const categoryExists = categories.some(
-          (item) => {
-            return (
-              String(item.news_category_id)
-              === categoryId
-            );
-          },
+          (item) => (
+            String(item.news_category_id)
+            === categoryId
+          ),
         );
 
         if (
@@ -586,10 +583,7 @@ export default function LatestNews() {
           setStoredCategoryId(categoryId);
         }
       } catch {
-        /*
-         * Keep the current category if the notification
-         * target cannot be resolved.
-         */
+        // Keep the current category if the target cannot be resolved.
       }
     }
 
@@ -598,10 +592,7 @@ export default function LatestNews() {
     return () => {
       alive = false;
     };
-  }, [
-    categories,
-    highlightedNewsId,
-  ]);
+  }, [categories, highlightedNewsId]);
 
   useEffect(() => {
     if (!activeCategoryId) {

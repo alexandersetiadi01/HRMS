@@ -24,6 +24,8 @@ import NoteCreateDialog from "./Dialog/NoteCreateDialog";
 import RecipientSelectDialog from "./Dialog/RecipientSelectDialog";
 import CloseIcon from "@mui/icons-material/Close";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
+import useNotifications from "../../Contexts/UseNotification";
+import useNotificationHighlight from "../../Utils/Notifications/UseNotificationHighlight";
 
 const ACCENT_COLOR = "#f45a4d";
 
@@ -240,6 +242,16 @@ function NoteDetailDialog({ open, row, onClose }) {
 }
 
 export default function StickyNotes() {
+  const {
+    highlightedId: highlightedRecipientId,
+  } = useNotificationHighlight();
+
+  const {
+    isSourceUnread,
+    markSourceAsRead,
+    refreshNotifications,
+  } = useNotifications();
+
   const [receivedRows, setReceivedRows] = useState([]);
   const [sentRows, setSentRows] = useState([]);
   const [employees, setEmployees] = useState([]);
@@ -252,12 +264,31 @@ export default function StickyNotes() {
   const [activeTab, setActiveTab] = useState(() => {
     try {
       return (
-        window.sessionStorage.getItem("sticky-note-active-tab") || "received"
+        window.sessionStorage.getItem(
+          "sticky-note-active-tab",
+        ) || "received"
       );
     } catch {
       return "received";
     }
   });
+
+  useEffect(() => {
+    if (highlightedRecipientId <= 0) {
+      return;
+    }
+
+    setActiveTab("received");
+
+    try {
+      window.sessionStorage.setItem(
+        "sticky-note-active-tab",
+        "received",
+      );
+    } catch {
+      // Continue when session storage is unavailable.
+    }
+  }, [highlightedRecipientId]);
 
   const handleSidebarChange = (nextTab) => {
     setActiveTab(nextTab);
@@ -275,20 +306,43 @@ export default function StickyNotes() {
   });
 
   const handleOpenDetail = async (row) => {
-    if (!row) return;
+    if (!row) {
+      return;
+    }
 
     setDetailDialog({
       open: true,
       row,
     });
 
-    if (row.status === "未讀" && row.sticky_note_id) {
-      try {
-        await markStickyNoteRead(row.sticky_note_id);
+    try {
+      if (
+        row.status === "未讀"
+        && row.sticky_note_id
+      ) {
+        await markStickyNoteRead(
+          row.sticky_note_id,
+        );
+
         await loadStickyNotes();
-      } catch (error) {
-        showSnackbar(error?.message || "更新便利貼狀態失敗。", "error");
       }
+
+      if (row.sticky_note_recipient_id) {
+        await markSourceAsRead(
+          "sticky_note_recipient",
+          row.sticky_note_recipient_id,
+        );
+      } else {
+        await refreshNotifications({
+          silent: true,
+        });
+      }
+    } catch (error) {
+      showSnackbar(
+        error?.message
+          || "更新便利貼狀態失敗。",
+        "error",
+      );
     }
   };
 
@@ -400,17 +454,6 @@ export default function StickyNotes() {
     }
   };
 
-  const handleMarkRead = async (row) => {
-    if (!row?.sticky_note_id || row.status !== "未讀") return;
-
-    try {
-      await markStickyNoteRead(row.sticky_note_id);
-      await loadStickyNotes();
-    } catch (error) {
-      showSnackbar(error?.message || "更新便利貼狀態失敗。", "error");
-    }
-  };
-
   const handleOpenDeleteDialog = (row, box) => {
     setDeleteDialog({
       open: true,
@@ -507,8 +550,22 @@ export default function StickyNotes() {
 
   const receivedTableRows = useMemo(() => {
     return receivedRows.map((row, index) => ({
-      id: `received-${row.sticky_note_recipient_id || row.sticky_note_id || index}`,
+      id: (
+        `received-${
+          row.sticky_note_recipient_id
+          || row.sticky_note_id
+          || index
+        }`
+      ),
       hoverBg: "#f3f4f6",
+      isUnreadNotification: isSourceUnread(
+        "sticky_note_recipient",
+        row.sticky_note_recipient_id,
+      ),
+      isHighlighted: (
+        Number(row.sticky_note_recipient_id)
+        === Number(highlightedRecipientId)
+      ),
       status: <StatusBox status={row.status} />,
       content: row.content || "-",
       sender: row.sender_display_name || row.sender_name || "-",
@@ -523,7 +580,11 @@ export default function StickyNotes() {
       time: formatDateTime(row.note_created_at || row.created_at),
       raw: row,
     }));
-  }, [receivedRows]);
+  }, [
+    highlightedRecipientId,
+    isSourceUnread,
+    receivedRows,
+  ]);
 
   const sentTableRows = useMemo(() => {
     return sentRows.map((row, index) => ({

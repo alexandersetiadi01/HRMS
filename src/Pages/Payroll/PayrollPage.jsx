@@ -13,16 +13,14 @@ import {
   useMediaQuery,
   useTheme,
 } from "@mui/material";
-import {
-  useNavigate,
-  useSearchParams,
-} from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import Breadcrumb from "../../Utils/Breadcrumb";
 import { getMyPayslipDetail, getMyPayslips } from "../../API/payroll";
 import PayrollPasswordDialog, {
   PAYROLL_VERIFICATION_STORAGE_KEY,
 } from "./PayrollPasswordDialog";
 import useNotifications from "../../Contexts/UseNotification";
+import useNotificationHighlight from "../../Utils/Notifications/UseNotificationHighlight";
 
 function formatDate(value) {
   if (!value) return "-";
@@ -47,16 +45,15 @@ export default function PayrollPage() {
   );
 
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
 
   const {
     isSourceUnread,
     markSourceAsRead,
   } = useNotifications();
 
-  const highlightedPayrollId = Number(
-    searchParams.get("highlight") || 0,
-  );
+  const {
+    highlightedId: highlightedPayrollId,
+  } = useNotificationHighlight();
 
   const [payrollList, setPayrollList] = useState([]);
   const [loading, setLoading] = useState(false);
