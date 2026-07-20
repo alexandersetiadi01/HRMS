@@ -27,7 +27,6 @@ import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import useNotifications from "../../Contexts/UseNotification";
 import useNotificationHighlight from "../../Utils/Notifications/UseNotificationHighlight";
 
-//t
 const ACCENT_COLOR = "#f45a4d";
 
 function normalizeEmployee(row) {
