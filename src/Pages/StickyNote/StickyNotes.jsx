@@ -438,17 +438,79 @@ export default function StickyNotes() {
     setSubmitting(true);
 
     try {
-      await createStickyNote({
+      const createResult = await createStickyNote({
         receiver_employee_ids: receiverIds,
         content,
       });
 
+      const notificationResults = Array.isArray(
+        createResult?.notification_results,
+      )
+        ? createResult.notification_results
+        : [];
+
+      const notificationErrors = Array.isArray(
+        createResult?.notification_errors,
+      )
+        ? createResult.notification_errors
+        : [];
+
+      const notifiedReceiverIds = new Set(
+        notificationResults
+          .filter((result) => (
+            result?.status === "created"
+            || result?.status === "existing"
+          ))
+          .map((result) => Number(
+            result?.receiver_employee_id || 0,
+          ))
+          .filter((id) => id > 0),
+      );
+
+      const failedReceiverCount = receiverIds.filter(
+        (receiverId) => (
+          !notifiedReceiverIds.has(receiverId)
+        ),
+      ).length;
+
       setCreateOpen(false);
       setSelectedRecipients([]);
+
       await loadStickyNotes();
-      showSnackbar("便利貼已成功送出。", "success");
+
+      if (
+        notificationErrors.length > 0
+        || failedReceiverCount > 0
+      ) {
+        const firstErrorMessage = String(
+          notificationErrors[0]?.message || "",
+        ).trim();
+
+        const errorDetail = firstErrorMessage
+          ? `：${firstErrorMessage}`
+          : "。請查看 WordPress debug.log。";
+
+        showSnackbar(
+          `便利貼已送出，但有 ${failedReceiverCount} 位收件人的通知建立失敗${errorDetail}`,
+          "warning",
+        );
+
+        return;
+      }
+
+      showSnackbar(
+        "便利貼與收件通知皆已成功送出。",
+        "success",
+      );
     } catch (error) {
-      showSnackbar(error?.message || "送出便利貼失敗。", "error");
+      const errorMessage = (
+        error?.response?.data?.message
+        || error?.response?.data?.data?.message
+        || error?.message
+        || "送出便利貼失敗。"
+      );
+
+      showSnackbar(errorMessage, "error");
     } finally {
       setSubmitting(false);
     }
