@@ -323,7 +323,7 @@ export const MENU_ITEMS = [
     label: "結算作業",
     to: "/attendance/admin/payroll-work",
     iconKey: "attendance-payroll-work",
-    disable: true,
+    disable: false,
     groups: ["attendance"],
     sectionKey: "manager",
     adminOnly: true,

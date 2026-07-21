@@ -1,0 +1,1045 @@
+import {
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
+import {
+  Alert,
+  Box,
+  Button,
+  Chip,
+  CircularProgress,
+  Collapse,
+  Divider,
+  Typography,
+} from "@mui/material";
+import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import PaymentsOutlinedIcon from "@mui/icons-material/PaymentsOutlined";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import TaskAltIcon from "@mui/icons-material/TaskAlt";
+import {
+  approvePayrollRun,
+  calculatePayrollRun,
+  getPayrollRunResults,
+} from "../../API/payroll";
+
+function getErrorMessage(error, fallback) {
+  return (
+    error?.response?.data?.message ||
+    error?.response?.data?.data?.message ||
+    error?.message ||
+    fallback
+  );
+}
+
+function formatNumber(value) {
+  return new Intl.NumberFormat("zh-TW", {
+    maximumFractionDigits: 0,
+  }).format(Math.abs(Number(value || 0)));
+}
+
+function formatDateTime(value) {
+  if (!value) return "--";
+
+  const normalized = String(value).replace(" ", "T");
+  const date = new Date(normalized);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("zh-TW", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(date);
+}
+
+function PayrollTotalCard({
+  label,
+  value,
+  color,
+  background,
+  icon,
+}) {
+  return (
+    <Box
+      sx={{
+        minWidth: 0,
+        p: {
+          xs: "13px",
+          sm: "16px",
+        },
+        border: "1px solid #e5e7eb",
+        borderRadius: "5px",
+        bgcolor: background,
+      }}
+    >
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: "7px",
+          mb: "6px",
+          color,
+        }}
+      >
+        {icon}
+
+        <Typography
+          sx={{
+            color: "#64748b",
+            fontSize: {
+              xs: "12px",
+              sm: "13px",
+            },
+            fontWeight: 600,
+          }}
+        >
+          {label}
+        </Typography>
+      </Box>
+
+      <Typography
+        sx={{
+          color,
+          fontSize: {
+            xs: "19px",
+            sm: "24px",
+          },
+          fontWeight: 700,
+          lineHeight: 1.2,
+          overflowWrap: "anywhere",
+        }}
+      >
+        NT$ {formatNumber(value)}
+      </Typography>
+    </Box>
+  );
+}
+
+function ResultLine({
+  line,
+  deduction = false,
+}) {
+  const itemName =
+    line.item_name ||
+    line.item_name_en ||
+    line.item_code ||
+    "薪資項目";
+
+  return (
+    <Box
+      sx={{
+        display: "grid",
+        gridTemplateColumns: {
+          xs: "minmax(0, 1fr) auto",
+          sm: "minmax(0, 1fr) 90px 120px",
+        },
+        alignItems: "center",
+        gap: {
+          xs: "8px",
+          sm: "12px",
+        },
+        py: "8px",
+        borderBottom: "1px solid #edf0f3",
+        "&:last-child": {
+          borderBottom: 0,
+        },
+      }}
+    >
+      <Box sx={{ minWidth: 0 }}>
+        <Typography
+          sx={{
+            color: "#334155",
+            fontSize: "13px",
+            fontWeight: 600,
+            overflowWrap: "anywhere",
+          }}
+        >
+          {itemName}
+        </Typography>
+
+        {line.item_code ? (
+          <Typography
+            sx={{
+              mt: "2px",
+              color: "#94a3b8",
+              fontSize: "11px",
+            }}
+          >
+            {line.item_code}
+          </Typography>
+        ) : null}
+      </Box>
+
+      <Typography
+        sx={{
+          display: {
+            xs: "none",
+            sm: "block",
+          },
+          color: "#64748b",
+          fontSize: "12px",
+          textAlign: "right",
+        }}
+      >
+        數量 {Number(line.quantity || 0)}
+      </Typography>
+
+      <Typography
+        sx={{
+          color: deduction ? "#c62828" : "#15803d",
+          fontSize: "13px",
+          fontWeight: 700,
+          textAlign: "right",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {deduction ? "−" : "+"} NT${" "}
+        {formatNumber(line.amount)}
+      </Typography>
+    </Box>
+  );
+}
+
+function EmployeeResultCard({ result }) {
+  const [expanded, setExpanded] = useState(false);
+
+  const employeeName =
+    result.display_name ||
+    result.english_name ||
+    `員工 #${result.employee_id}`;
+
+  const earnings = Array.isArray(result.earnings)
+    ? result.earnings
+    : [];
+
+  const deductions = Array.isArray(result.deductions)
+    ? result.deductions
+    : [];
+
+  return (
+    <Box
+      sx={{
+        border: "1px solid #e5e7eb",
+        borderRadius: "5px",
+        bgcolor: "#ffffff",
+        overflow: "hidden",
+      }}
+    >
+      <Box
+        sx={{
+          p: {
+            xs: "13px",
+            sm: "16px",
+          },
+        }}
+      >
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: {
+              xs: "flex-start",
+              sm: "center",
+            },
+            justifyContent: "space-between",
+            flexDirection: {
+              xs: "column",
+              sm: "row",
+            },
+            gap: "10px",
+          }}
+        >
+          <Box sx={{ minWidth: 0 }}>
+            <Typography
+              sx={{
+                color: "#1f2937",
+                fontSize: {
+                  xs: "14px",
+                  sm: "15px",
+                },
+                fontWeight: 700,
+                overflowWrap: "anywhere",
+              }}
+            >
+              {employeeName}
+            </Typography>
+
+            <Typography
+              sx={{
+                mt: "2px",
+                color: "#7b8794",
+                fontSize: "12px",
+              }}
+            >
+              員工編號：{result.employee_no || "--"}
+            </Typography>
+          </Box>
+
+          <Chip
+            size="small"
+            icon={<CheckCircleOutlineIcon />}
+            label={result.status || "已計算"}
+            sx={{
+              flexShrink: 0,
+              bgcolor:
+                result.status === "已核准"
+                  ? "#eaf8ef"
+                  : "#edf8fd",
+              color:
+                result.status === "已核准"
+                  ? "#15803d"
+                  : "#168dc5",
+              border:
+                result.status === "已核准"
+                  ? "1px solid #b9e5c8"
+                  : "1px solid #b8def0",
+              fontWeight: 700,
+              "& .MuiChip-icon": {
+                color: "inherit",
+                fontSize: "16px",
+              },
+            }}
+          />
+        </Box>
+
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "repeat(2, minmax(0, 1fr))",
+              sm: "repeat(3, minmax(0, 1fr))",
+            },
+            gap: "10px",
+            mt: "14px",
+          }}
+        >
+          <Box>
+            <Typography
+              sx={{
+                color: "#94a3b8",
+                fontSize: "11px",
+              }}
+            >
+              應發總額
+            </Typography>
+
+            <Typography
+              sx={{
+                mt: "3px",
+                color: "#15803d",
+                fontSize: "14px",
+                fontWeight: 700,
+              }}
+            >
+              NT$ {formatNumber(result.gross_pay)}
+            </Typography>
+          </Box>
+
+          <Box>
+            <Typography
+              sx={{
+                color: "#94a3b8",
+                fontSize: "11px",
+              }}
+            >
+              扣款總額
+            </Typography>
+
+            <Typography
+              sx={{
+                mt: "3px",
+                color: "#c62828",
+                fontSize: "14px",
+                fontWeight: 700,
+              }}
+            >
+              NT$ {formatNumber(result.total_deduction)}
+            </Typography>
+          </Box>
+
+          <Box>
+            <Typography
+              sx={{
+                color: "#94a3b8",
+                fontSize: "11px",
+              }}
+            >
+              實發金額
+            </Typography>
+
+            <Typography
+              sx={{
+                mt: "3px",
+                color: "#168dc5",
+                fontSize: "16px",
+                fontWeight: 700,
+              }}
+            >
+              NT$ {formatNumber(result.net_pay)}
+            </Typography>
+          </Box>
+        </Box>
+
+        <Button
+          size="small"
+          onClick={() => setExpanded((value) => !value)}
+          endIcon={
+            expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />
+          }
+          sx={{
+            mt: "12px",
+            px: 0,
+            minWidth: 0,
+            color: "#168dc5",
+            fontSize: "12px",
+            fontWeight: 700,
+          }}
+        >
+          {expanded ? "收合薪資明細" : "查看薪資明細"}
+        </Button>
+      </Box>
+
+      <Collapse in={expanded}>
+        <Box
+          sx={{
+            px: {
+              xs: "13px",
+              sm: "16px",
+            },
+            pb: {
+              xs: "13px",
+              sm: "16px",
+            },
+          }}
+        >
+          <Divider sx={{ mb: "12px" }} />
+
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                md: "repeat(2, minmax(0, 1fr))",
+              },
+              gap: "14px",
+            }}
+          >
+            <Box
+              sx={{
+                p: "12px",
+                borderRadius: "5px",
+                bgcolor: "#f6fcf8",
+                border: "1px solid #d8eee0",
+              }}
+            >
+              <Typography
+                sx={{
+                  mb: "5px",
+                  color: "#15803d",
+                  fontSize: "13px",
+                  fontWeight: 700,
+                }}
+              >
+                加項明細
+              </Typography>
+
+              {earnings.length > 0 ? (
+                earnings.map((line) => (
+                  <ResultLine
+                    key={line.result_line_id}
+                    line={line}
+                  />
+                ))
+              ) : (
+                <Typography
+                  sx={{
+                    py: "8px",
+                    color: "#94a3b8",
+                    fontSize: "12px",
+                  }}
+                >
+                  沒有加項資料
+                </Typography>
+              )}
+            </Box>
+
+            <Box
+              sx={{
+                p: "12px",
+                borderRadius: "5px",
+                bgcolor: "#fff8f8",
+                border: "1px solid #f0d8d8",
+              }}
+            >
+              <Typography
+                sx={{
+                  mb: "5px",
+                  color: "#c62828",
+                  fontSize: "13px",
+                  fontWeight: 700,
+                }}
+              >
+                扣項明細
+              </Typography>
+
+              {deductions.length > 0 ? (
+                deductions.map((line) => (
+                  <ResultLine
+                    key={line.result_line_id}
+                    line={line}
+                    deduction
+                  />
+                ))
+              ) : (
+                <Typography
+                  sx={{
+                    py: "8px",
+                    color: "#94a3b8",
+                    fontSize: "12px",
+                  }}
+                >
+                  沒有扣項資料
+                </Typography>
+              )}
+            </Box>
+          </Box>
+
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "repeat(2, minmax(0, 1fr))",
+                sm: "repeat(4, minmax(0, 1fr))",
+              },
+              gap: "10px",
+              mt: "12px",
+              p: "12px",
+              bgcolor: "#f8fafc",
+              borderRadius: "5px",
+            }}
+          >
+            <Box>
+              <Typography
+                sx={{ color: "#94a3b8", fontSize: "11px" }}
+              >
+                應稅所得
+              </Typography>
+              <Typography
+                sx={{
+                  mt: "3px",
+                  color: "#475569",
+                  fontSize: "12px",
+                  fontWeight: 700,
+                }}
+              >
+                NT$ {formatNumber(result.taxable_income)}
+              </Typography>
+            </Box>
+
+            <Box>
+              <Typography
+                sx={{ color: "#94a3b8", fontSize: "11px" }}
+              >
+                扣繳稅額
+              </Typography>
+              <Typography
+                sx={{
+                  mt: "3px",
+                  color: "#475569",
+                  fontSize: "12px",
+                  fontWeight: 700,
+                }}
+              >
+                NT$ {formatNumber(result.withholding_tax)}
+              </Typography>
+            </Box>
+
+            <Box>
+              <Typography
+                sx={{ color: "#94a3b8", fontSize: "11px" }}
+              >
+                員工保險費
+              </Typography>
+              <Typography
+                sx={{
+                  mt: "3px",
+                  color: "#475569",
+                  fontSize: "12px",
+                  fontWeight: 700,
+                }}
+              >
+                NT${" "}
+                {formatNumber(
+                  result.employee_insurance_fee,
+                )}
+              </Typography>
+            </Box>
+
+            <Box>
+              <Typography
+                sx={{ color: "#94a3b8", fontSize: "11px" }}
+              >
+                銀行轉帳
+              </Typography>
+              <Typography
+                sx={{
+                  mt: "3px",
+                  color: "#168dc5",
+                  fontSize: "12px",
+                  fontWeight: 700,
+                }}
+              >
+                NT${" "}
+                {formatNumber(
+                  result.bank_transfer_amount,
+                )}
+              </Typography>
+            </Box>
+          </Box>
+
+          {result.approved_at ? (
+            <Typography
+              sx={{
+                mt: "10px",
+                color: "#64748b",
+                fontSize: "12px",
+              }}
+            >
+              核准時間：{formatDateTime(result.approved_at)}
+            </Typography>
+          ) : null}
+        </Box>
+      </Collapse>
+    </Box>
+  );
+}
+
+export default function PayrollCalculationPanel({
+  payrollRunId,
+  onReload,
+}) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [recalculating, setRecalculating] =
+    useState(false);
+  const [approving, setApproving] = useState(false);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const [messageSeverity, setMessageSeverity] =
+    useState("success");
+
+  const loadResults = useCallback(async () => {
+    if (!payrollRunId) return;
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const result = await getPayrollRunResults(
+        payrollRunId,
+      );
+
+      setData({
+        ...result,
+        summary: result?.summary || {},
+        missing_employees: Array.isArray(
+          result?.missing_employees,
+        )
+          ? result.missing_employees
+          : [],
+        results: Array.isArray(result?.results)
+          ? result.results
+          : [],
+      });
+    } catch (loadError) {
+      setError(
+        getErrorMessage(
+          loadError,
+          "無法載入薪資計算結果。",
+        ),
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [payrollRunId]);
+
+  useEffect(() => {
+    setData(null);
+    setError("");
+    setMessage("");
+    loadResults();
+  }, [loadResults]);
+
+  async function handleRecalculate() {
+    const confirmed = window.confirm(
+      "確定要重新計算此薪資批次嗎？目前的計算結果將被更新。",
+    );
+
+    if (!confirmed) return;
+
+    setRecalculating(true);
+    setError("");
+    setMessage("");
+
+    try {
+      const result = await calculatePayrollRun(
+        payrollRunId,
+      );
+
+      const calculatedCount = Number(
+        result?.calculated_count || 0,
+      );
+      const errors = Array.isArray(result?.errors)
+        ? result.errors
+        : [];
+
+      if (errors.length > 0) {
+        setMessageSeverity("warning");
+        setMessage(
+          `已計算 ${calculatedCount} 位員工，但有 ${errors.length} 位員工計算失敗。批次將返回資料確認階段。`,
+        );
+      } else {
+        setMessageSeverity("success");
+        setMessage(
+          `重新計算完成，共計算 ${calculatedCount} 位員工。`,
+        );
+      }
+
+      await loadResults();
+      await onReload?.();
+    } catch (recalculateError) {
+      setError(
+        getErrorMessage(
+          recalculateError,
+          "重新計算薪資失敗。",
+        ),
+      );
+    } finally {
+      setRecalculating(false);
+    }
+  }
+
+  async function handleApprove() {
+    const confirmed = window.confirm(
+      "確定要核准此薪資批次嗎？核准後將無法重新計算。",
+    );
+
+    if (!confirmed) return;
+
+    setApproving(true);
+    setError("");
+    setMessage("");
+
+    try {
+      const result = await approvePayrollRun(
+        payrollRunId,
+      );
+
+      setMessageSeverity("success");
+      setMessage(
+        `薪資批次核准完成，共核准 ${
+          Number(result?.approved_count || 0)
+        } 位員工。`,
+      );
+
+      await onReload?.();
+    } catch (approveError) {
+      setError(
+        getErrorMessage(
+          approveError,
+          "核准薪資批次失敗。",
+        ),
+      );
+    } finally {
+      setApproving(false);
+    }
+  }
+
+  const summary = data?.summary || {};
+  const results = data?.results || [];
+  const missingEmployees =
+    data?.missing_employees || [];
+
+  const readyToApprove =
+    summary.ready_to_approve === true ||
+    Number(summary.ready_to_approve) === 1;
+
+  return (
+    <Box
+      sx={{
+        mt: "20px",
+        pt: "18px",
+        borderTop: "1px solid #e5e7eb",
+      }}
+    >
+      <Typography
+        sx={{
+          mb: "14px",
+          color: "#334155",
+          fontSize: {
+            xs: "15px",
+            sm: "16px",
+          },
+          fontWeight: 700,
+        }}
+      >
+        薪資計算結果
+      </Typography>
+
+      {error ? (
+        <Alert severity="error" sx={{ mb: "14px" }}>
+          {error}
+        </Alert>
+      ) : null}
+
+      {message ? (
+        <Alert
+          severity={messageSeverity}
+          sx={{ mb: "14px" }}
+        >
+          {message}
+        </Alert>
+      ) : null}
+
+      {loading ? (
+        <Box
+          sx={{
+            minHeight: "180px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <CircularProgress size={30} />
+        </Box>
+      ) : data ? (
+        <>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "repeat(3, minmax(0, 1fr))",
+              },
+              gap: "10px",
+            }}
+          >
+            <PayrollTotalCard
+              label="應發總額"
+              value={summary.gross_pay_total}
+              color="#15803d"
+              background="#f2fbf5"
+              icon={
+                <PaymentsOutlinedIcon fontSize="small" />
+              }
+            />
+
+            <PayrollTotalCard
+              label="扣款總額"
+              value={summary.deduction_total}
+              color="#c62828"
+              background="#fff7f7"
+              icon={
+                <AccountBalanceWalletOutlinedIcon fontSize="small" />
+              }
+            />
+
+            <PayrollTotalCard
+              label="實發總額"
+              value={summary.net_pay_total}
+              color="#168dc5"
+              background="#f2fbff"
+              icon={<TaskAltIcon fontSize="small" />}
+            />
+          </Box>
+
+          <Box
+            sx={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "8px",
+              mt: "12px",
+            }}
+          >
+            <Chip
+              size="small"
+              label={`應計算 ${summary.expected_count || 0} 人`}
+            />
+
+            <Chip
+              size="small"
+              label={`已產生 ${summary.result_count || 0} 人`}
+            />
+
+            <Chip
+              size="small"
+              label={`已計算 ${summary.calculated_count || 0} 人`}
+              sx={{
+                bgcolor: "#edf8fd",
+                color: "#168dc5",
+              }}
+            />
+
+            <Chip
+              size="small"
+              label={`已核准 ${summary.approved_count || 0} 人`}
+              sx={{
+                bgcolor: "#eaf8ef",
+                color: "#15803d",
+              }}
+            />
+          </Box>
+
+          {missingEmployees.length > 0 ? (
+            <Alert severity="error" sx={{ mt: "14px" }}>
+              <Typography
+                sx={{
+                  mb: "5px",
+                  fontSize: "13px",
+                  fontWeight: 700,
+                }}
+              >
+                有 {missingEmployees.length} 位員工尚未產生薪資結果：
+              </Typography>
+
+              {missingEmployees.map((employee) => (
+                <Typography
+                  key={employee.employee_id}
+                  sx={{
+                    fontSize: "13px",
+                    lineHeight: 1.6,
+                  }}
+                >
+                  •{" "}
+                  {employee.display_name ||
+                    employee.english_name ||
+                    `員工 #${employee.employee_id}`}
+                  {employee.employee_no
+                    ? `（${employee.employee_no}）`
+                    : ""}
+                </Typography>
+              ))}
+            </Alert>
+          ) : readyToApprove ? (
+            <Alert severity="success" sx={{ mt: "14px" }}>
+              所有員工的薪資結果均已完成，可以核准此薪資批次。
+            </Alert>
+          ) : (
+            <Alert severity="warning" sx={{ mt: "14px" }}>
+              薪資結果尚未符合核准條件，請重新確認計算結果。
+            </Alert>
+          )}
+
+          <Divider sx={{ my: "16px" }} />
+
+          <Typography
+            sx={{
+              mb: "10px",
+              color: "#334155",
+              fontSize: {
+                xs: "14px",
+                sm: "15px",
+              },
+              fontWeight: 700,
+            }}
+          >
+            員工薪資結果
+          </Typography>
+
+          <Box
+            sx={{
+              display: "grid",
+              gap: "10px",
+            }}
+          >
+            {results.map((result) => (
+              <EmployeeResultCard
+                key={result.payroll_result_id}
+                result={result}
+              />
+            ))}
+          </Box>
+
+          {results.length === 0 ? (
+            <Alert severity="warning">
+              此薪資批次目前沒有計算結果。
+            </Alert>
+          ) : null}
+
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "flex-end",
+              flexDirection: {
+                xs: "column",
+                sm: "row",
+              },
+              gap: "8px",
+              mt: "16px",
+            }}
+          >
+            <Button
+              variant="outlined"
+              startIcon={
+                recalculating ? (
+                  <CircularProgress
+                    size={17}
+                    color="inherit"
+                  />
+                ) : (
+                  <RefreshIcon />
+                )
+              }
+              onClick={handleRecalculate}
+              disabled={recalculating || approving}
+              sx={{
+                color: "#475569",
+                borderColor: "#cbd5e1",
+              }}
+            >
+              {recalculating
+                ? "重新計算中..."
+                : "重新計算"}
+            </Button>
+
+            <Button
+              variant="contained"
+              startIcon={
+                approving ? (
+                  <CircularProgress
+                    size={17}
+                    color="inherit"
+                  />
+                ) : (
+                  <TaskAltIcon />
+                )
+              }
+              onClick={handleApprove}
+              disabled={
+                !readyToApprove ||
+                recalculating ||
+                approving
+              }
+              sx={{
+                bgcolor: "#1f9bd1",
+                "&:hover": {
+                  bgcolor: "#168dc5",
+                },
+              }}
+            >
+              {approving ? "核准中..." : "核准薪資結果"}
+            </Button>
+          </Box>
+        </>
+      ) : null}
+    </Box>
+  );
+}

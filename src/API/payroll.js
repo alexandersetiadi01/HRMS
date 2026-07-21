@@ -17,6 +17,14 @@ function unwrapResponse(response, fallback = null) {
   return payload ?? fallback;
 }
 
+function buildParams(params = {}) {
+  return Object.fromEntries(
+    Object.entries(params).filter(([, value]) => {
+      return value !== undefined && value !== null && value !== "";
+    }),
+  );
+}
+
 function normalizePayslipDetail(detail, payrollResultId) {
   if (Array.isArray(detail)) {
     detail =
@@ -81,6 +89,213 @@ function downloadBlobResponse(response, fallbackFilename) {
   link.remove();
 
   window.URL.revokeObjectURL(url);
+}
+
+export async function getPayrollRanges(params = {}) {
+  const response = await http.get("/payroll-ranges", {
+    params: buildParams({
+      status: params.status,
+    }),
+  });
+
+  return unwrapResponse(response, []);
+}
+
+export async function getPayrollPeriods(params = {}) {
+  const response = await http.get("/payroll-periods", {
+    params: buildParams({
+      payroll_range_id: params.payroll_range_id,
+    }),
+  });
+
+  return unwrapResponse(response, []);
+}
+
+export async function createPayrollPeriod(payload) {
+  const response = await http.post("/payroll-periods", payload);
+
+  return unwrapResponse(response, null);
+}
+
+export async function getPayrollRuns(params = {}) {
+  const response = await http.get("/payroll-runs", {
+    params: buildParams({
+      payroll_period_id: params.payroll_period_id,
+      payroll_range_id: params.payroll_range_id,
+    }),
+  });
+
+  return unwrapResponse(response, []);
+}
+
+export async function createPayrollRun(payload) {
+  const response = await http.post("/payroll-runs", payload);
+
+  return unwrapResponse(response, null);
+}
+
+export async function getPayrollRunReadiness(
+  payrollRunId,
+) {
+  const response = await http.get(
+    `/payroll-runs/${payrollRunId}/readiness`,
+  );
+
+  return unwrapResponse(response, {
+    summary: {},
+    employees: [],
+  });
+}
+
+export async function getPayrollRunResults(
+  payrollRunId,
+) {
+  const response = await http.get(
+    `/payroll-runs/${payrollRunId}/results`,
+  );
+
+  return unwrapResponse(response, {
+    summary: {},
+    missing_employees: [],
+    results: [],
+  });
+}
+
+export async function approvePayrollRun(
+  payrollRunId,
+) {
+  const response = await http.post(
+    `/payroll-runs/${payrollRunId}/approve`,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function closePayrollRun(
+  payrollRunId,
+) {
+  const response = await http.post(
+    `/payroll-runs/${payrollRunId}/close`,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function calculatePayrollRun(
+  payrollRunId,
+  employeeId = null,
+) {
+  const response = await http.post(
+    `/payroll-runs/${payrollRunId}/calculate`,
+    null,
+    {
+      params: buildParams({
+        employee_id: employeeId,
+      }),
+    },
+  );
+
+  return unwrapResponse(response, {
+    payroll_run_id: payrollRunId,
+    calculated_count: 0,
+    calculated: [],
+    errors: [],
+  });
+}
+
+export async function getPayrollResults(params = {}) {
+  const response = await http.get("/payroll-results", {
+    params: buildParams({
+      payroll_run_id: params.payroll_run_id,
+      employee_id: params.employee_id,
+    }),
+  });
+
+  return unwrapResponse(response, []);
+}
+
+export async function approvePayrollResult(payrollResultId) {
+  const response = await http.post(
+    `/payroll-results/${payrollResultId}/approve`,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function markPayrollResultPaid(payrollResultId) {
+  const response = await http.post(
+    `/payroll-results/${payrollResultId}/mark-paid`,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function getPayrollResultLines(
+  payrollResultId,
+) {
+  const response = await http.get(
+    "/payroll-result-lines",
+    {
+      params: {
+        payroll_result_id: payrollResultId,
+      },
+    },
+  );
+
+  return unwrapResponse(response, []);
+}
+
+export async function getPayrollExtraItems(params = {}) {
+  const response = await http.get(
+    "/payroll-extra-items",
+    {
+      params: buildParams({
+        payroll_run_id: params.payroll_run_id,
+        employee_id: params.employee_id,
+      }),
+    },
+  );
+
+  return unwrapResponse(response, []);
+}
+
+export async function createPayrollExtraItem(payload) {
+  const response = await http.post(
+    "/payroll-extra-items",
+    payload,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function getPayrollItems() {
+  const response = await http.get("/payroll-items");
+
+  return unwrapResponse(response, []);
+}
+
+export async function getEmployeeSalaryRecords(
+  employeeId = null,
+) {
+  const response = await http.get("/salary-records", {
+    params: buildParams({
+      employee_id: employeeId,
+    }),
+  });
+
+  return unwrapResponse(response, []);
+}
+
+export async function getSalaryRecordItems(
+  salaryRecordId = null,
+) {
+  const response = await http.get("/salary-items", {
+    params: buildParams({
+      salary_record_id: salaryRecordId,
+    }),
+  });
+
+  return unwrapResponse(response, []);
 }
 
 export async function verifyPayrollPassword(password) {

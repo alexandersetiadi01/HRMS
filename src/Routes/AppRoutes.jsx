@@ -17,6 +17,7 @@ import AttendanceBusinessTrip from "../Pages/Attendance/AttendanceBusinessTrip";
 import AccountLayout from "../Layouts/AccountLayout";
 import PayrollPage from "../Pages/Payroll/PayrollPage";
 import PayrollDetail from "../Pages/Payroll/PayrollDetail";
+import PayrollManagement from "../Pages/PayrollManagement/PayrollManagement";
 import AttendanceFormPage from "../Pages/Attendance/AttendanceForm/AttendanceFormPage";
 import CompanyRegulations from "../Pages/CompanyRegulation/CompanyRegulation";
 import CompanyAnnouncement from "../Pages/Announcement/Company/CompanyAnnouncement";
@@ -67,20 +68,41 @@ export default function AppRoutes() {
         <Route path="/settings" element={<Settings />} />
         <Route path="/settings/menu-shortcuts" element={<MenuShortcuts />} />
 
-        <Route path="/dashboard" element={<PlaceholderPage title="Dashboard" />} />
+        <Route
+          path="/dashboard"
+          element={<PlaceholderPage title="Dashboard" />}
+        />
 
         <Route path="/attendance" element={<AttendanceLayout />} />
         <Route path="/attendance/clock" element={<Absent />} />
         <Route path="/attendance/schedule" element={<AttendanceSchedule />} />
-        <Route path="/attendance/missed-punch" element={<AttendanceMissedPunch />} />
+        <Route
+          path="/attendance/missed-punch"
+          element={<AttendanceMissedPunch />}
+        />
         <Route path="/attendance/record" element={<AttendanceRecord />} />
-        <Route path="/attendance/special-leave" element={<AttendanceSpecialLeave />} />
+        <Route
+          path="/attendance/special-leave"
+          element={<AttendanceSpecialLeave />}
+        />
         <Route path="/attendance/leave" element={<AttendanceLeave />} />
         <Route path="/attendance/overtime" element={<AttendanceOvertime />} />
-        <Route path="/attendance/form-record" element={<AttendanceFormPage />} />
-        <Route path="/attendance/leave-balance" element={<AttendanceLeaveBalance />} />
-        <Route path="/attendance/pending-approval" element={<AttendancePendingApproval />} />
-        <Route path="/attendance/business-trip" element={<AttendanceBusinessTrip />} />
+        <Route
+          path="/attendance/form-record"
+          element={<AttendanceFormPage />}
+        />
+        <Route
+          path="/attendance/leave-balance"
+          element={<AttendanceLeaveBalance />}
+        />
+        <Route
+          path="/attendance/pending-approval"
+          element={<AttendancePendingApproval />}
+        />
+        <Route
+          path="/attendance/business-trip"
+          element={<AttendanceBusinessTrip />}
+        />
 
         <Route
           path="/attendance/admin/staff-attendance"
@@ -112,7 +134,7 @@ export default function AppRoutes() {
         />
         <Route
           path="/attendance/admin/payroll-work"
-          element={<PlaceholderPage title="結算作業" />}
+          element={<PayrollManagement />}
         />
         <Route
           path="/attendance/admin/module-setting"
