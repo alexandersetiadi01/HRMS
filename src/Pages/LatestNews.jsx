@@ -1,9 +1,4 @@
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Box,
   Button,
@@ -12,6 +7,8 @@ import {
   DialogContent,
   IconButton,
   Typography,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
@@ -102,9 +99,13 @@ function SidebarMenu({ categories, activeCategoryId, onChange }) {
   return (
     <Box
       sx={{
-        width: "168px",
+        width: {
+          xs: "100%",
+          md: "168px",
+        },
         border: "1px solid #e0e0e0",
         bgcolor: "#f7f7f7",
+        overflow: "hidden",
       }}
     >
       <Box
@@ -120,7 +121,10 @@ function SidebarMenu({ categories, activeCategoryId, onChange }) {
       >
         <Typography
           sx={{
-            fontSize: "16px",
+            fontSize: {
+              xs: "15px",
+              sm: "16px",
+            },
             fontWeight: 700,
             color: ACCENT_COLOR,
             textAlign: "center",
@@ -130,69 +134,107 @@ function SidebarMenu({ categories, activeCategoryId, onChange }) {
         </Typography>
       </Box>
 
-      {categories.length === 0 ? (
-        <Box
-          sx={{
-            minHeight: "42px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            px: "12px",
-            borderBottom: "1px solid #e5e5e5",
-            color: "#c9c9c9",
-            fontWeight: 500,
-            fontSize: "15px",
-            textAlign: "center",
-          }}
-        >
-          無分類
-        </Box>
-      ) : (
-        categories.map((category) => {
-          const categoryId = String(category.news_category_id);
-          const isActive = categoryId === String(activeCategoryId);
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: {
+            xs: "repeat(3, minmax(0, 1fr))",
+            sm: "repeat(auto-fit, minmax(120px, 1fr))",
+            md: "minmax(0, 1fr)",
+          },
+          overflow: "visible",
+        }}
+      >
+        {categories.length === 0 ? (
+          <Box
+            sx={{
+              width: "100%",
+              minHeight: "42px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              px: "12px",
+              borderBottom: "1px solid #e5e5e5",
+              color: "#c9c9c9",
+              fontWeight: 400,
+              fontSize: {
+                xs: "14px",
+                sm: "15px",
+              },
+              textAlign: "center",
+            }}
+          >
+            無分類
+          </Box>
+        ) : (
+          categories.map((category) => {
+            const categoryId = String(category.news_category_id);
 
-          return (
-            <Box
-              key={categoryId}
-              onClick={() => onChange(categoryId)}
-              sx={{
-                minHeight: "42px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                px: "12px",
-                borderBottom: "1px solid #e5e5e5",
-                color: isActive ? ACCENT_COLOR : "#c9c9c9",
-                fontWeight: isActive ? 700 : 500,
-                fontSize: "15px",
-                textAlign: "center",
-                cursor: "pointer",
-                userSelect: "none",
-                "&:hover": {
-                  color: ACCENT_COLOR,
-                  bgcolor: "#fafafa",
-                },
-              }}
-            >
-              {category.category_name || "-"}
-            </Box>
-          );
-        })
-      )}
+            const isActive = categoryId === String(activeCategoryId);
+
+            return (
+              <Box
+                key={categoryId}
+                onClick={() => onChange(categoryId)}
+                sx={{
+                  minWidth: 0,
+                  width: "100%",
+                  minHeight: "42px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  px: {
+                    xs: "6px",
+                    sm: "10px",
+                    md: "12px",
+                  },
+                  borderRight: {
+                    xs: "1px solid #e5e5e5",
+                    md: "none",
+                  },
+                  borderBottom: "1px solid #e5e5e5",
+                  color: isActive ? ACCENT_COLOR : "#c9c9c9",
+                  fontWeight: isActive ? 700 : 400,
+                  fontSize: {
+                    xs: "13px",
+                    sm: "14px",
+                    md: "15px",
+                  },
+                  textAlign: "center",
+                  whiteSpace: "normal",
+                  wordBreak: "keep-all",
+                  overflowWrap: "anywhere",
+                  cursor: "pointer",
+                  userSelect: "none",
+                  "&:hover": {
+                    color: ACCENT_COLOR,
+                    bgcolor: "#fafafa",
+                  },
+                }}
+              >
+                {category.category_name || "-"}
+              </Box>
+            );
+          })
+        )}
+      </Box>
     </Box>
   );
 }
 
 function PaginationBar({ totalRows, currentPage, onPageChange }) {
   const totalPages = Math.max(1, Math.ceil(totalRows / DEFAULT_ROWS_PER_PAGE));
+
   const safePage = Math.min(Math.max(1, currentPage), totalPages);
+
   const displayFrom =
     totalRows === 0 ? 0 : (safePage - 1) * DEFAULT_ROWS_PER_PAGE + 1;
+
   const displayTo = Math.min(safePage * DEFAULT_ROWS_PER_PAGE, totalRows);
 
   const goToPage = (page) => {
     const nextPage = Math.min(Math.max(1, page), totalPages);
+
     onPageChange(nextPage);
   };
 
@@ -202,17 +244,40 @@ function PaginationBar({ totalRows, currentPage, onPageChange }) {
         mt: "18px",
         display: "flex",
         alignItems: "center",
-        justifyContent: "space-between",
+        justifyContent: {
+          xs: "center",
+          md: "space-between",
+        },
         flexWrap: "wrap",
         gap: "12px",
       }}
     >
-      <Box sx={{ display: "flex", alignItems: "center", gap: "8px" }}>
+      <Box
+        sx={{
+          width: {
+            xs: "100%",
+            md: "auto",
+          },
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: {
+            xs: "5px",
+            sm: "8px",
+          },
+          whiteSpace: "nowrap",
+        }}
+      >
         <Button
           variant="outlined"
           disabled={safePage <= 1}
           onClick={() => goToPage(1)}
-          sx={{ minWidth: "24px", width: "24px", height: "24px", p: 0 }}
+          sx={{
+            minWidth: "24px",
+            width: "24px",
+            height: "24px",
+            p: 0,
+          }}
         >
           <KeyboardDoubleArrowLeftIcon sx={{ fontSize: "18px" }} />
         </Button>
@@ -221,12 +286,30 @@ function PaginationBar({ totalRows, currentPage, onPageChange }) {
           variant="outlined"
           disabled={safePage <= 1}
           onClick={() => goToPage(safePage - 1)}
-          sx={{ minWidth: "24px", width: "24px", height: "24px", p: 0 }}
+          sx={{
+            minWidth: "24px",
+            width: "24px",
+            height: "24px",
+            p: 0,
+          }}
         >
           <KeyboardArrowLeftIcon sx={{ fontSize: "18px" }} />
         </Button>
 
-        <Typography sx={{ fontSize: "15px", color: "#333333", ml: "4px" }}>
+        <Typography
+          sx={{
+            fontSize: {
+              xs: "13px",
+              sm: "14px",
+              md: "15px",
+            },
+            color: "#333333",
+            ml: {
+              xs: 0,
+              sm: "4px",
+            },
+          }}
+        >
           第
         </Typography>
 
@@ -238,7 +321,11 @@ function PaginationBar({ totalRows, currentPage, onPageChange }) {
             display: "flex",
             alignItems: "center",
             px: "8px",
-            fontSize: "15px",
+            fontSize: {
+              xs: "13px",
+              sm: "14px",
+              md: "15px",
+            },
             color: "#333333",
             bgcolor: "#ffffff",
           }}
@@ -246,7 +333,16 @@ function PaginationBar({ totalRows, currentPage, onPageChange }) {
           {safePage}
         </Box>
 
-        <Typography sx={{ fontSize: "15px", color: "#333333" }}>
+        <Typography
+          sx={{
+            fontSize: {
+              xs: "13px",
+              sm: "14px",
+              md: "15px",
+            },
+            color: "#333333",
+          }}
+        >
           頁，共 {totalPages} 頁
         </Typography>
 
@@ -254,7 +350,12 @@ function PaginationBar({ totalRows, currentPage, onPageChange }) {
           variant="outlined"
           disabled={safePage >= totalPages}
           onClick={() => goToPage(safePage + 1)}
-          sx={{ minWidth: "24px", width: "24px", height: "24px", p: 0 }}
+          sx={{
+            minWidth: "24px",
+            width: "24px",
+            height: "24px",
+            p: 0,
+          }}
         >
           <KeyboardArrowRightIcon sx={{ fontSize: "18px" }} />
         </Button>
@@ -263,15 +364,423 @@ function PaginationBar({ totalRows, currentPage, onPageChange }) {
           variant="outlined"
           disabled={safePage >= totalPages}
           onClick={() => goToPage(totalPages)}
-          sx={{ minWidth: "24px", width: "24px", height: "24px", p: 0 }}
+          sx={{
+            minWidth: "24px",
+            width: "24px",
+            height: "24px",
+            p: 0,
+          }}
         >
           <KeyboardDoubleArrowRightIcon sx={{ fontSize: "18px" }} />
         </Button>
       </Box>
 
-      <Typography sx={{ fontSize: "15px", color: "#1f2f4a" }}>
+      <Typography
+        sx={{
+          width: {
+            xs: "100%",
+            md: "auto",
+          },
+          fontSize: {
+            xs: "13px",
+            sm: "14px",
+            md: "15px",
+          },
+          color: "#1f2f4a",
+          textAlign: {
+            xs: "center",
+            md: "right",
+          },
+        }}
+      >
         顯示 {displayFrom} - {displayTo} 筆，共 {totalRows} 筆
       </Typography>
+    </Box>
+  );
+}
+
+function NewsList({
+  loading,
+  errorMessage,
+  rows,
+  highlightedNewsId,
+  isSourceUnread,
+  onOpenDetail,
+}) {
+  const theme = useTheme();
+  const useCardLayout = useMediaQuery(theme.breakpoints.down("md"));
+
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          minHeight: "80px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          border: "1px solid #d3d3d3",
+          borderRadius: {
+            xs: "6px",
+            md: 0,
+          },
+          bgcolor: "#ffffff",
+        }}
+      >
+        <CircularProgress size={26} />
+      </Box>
+    );
+  }
+
+  if (errorMessage) {
+    return (
+      <Box
+        sx={{
+          minHeight: "44px",
+          display: "flex",
+          alignItems: "center",
+          px: "12px",
+          py: "10px",
+          border: "1px solid #d3d3d3",
+          borderRadius: {
+            xs: "6px",
+            md: 0,
+          },
+          bgcolor: "#ffffff",
+        }}
+      >
+        <Typography
+          sx={{
+            fontSize: {
+              xs: "14px",
+              sm: "15px",
+            },
+            color: "#dc2626",
+            overflowWrap: "anywhere",
+          }}
+        >
+          {errorMessage}
+        </Typography>
+      </Box>
+    );
+  }
+
+  if (rows.length === 0) {
+    return (
+      <Box
+        sx={{
+          minHeight: "44px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: {
+            xs: "center",
+            md: "flex-start",
+          },
+          px: "12px",
+          py: "10px",
+          border: "1px solid #d3d3d3",
+          borderRadius: {
+            xs: "6px",
+            md: 0,
+          },
+          bgcolor: "#ffffff",
+        }}
+      >
+        <Typography
+          sx={{
+            fontSize: {
+              xs: "14px",
+              sm: "15px",
+            },
+            color: "#333333",
+          }}
+        >
+          查無資料
+        </Typography>
+      </Box>
+    );
+  }
+
+  if (useCardLayout) {
+    return (
+      <Box
+        sx={{
+          display: "grid",
+          gap: {
+            xs: "10px",
+            sm: "12px",
+          },
+        }}
+      >
+        {rows.map((row, index) => {
+          const isHighlighted =
+            Number(row.news_id) === Number(highlightedNewsId);
+
+          return (
+            <Box
+              key={row.news_id || index}
+              onClick={() => onOpenDetail(row)}
+              sx={{
+                border: "1px solid #d3d3d3",
+                borderRadius: "6px",
+                bgcolor: isHighlighted ? "#fff7cc" : "#ffffff",
+                overflow: "hidden",
+                cursor: "pointer",
+                transition: "background-color 0.2s ease",
+                "&:hover": {
+                  bgcolor: isHighlighted ? "#fff1a8" : "#fafafa",
+                },
+              }}
+            >
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: "8px",
+                  px: {
+                    xs: "10px",
+                    sm: "12px",
+                  },
+                  py: "11px",
+                  borderBottom: "1px solid #e5e7eb",
+                }}
+              >
+                {isSourceUnread("news", row.news_id) ? (
+                  <Box
+                    component="span"
+                    aria-label="未讀最新消息"
+                    sx={{
+                      width: "8px",
+                      height: "8px",
+                      mt: "6px",
+                      borderRadius: "50%",
+                      bgcolor: "#ef4444",
+                      flexShrink: 0,
+                    }}
+                  />
+                ) : null}
+
+                <Typography
+                  sx={{
+                    minWidth: 0,
+                    fontSize: {
+                      xs: "14px",
+                      sm: "15px",
+                    },
+                    fontWeight: 700,
+                    color: "#333333",
+                    overflowWrap: "anywhere",
+                  }}
+                >
+                  {row.title || "-"}
+                </Typography>
+              </Box>
+
+              {[
+                {
+                  label: "發布開始",
+                  value: formatDateTime(row.publish_start),
+                },
+                {
+                  label: "發布結束",
+                  value: formatDateTime(row.publish_end),
+                },
+              ].map((field, fieldIndex) => (
+                <Box
+                  key={field.label}
+                  sx={{
+                    display: "grid",
+                    gridTemplateColumns: {
+                      xs: "88px minmax(0, 1fr)",
+                      sm: "140px minmax(0, 1fr)",
+                    },
+                    borderBottom:
+                      fieldIndex === 1 ? "none" : "1px solid #e5e7eb",
+                  }}
+                >
+                  <Typography
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      px: {
+                        xs: "8px",
+                        sm: "10px",
+                      },
+                      py: "10px",
+                      bgcolor: "#f7f7f7",
+                      fontSize: {
+                        xs: "12px",
+                        sm: "13px",
+                      },
+                      fontWeight: 700,
+                      color: "#475569",
+                      wordBreak: "keep-all",
+                    }}
+                  >
+                    {field.label}
+                  </Typography>
+
+                  <Typography
+                    sx={{
+                      minWidth: 0,
+                      px: {
+                        xs: "10px",
+                        sm: "12px",
+                      },
+                      py: "10px",
+                      fontSize: {
+                        xs: "14px",
+                        sm: "15px",
+                      },
+                      color: "#333333",
+                      overflowWrap: "anywhere",
+                    }}
+                  >
+                    {field.value}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          );
+        })}
+      </Box>
+    );
+  }
+
+  return (
+    <Box
+      sx={{
+        width: "100%",
+        overflowX: "auto",
+      }}
+    >
+      <Box
+        sx={{
+          minWidth: "700px",
+          border: "1px solid #d3d3d3",
+          bgcolor: "#ffffff",
+        }}
+      >
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: "minmax(0, 1fr) 160px 160px",
+            minHeight: "38px",
+            alignItems: "center",
+            background: "linear-gradient(to bottom, #f7f7f7, #dddddd)",
+            borderBottom: "1px solid #d3d3d3",
+          }}
+        >
+          {["標題", "發布開始", "發布結束"].map((label) => (
+            <Box
+              key={label}
+              sx={{
+                px: "12px",
+                minHeight: "38px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Typography
+                sx={{
+                  fontSize: "15px",
+                  fontWeight: 700,
+                  color: "#333333",
+                  textAlign: "center",
+                }}
+              >
+                {label}
+              </Typography>
+            </Box>
+          ))}
+        </Box>
+
+        {rows.map((row, index) => {
+          const isHighlighted =
+            Number(row.news_id) === Number(highlightedNewsId);
+
+          return (
+            <Box
+              key={row.news_id || index}
+              onClick={() => onOpenDetail(row)}
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "minmax(0, 1fr) 160px 160px",
+                minHeight: "50px",
+                alignItems: "center",
+                borderBottom:
+                  index === rows.length - 1 ? "none" : "1px solid #d3d3d3",
+                cursor: "pointer",
+                bgcolor: isHighlighted ? "#fff7cc" : "transparent",
+                transition: "background-color 0.2s ease",
+                "&:hover": {
+                  bgcolor: isHighlighted ? "#fff1a8" : "#fafafa",
+                },
+              }}
+            >
+              <Box
+                sx={{
+                  minWidth: 0,
+                  px: "12px",
+                  py: "10px",
+                  display: "flex",
+                  alignItems: "center",
+                }}
+              >
+                {isSourceUnread("news", row.news_id) ? (
+                  <Box
+                    component="span"
+                    aria-label="未讀最新消息"
+                    sx={{
+                      width: "8px",
+                      height: "8px",
+                      borderRadius: "50%",
+                      bgcolor: "#ef4444",
+                      flexShrink: 0,
+                      mr: "8px",
+                    }}
+                  />
+                ) : null}
+
+                <Typography
+                  sx={{
+                    minWidth: 0,
+                    fontSize: "15px",
+                    color: "#333333",
+                    overflowWrap: "anywhere",
+                  }}
+                >
+                  {row.title || "-"}
+                </Typography>
+              </Box>
+
+              {[row.publish_start, row.publish_end].map((value, valueIndex) => (
+                <Box
+                  key={valueIndex}
+                  sx={{
+                    px: "12px",
+                    py: "10px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Typography
+                    sx={{
+                      fontSize: "15px",
+                      color: "#333333",
+                      textAlign: "center",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {formatDateTime(value)}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          );
+        })}
+      </Box>
     </Box>
   );
 }
@@ -289,9 +798,19 @@ function NewsDetailDialog({ open, loading, news, onClose }) {
         sx: {
           borderRadius: "4px",
           overflow: "hidden",
-          m: "32px",
-          width: "760px",
-          maxWidth: "calc(100vw - 64px)",
+          m: {
+            xs: "8px",
+            sm: "32px",
+          },
+          width: {
+            xs: "calc(100vw - 16px)",
+            sm: "760px",
+          },
+          maxWidth: "760px",
+          maxHeight: {
+            xs: "calc(100dvh - 16px)",
+            sm: "calc(100dvh - 64px)",
+          },
         },
       }}
     >
@@ -302,16 +821,22 @@ function NewsDetailDialog({ open, loading, news, onClose }) {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          px: "14px",
+          px: {
+            xs: "10px",
+            sm: "14px",
+          },
           gap: "12px",
         }}
       >
         <Typography
           sx={{
-            fontSize: "15px",
+            fontSize: {
+              xs: "14px",
+              sm: "15px",
+            },
             fontWeight: 700,
             color: "#ffffff",
-            wordBreak: "break-word",
+            overflowWrap: "anywhere",
           }}
         >
           {news?.title || "訊息內容"}
@@ -326,7 +851,18 @@ function NewsDetailDialog({ open, loading, news, onClose }) {
         </IconButton>
       </Box>
 
-      <DialogContent sx={{ px: "16px", py: "16px" }}>
+      <DialogContent
+        sx={{
+          px: {
+            xs: "10px",
+            sm: "16px",
+          },
+          py: {
+            xs: "12px",
+            sm: "16px",
+          },
+        }}
+      >
         {loading ? (
           <Box
             sx={{
@@ -340,7 +876,16 @@ function NewsDetailDialog({ open, loading, news, onClose }) {
           </Box>
         ) : (
           <>
-            <Typography sx={{ fontSize: "13px", color: "#6b7280", mb: "14px" }}>
+            <Typography
+              sx={{
+                fontSize: {
+                  xs: "12px",
+                  sm: "13px",
+                },
+                color: "#6b7280",
+                mb: "14px",
+              }}
+            >
               發布時間：{formatDateTime(news?.publish_start)}
             </Typography>
 
@@ -349,14 +894,23 @@ function NewsDetailDialog({ open, loading, news, onClose }) {
                 border: "1px solid #dddddd",
                 borderRadius: "4px",
                 bgcolor: "#ffffff",
-                p: "14px",
+                p: {
+                  xs: "10px",
+                  sm: "14px",
+                },
                 whiteSpace: "pre-wrap",
                 lineHeight: 1.8,
-                fontSize: "15px",
+                fontSize: {
+                  xs: "14px",
+                  sm: "15px",
+                },
                 color: "#444444",
                 mb: "14px",
-                minHeight: "90px",
-                wordBreak: "break-word",
+                minHeight: {
+                  xs: "70px",
+                  sm: "90px",
+                },
+                overflowWrap: "anywhere",
               }}
             >
               {news?.content || "-"}
@@ -364,7 +918,10 @@ function NewsDetailDialog({ open, loading, news, onClose }) {
 
             <Typography
               sx={{
-                fontSize: "15px",
+                fontSize: {
+                  xs: "14px",
+                  sm: "15px",
+                },
                 fontWeight: 700,
                 color: "#333333",
                 mb: "8px",
@@ -447,10 +1004,17 @@ function NewsDetailDialog({ open, loading, news, onClose }) {
                 onClick={onClose}
                 sx={{
                   minWidth: "76px",
+                  width: {
+                    xs: "100%",
+                    sm: "auto",
+                  },
                   height: "34px",
                   borderColor: "#c5c5c5",
                   color: "#555555",
-                  fontSize: "15px",
+                  fontSize: {
+                    xs: "14px",
+                    sm: "15px",
+                  },
                   bgcolor: "#ffffff",
                 }}
               >
@@ -465,14 +1029,9 @@ function NewsDetailDialog({ open, loading, news, onClose }) {
 }
 
 export default function LatestNews() {
-  const {
-    isSourceUnread,
-    markSourceAsRead,
-  } = useNotifications();
+  const { isSourceUnread, markSourceAsRead } = useNotifications();
 
-  const {
-    highlightedId: highlightedNewsId,
-  } = useNotificationHighlight();
+  const { highlightedId: highlightedNewsId } = useNotificationHighlight();
 
   const resolvedHighlightRef = useRef(0);
 
@@ -541,15 +1100,15 @@ export default function LatestNews() {
     };
   }, []);
 
-   useEffect(() => {
+  useEffect(() => {
     if (highlightedNewsId <= 0) {
       resolvedHighlightRef.current = 0;
       return undefined;
     }
 
     if (
-      categories.length === 0
-      || resolvedHighlightRef.current === highlightedNewsId
+      categories.length === 0 ||
+      resolvedHighlightRef.current === highlightedNewsId
     ) {
       return undefined;
     }
@@ -559,26 +1118,15 @@ export default function LatestNews() {
 
     async function selectHighlightedCategory() {
       try {
-        const detail = await fetchNewsDetail(
-          highlightedNewsId,
-        );
+        const detail = await fetchNewsDetail(highlightedNewsId);
 
-        const categoryId = String(
-          detail?.news_category_id || "",
-        );
+        const categoryId = String(detail?.news_category_id || "");
 
         const categoryExists = categories.some(
-          (item) => (
-            String(item.news_category_id)
-            === categoryId
-          ),
+          (item) => String(item.news_category_id) === categoryId,
         );
 
-        if (
-          alive
-          && categoryId
-          && categoryExists
-        ) {
+        if (alive && categoryId && categoryExists) {
           setActiveCategoryId(categoryId);
           setStoredCategoryId(categoryId);
         }
@@ -642,48 +1190,27 @@ export default function LatestNews() {
       setCurrentPage(totalPages);
       setStoredPage(activeCategoryId, totalPages);
     }
-  }, [
-    activeCategoryId,
-    currentPage,
-    newsRows.length,
-  ]);
+  }, [activeCategoryId, currentPage, newsRows.length]);
 
   useEffect(() => {
-    if (
-      highlightedNewsId <= 0
-      || newsRows.length === 0
-    ) {
+    if (highlightedNewsId <= 0 || newsRows.length === 0) {
       return;
     }
 
     const rowIndex = newsRows.findIndex((row) => {
-      return (
-        Number(row.news_id)
-        === highlightedNewsId
-      );
+      return Number(row.news_id) === highlightedNewsId;
     });
 
     if (rowIndex < 0) {
       return;
     }
 
-    const targetPage = (
-      Math.floor(
-        rowIndex / DEFAULT_ROWS_PER_PAGE,
-      ) + 1
-    );
+    const targetPage = Math.floor(rowIndex / DEFAULT_ROWS_PER_PAGE) + 1;
 
     setCurrentPage(targetPage);
 
-    setStoredPage(
-      activeCategoryId,
-      targetPage,
-    );
-  }, [
-    activeCategoryId,
-    highlightedNewsId,
-    newsRows,
-  ]);
+    setStoredPage(activeCategoryId, targetPage);
+  }, [activeCategoryId, highlightedNewsId, newsRows]);
 
   const visibleRows = useMemo(() => {
     const startIndex = (currentPage - 1) * DEFAULT_ROWS_PER_PAGE;
@@ -707,10 +1234,7 @@ export default function LatestNews() {
       setDetailNews(detail || row);
 
       try {
-        await markSourceAsRead(
-          "news",
-          newsId,
-        );
+        await markSourceAsRead("news", newsId);
       } catch {
         /*
          * Keep the news detail open if notification
@@ -752,13 +1276,49 @@ export default function LatestNews() {
       <Breadcrumb rootLabel="首頁" currentLabel="最新消息" mb="14px" />
 
       <Typography
-        sx={{ fontSize: "18px", fontWeight: 700, color: "#111827", mb: "18px" }}
+        sx={{
+          fontSize: {
+            xs: "17px",
+            sm: "18px",
+          },
+          fontWeight: 700,
+          color: "#111827",
+          mb: {
+            xs: "16px",
+            md: "18px",
+          },
+        }}
       >
         最新消息
       </Typography>
 
-      <Box sx={{ display: "flex", alignItems: "flex-start", gap: "20px" }}>
-        <Box sx={{ flexShrink: 0, mt: "46px" }}>
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: {
+            xs: "column",
+            md: "row",
+          },
+          alignItems: "flex-start",
+          gap: {
+            xs: "16px",
+            md: "20px",
+          },
+        }}
+      >
+        <Box
+          sx={{
+            width: {
+              xs: "100%",
+              md: "auto",
+            },
+            flexShrink: 0,
+            mt: {
+              xs: 0,
+              md: "46px",
+            },
+          }}
+        >
           <SidebarMenu
             categories={categories}
             activeCategoryId={activeCategoryId}
@@ -766,237 +1326,32 @@ export default function LatestNews() {
           />
         </Box>
 
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Box sx={{ mb: "12px", minHeight: "34px" }} />
+        <Box
+          sx={{
+            width: "100%",
+            flex: 1,
+            minWidth: 0,
+          }}
+        >
+          <Box
+            sx={{
+              display: {
+                xs: "none",
+                md: "block",
+              },
+              mb: "12px",
+              minHeight: "34px",
+            }}
+          />
 
-          <Box sx={{ border: "1px solid #d3d3d3", bgcolor: "#ffffff" }}>
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: "1fr 160px 160px",
-                minHeight: "38px",
-                alignItems: "center",
-                background: "linear-gradient(to bottom, #f7f7f7, #dddddd)",
-                borderBottom: "1px solid #d3d3d3",
-              }}
-            >
-              <Box
-                sx={{
-                  px: "12px",
-                  minHeight: "38px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Typography
-                  sx={{
-                    fontSize: "15px",
-                    fontWeight: 700,
-                    color: "#333333",
-                    textAlign: "center",
-                  }}
-                >
-                  標題
-                </Typography>
-              </Box>
-
-              <Box
-                sx={{
-                  px: "12px",
-                  minHeight: "38px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Typography
-                  sx={{
-                    fontSize: "15px",
-                    fontWeight: 700,
-                    color: "#333333",
-                    textAlign: "center",
-                  }}
-                >
-                  發布開始
-                </Typography>
-              </Box>
-
-              <Box
-                sx={{
-                  px: "12px",
-                  minHeight: "38px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Typography
-                  sx={{
-                    fontSize: "15px",
-                    fontWeight: 700,
-                    color: "#333333",
-                    textAlign: "center",
-                  }}
-                >
-                  發布結束
-                </Typography>
-              </Box>
-            </Box>
-
-            {loadingCategories || loadingNews ? (
-              <Box
-                sx={{
-                  minHeight: "80px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <CircularProgress size={26} />
-              </Box>
-            ) : errorMessage ? (
-              <Box
-                sx={{
-                  minHeight: "36px",
-                  display: "flex",
-                  alignItems: "center",
-                  px: "12px",
-                  py: "10px",
-                }}
-              >
-                <Typography sx={{ fontSize: "15px", color: "#dc2626" }}>
-                  {errorMessage}
-                </Typography>
-              </Box>
-            ) : visibleRows.length === 0 ? (
-              <Box
-                sx={{
-                  minHeight: "36px",
-                  display: "flex",
-                  alignItems: "center",
-                  px: "12px",
-                  py: "10px",
-                }}
-              >
-                <Typography sx={{ fontSize: "15px", color: "#333333" }}>
-                  查無資料
-                </Typography>
-              </Box>
-            ) : (
-              visibleRows.map((row, index) => (
-                <Box
-                  key={row.news_id || index}
-                  onClick={() => handleOpenDetail(row)}
-                  sx={{
-                    bgcolor: (
-                      Number(row.news_id)
-                      === highlightedNewsId
-                    )
-                      ? "#fff7cc"
-                      : "transparent",
-                    display: "grid",
-                    gridTemplateColumns: "1fr 160px 160px",
-                    minHeight: "50px",
-                    alignItems: "center",
-                    borderBottom:
-                      index === visibleRows.length - 1
-                        ? "none"
-                        : "1px solid #d3d3d3",
-                    cursor: "pointer",
-                    transition: "background-color 0.2s ease",
-                    "&:hover": {
-                      bgcolor: (
-                        Number(row.news_id)
-                        === highlightedNewsId
-                      )
-                        ? "#fff1a8"
-                        : "#fafafa",
-                    },
-                  }}
-                >
-                  <Box
-                    sx={{
-                      px: "12px",
-                      py: "10px",
-                      display: "flex",
-                      alignItems: "center",
-                    }}
-                  >
-                    {isSourceUnread(
-                      "news",
-                      row.news_id,
-                    ) ? (
-                      <Box
-                        component="span"
-                        aria-label="未讀最新消息"
-                        sx={{
-                          width: "8px",
-                          height: "8px",
-                          borderRadius: "50%",
-                          bgcolor: "#ef4444",
-                          flexShrink: 0,
-                          mr: "8px",
-                        }}
-                      />
-                    ) : null}
-
-                    <Typography
-                      sx={{
-                        fontSize: "15px",
-                        color: "#333333",
-                        wordBreak: "break-word",
-                      }}
-                    >
-                      {row.title || "-"}
-                    </Typography>
-                  </Box>
-
-                  <Box
-                    sx={{
-                      px: "12px",
-                      py: "10px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Typography
-                      sx={{
-                        fontSize: "15px",
-                        color: "#333333",
-                        textAlign: "center",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {formatDateTime(row.publish_start)}
-                    </Typography>
-                  </Box>
-
-                  <Box
-                    sx={{
-                      px: "12px",
-                      py: "10px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Typography
-                      sx={{
-                        fontSize: "15px",
-                        color: "#333333",
-                        textAlign: "center",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {formatDateTime(row.publish_end)}
-                    </Typography>
-                  </Box>
-                </Box>
-              ))
-            )}
-          </Box>
+          <NewsList
+            loading={loadingCategories || loadingNews}
+            errorMessage={errorMessage}
+            rows={visibleRows}
+            highlightedNewsId={highlightedNewsId}
+            isSourceUnread={isSourceUnread}
+            onOpenDetail={handleOpenDetail}
+          />
 
           <PaginationBar
             totalRows={newsRows.length}
