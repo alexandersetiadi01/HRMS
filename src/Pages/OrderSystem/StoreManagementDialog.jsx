@@ -216,9 +216,37 @@ export default function StoreManagementDialog({ open, onClose, onNotify }) {
 
   return (
     <>
-      <Dialog open={open} onClose={onClose} fullWidth maxWidth="lg">
-        <DialogTitle>
-          <Stack direction="row" justifyContent="space-between" alignItems="center">
+      <Dialog
+        open={open}
+        onClose={onClose}
+        fullWidth
+        maxWidth="lg"
+        PaperProps={{
+          sx: {
+            width: {
+              xs: "calc(100vw - 16px)",
+              sm: "calc(100vw - 64px)",
+            },
+            m: { xs: "8px", sm: "32px" },
+            maxHeight: {
+              xs: "calc(100dvh - 16px)",
+              sm: "calc(100dvh - 64px)",
+            },
+          },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            px: { xs: "12px", sm: "24px" },
+            py: { xs: "12px", sm: "16px" },
+          }}
+        >
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            justifyContent="space-between"
+            alignItems={{ xs: "stretch", sm: "center" }}
+            spacing={{ xs: 1.25, sm: 0 }}
+          >
             <Typography sx={{ fontSize: "18px", fontWeight: 700 }}>
               店家管理
             </Typography>
@@ -228,6 +256,7 @@ export default function StoreManagementDialog({ open, onClose, onNotify }) {
               startIcon={<AddIcon />}
               onClick={handleCreate}
               sx={{
+                width: { xs: "100%", sm: "auto" },
                 textTransform: "none",
                 boxShadow: "none",
               }}
@@ -237,7 +266,13 @@ export default function StoreManagementDialog({ open, onClose, onNotify }) {
           </Stack>
         </DialogTitle>
 
-        <DialogContent dividers>
+        <DialogContent
+          dividers
+          sx={{
+            px: { xs: "10px", sm: "24px" },
+            py: { xs: "12px", sm: "20px" },
+          }}
+        >
           <Box>
             <StoreTable
               rows={rows}
@@ -269,6 +304,12 @@ export default function StoreManagementDialog({ open, onClose, onNotify }) {
         onClose={closeDeleteConfirm}
         maxWidth="xs"
         fullWidth
+        PaperProps={{
+          sx: {
+            width: { xs: "calc(100vw - 16px)", sm: "100%" },
+            m: { xs: "8px", sm: "32px" },
+          },
+        }}
       >
         <DialogTitle>刪除店家</DialogTitle>
 
@@ -278,13 +319,29 @@ export default function StoreManagementDialog({ open, onClose, onNotify }) {
           </DialogContentText>
         </DialogContent>
 
-        <DialogActions>
-          <Button onClick={closeDeleteConfirm}>取消</Button>
+        <DialogActions
+          sx={{
+            px: { xs: "24px", sm: "16px" },
+            pb: { xs: "20px", sm: "8px" },
+            flexDirection: { xs: "column-reverse", sm: "row" },
+            gap: { xs: "8px", sm: 0 },
+            "& > :not(style) ~ :not(style)": {
+              ml: { xs: 0, sm: "8px" },
+            },
+          }}
+        >
+          <Button
+            onClick={closeDeleteConfirm}
+            sx={{ width: { xs: "100%", sm: "auto" } }}
+          >
+            取消
+          </Button>
 
           <Button
             variant="contained"
             color="error"
             onClick={confirmDeleteStore}
+            sx={{ width: { xs: "100%", sm: "auto" } }}
           >
             刪除
           </Button>

@@ -68,18 +68,55 @@ export default function OrderDetailDialog({ open, order, onClose }) {
   const orderItems = getOrderItems(order);
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="lg">
-      <DialogTitle sx={{ fontSize: "20px", fontWeight: 700 }}>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      fullWidth
+      maxWidth="lg"
+      PaperProps={{
+        sx: {
+          width: {
+            xs: "calc(100vw - 16px)",
+            sm: "calc(100vw - 64px)",
+          },
+          m: { xs: "8px", sm: "32px" },
+          maxHeight: {
+            xs: "calc(100dvh - 16px)",
+            sm: "calc(100dvh - 64px)",
+          },
+        },
+      }}
+    >
+      <DialogTitle
+        sx={{
+          px: { xs: "16px", sm: "24px" },
+          py: { xs: "12px", sm: "16px" },
+          fontSize: { xs: "18px", sm: "20px" },
+          fontWeight: 700,
+        }}
+      >
         訂單明細
       </DialogTitle>
 
-      <DialogContent dividers>
+      <DialogContent
+        dividers
+        sx={{
+          px: { xs: "12px", sm: "24px" },
+          py: { xs: "16px", sm: "20px" },
+        }}
+      >
         {!order ? (
           <Typography sx={{ fontSize: "15px" }}>查無資料</Typography>
         ) : (
           <Stack spacing={2.5}>
             <Box>
-              <Typography sx={{ fontSize: "18px", fontWeight: 700 }}>
+              <Typography
+                sx={{
+                  fontSize: "18px",
+                  fontWeight: 700,
+                  overflowWrap: "anywhere",
+                }}
+              >
                 {order.title || "-"}
               </Typography>
 
@@ -99,7 +136,13 @@ export default function OrderDetailDialog({ open, order, onClose }) {
                 <Typography sx={{ fontSize: "14px" }}>
                   完成時間：{formatDateTime(order.completed_at)}
                 </Typography>
-                <Typography sx={{ fontSize: "14px", whiteSpace: "pre-wrap" }}>
+                <Typography
+                  sx={{
+                    fontSize: "14px",
+                    whiteSpace: "pre-wrap",
+                    overflowWrap: "anywhere",
+                  }}
+                >
                   說明：{order.description || "-"}
                 </Typography>
               </Stack>
@@ -110,7 +153,7 @@ export default function OrderDetailDialog({ open, order, onClose }) {
                 display: "grid",
                 gridTemplateColumns: {
                   xs: "1fr",
-                  md: "repeat(3, 1fr)",
+                  sm: "repeat(3, minmax(0, 1fr))",
                 },
                 gap: "12px",
               }}
@@ -171,12 +214,20 @@ export default function OrderDetailDialog({ open, order, onClose }) {
                           py: "10px",
                           bgcolor: "#f9fafb",
                           display: "flex",
+                          flexDirection: { xs: "column", sm: "row" },
+                          alignItems: { xs: "stretch", sm: "center" },
                           justifyContent: "space-between",
                           gap: "12px",
                           flexWrap: "wrap",
                         }}
                       >
-                        <Typography sx={{ fontSize: "15px", fontWeight: 700 }}>
+                        <Typography
+                          sx={{
+                            fontSize: "15px",
+                            fontWeight: 700,
+                            overflowWrap: "anywhere",
+                          }}
+                        >
                           {[item.employee_no, item.display_name]
                             .filter(Boolean)
                             .join(" ") || "-"}
@@ -188,6 +239,8 @@ export default function OrderDetailDialog({ open, order, onClose }) {
                             variant="outlined"
                             size="small"
                             sx={{
+                              maxWidth: "100%",
+                              alignSelf: { xs: "flex-start", sm: "center" },
                               fontSize: "15px",
                               fontWeight: 700,
                               borderRadius: "4px",
@@ -200,7 +253,11 @@ export default function OrderDetailDialog({ open, order, onClose }) {
                       {item.note ? (
                         <Box sx={{ px: "14px", py: "8px" }}>
                           <Typography
-                            sx={{ fontSize: "14px", whiteSpace: "pre-wrap" }}
+                            sx={{
+                              fontSize: "14px",
+                              whiteSpace: "pre-wrap",
+                              overflowWrap: "anywhere",
+                            }}
                           >
                             備註：{item.note}
                           </Typography>
@@ -209,7 +266,7 @@ export default function OrderDetailDialog({ open, order, onClose }) {
 
                       <Box
                         sx={{
-                          display: "grid",
+                          display: { xs: "none", sm: "grid" },
                           gridTemplateColumns:
                             "minmax(0, 1fr) 100px 120px 120px",
                           borderTop: "1px solid #d8d8d8",
@@ -244,20 +301,105 @@ export default function OrderDetailDialog({ open, order, onClose }) {
                               key={detail.order_item_detail_id || detailIndex}
                               sx={{
                                 display: "grid",
-                                gridTemplateColumns:
-                                  "minmax(0, 1fr) 100px 120px 120px",
+                                gridTemplateColumns: {
+                                  xs: "repeat(3, minmax(0, 1fr))",
+                                  sm: "minmax(0, 1fr) 100px 120px 120px",
+                                },
                                 borderTop: "1px solid #eeeeee",
                               }}
                             >
-                              <Box sx={{ p: "10px" }}>
-                                {detail.menu_name || "-"}
+                              <Box
+                                sx={{
+                                  gridColumn: { xs: "1 / -1", sm: "auto" },
+                                  p: "10px",
+                                  minWidth: 0,
+                                }}
+                              >
+                                <Typography
+                                  sx={{
+                                    display: { xs: "block", sm: "none" },
+                                    mb: "3px",
+                                    fontSize: "12px",
+                                    fontWeight: 700,
+                                    color: "#6b7280",
+                                  }}
+                                >
+                                  品項
+                                </Typography>
+
+                                <Typography
+                                  sx={{
+                                    fontSize: "14px",
+                                    overflowWrap: "anywhere",
+                                  }}
+                                >
+                                  {detail.menu_name || "-"}
+                                </Typography>
                               </Box>
-                              <Box sx={{ p: "10px" }}>{quantity}</Box>
-                              <Box sx={{ p: "10px" }}>
-                                ${formatCurrency(price)}
+
+                              <Box sx={{ p: "10px", minWidth: 0 }}>
+                                <Typography
+                                  sx={{
+                                    display: { xs: "block", sm: "none" },
+                                    mb: "3px",
+                                    fontSize: "12px",
+                                    fontWeight: 700,
+                                    color: "#6b7280",
+                                  }}
+                                >
+                                  數量
+                                </Typography>
+
+                                <Typography sx={{ fontSize: "14px" }}>
+                                  {quantity}
+                                </Typography>
                               </Box>
-                              <Box sx={{ p: "10px", fontWeight: 700 }}>
-                                ${formatCurrency(subtotal)}
+
+                              <Box sx={{ p: "10px", minWidth: 0 }}>
+                                <Typography
+                                  sx={{
+                                    display: { xs: "block", sm: "none" },
+                                    mb: "3px",
+                                    fontSize: "12px",
+                                    fontWeight: 700,
+                                    color: "#6b7280",
+                                  }}
+                                >
+                                  單價
+                                </Typography>
+
+                                <Typography
+                                  sx={{
+                                    fontSize: "14px",
+                                    whiteSpace: "nowrap",
+                                  }}
+                                >
+                                  ${formatCurrency(price)}
+                                </Typography>
+                              </Box>
+
+                              <Box sx={{ p: "10px", minWidth: 0 }}>
+                                <Typography
+                                  sx={{
+                                    display: { xs: "block", sm: "none" },
+                                    mb: "3px",
+                                    fontSize: "12px",
+                                    fontWeight: 700,
+                                    color: "#6b7280",
+                                  }}
+                                >
+                                  小計
+                                </Typography>
+
+                                <Typography
+                                  sx={{
+                                    fontSize: "14px",
+                                    fontWeight: 700,
+                                    whiteSpace: "nowrap",
+                                  }}
+                                >
+                                  ${formatCurrency(subtotal)}
+                                </Typography>
                               </Box>
                             </Box>
                           );
@@ -272,8 +414,15 @@ export default function OrderDetailDialog({ open, order, onClose }) {
         )}
       </DialogContent>
 
-      <DialogActions sx={{ p: "16px 24px" }}>
-        <Button onClick={onClose}>關閉</Button>
+      <DialogActions
+        sx={{
+          px: { xs: "12px", sm: "24px" },
+          py: { xs: "12px", sm: "16px" },
+        }}
+      >
+        <Button onClick={onClose} sx={{ width: { xs: "100%", sm: "auto" } }}>
+          關閉
+        </Button>
       </DialogActions>
     </Dialog>
   );

@@ -50,8 +50,12 @@ function FieldRow({ required = false, label, children, alignStart = false }) {
     <Box
       sx={{
         display: "grid",
-        gridTemplateColumns: "90px minmax(0, 1fr)",
+        gridTemplateColumns: {
+          xs: "minmax(0, 1fr)",
+          sm: "90px minmax(0, 1fr)",
+        },
         columnGap: "10px",
+        rowGap: { xs: "6px", sm: 0 },
         alignItems: alignStart ? "flex-start" : "center",
       }}
     >
@@ -59,8 +63,14 @@ function FieldRow({ required = false, label, children, alignStart = false }) {
         sx={{
           fontSize: "15px",
           color: "#333333",
-          pt: alignStart ? "8px" : 0,
-          textAlign: "right",
+          pt: {
+            xs: 0,
+            sm: alignStart ? "8px" : 0,
+          },
+          textAlign: {
+            xs: "left",
+            sm: "right",
+          },
         }}
       >
         {required ? (
@@ -68,10 +78,11 @@ function FieldRow({ required = false, label, children, alignStart = false }) {
             *
           </Box>
         ) : null}
+
         {label}
       </Typography>
 
-      <Box>{children}</Box>
+      <Box sx={{ minWidth: 0 }}>{children}</Box>
     </Box>
   );
 }
@@ -169,6 +180,15 @@ export default function StoreDialog({
       maxWidth="md"
       PaperProps={{
         sx: {
+          width: {
+            xs: "calc(100vw - 16px)",
+            sm: "calc(100vw - 64px)",
+          },
+          m: { xs: "8px", sm: "32px" },
+          maxHeight: {
+            xs: "calc(100dvh - 16px)",
+            sm: "calc(100dvh - 64px)",
+          },
           borderRadius: "4px",
           overflow: "hidden",
         },
@@ -176,10 +196,10 @@ export default function StoreDialog({
     >
       <DialogTitle
         sx={{
-          fontSize: "20px",
+          px: { xs: "16px", sm: "24px" },
+          py: { xs: "12px", sm: "16px" },
+          fontSize: { xs: "18px", sm: "20px" },
           fontWeight: 700,
-          px: "24px",
-          py: "16px",
         }}
       >
         {mode === "update" ? "編輯店家" : "新增店家"}
@@ -188,8 +208,8 @@ export default function StoreDialog({
       <DialogContent
         dividers
         sx={{
-          px: "24px",
-          py: "18px",
+          px: { xs: "12px", sm: "24px" },
+          py: { xs: "14px", sm: "18px" },
         }}
       >
         <Stack spacing={2}>
@@ -229,11 +249,14 @@ export default function StoreDialog({
               sx={{
                 display: "grid",
                 gridTemplateColumns: {
-                  xs: "1fr",
-                  sm: "repeat(2, 1fr)",
-                  md: "repeat(3, 1fr)",
+                  xs: "repeat(2, minmax(0, 1fr))",
+                  sm: "repeat(3, minmax(0, 1fr))",
                 },
-                columnGap: "46px",
+                columnGap: {
+                  xs: "10px",
+                  sm: "24px",
+                  md: "46px",
+                },
                 rowGap: "2px",
                 maxWidth: "760px",
               }}
@@ -330,10 +353,20 @@ export default function StoreDialog({
 
       <DialogActions
         sx={{
-          padding: "16px 24px",
+          px: { xs: "12px", sm: "24px" },
+          py: { xs: "12px", sm: "16px" },
+          flexDirection: { xs: "column-reverse", sm: "row" },
+          gap: { xs: "8px", sm: 0 },
+          "& > :not(style) ~ :not(style)": {
+            ml: { xs: 0, sm: "8px" },
+          },
         }}
       >
-        <Button disabled={loading} onClick={onClose}>
+        <Button
+          disabled={loading}
+          onClick={onClose}
+          sx={{ width: { xs: "100%", sm: "auto" } }}
+        >
           取消
         </Button>
 
@@ -342,6 +375,7 @@ export default function StoreDialog({
           disabled={loading}
           onClick={handleSubmit}
           sx={{
+            width: { xs: "100%", sm: "auto" },
             boxShadow: "none",
           }}
         >

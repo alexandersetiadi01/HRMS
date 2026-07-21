@@ -14,11 +14,7 @@ import {
   Typography,
 } from "@mui/material";
 
-import {
-  getOrderStores,
-  updateOrder,
-  updateOrderItem,
-} from "../../API/order";
+import { getOrderStores, updateOrder, updateOrderItem } from "../../API/order";
 
 import {
   formatCurrency,
@@ -148,8 +144,7 @@ export default function EditOrderDialog({
     }
 
     if (
-      new Date(form.deadline_at).getTime() <=
-      new Date(form.start_at).getTime()
+      new Date(form.deadline_at).getTime() <= new Date(form.start_at).getTime()
     ) {
       notify("截止時間必須晚於開始時間。", "warning");
       return false;
@@ -251,13 +246,39 @@ export default function EditOrderDialog({
       onClose={submitting ? undefined : onClose}
       fullWidth
       maxWidth="lg"
+      PaperProps={{
+        sx: {
+          width: {
+            xs: "calc(100vw - 16px)",
+            sm: "calc(100vw - 64px)",
+          },
+          m: { xs: "8px", sm: "32px" },
+          maxHeight: {
+            xs: "calc(100dvh - 16px)",
+            sm: "calc(100dvh - 64px)",
+          },
+        },
+      }}
     >
-      <DialogTitle sx={{ fontSize: "20px", fontWeight: 700 }}>
+      <DialogTitle
+        sx={{
+          px: { xs: "16px", sm: "24px" },
+          py: { xs: "12px", sm: "16px" },
+          fontSize: { xs: "18px", sm: "20px" },
+          fontWeight: 700,
+        }}
+      >
         編輯訂單
       </DialogTitle>
 
-      <DialogContent dividers>
-        <Stack spacing={2.5}>
+      <DialogContent
+        dividers
+        sx={{
+          px: { xs: "12px", sm: "24px" },
+          py: { xs: "16px", sm: "20px" },
+        }}
+      >
+        <Stack spacing={{ xs: 2, sm: 2.5 }}>
           <Stack spacing={2}>
             <TextField
               fullWidth
@@ -338,10 +359,7 @@ export default function EditOrderDialog({
               <Stack spacing={1.25}>
                 {orderItems.map((item) => {
                   const orderItemId = item.order_item_id;
-                  const employeeLabel = [
-                    item.employee_no,
-                    item.display_name,
-                  ]
+                  const employeeLabel = [item.employee_no, item.display_name]
                     .filter(Boolean)
                     .join(" / ");
 
@@ -352,13 +370,14 @@ export default function EditOrderDialog({
                         display: "grid",
                         gridTemplateColumns: {
                           xs: "1fr",
+                          sm: "minmax(150px, 0.7fr) minmax(0, 1.3fr)",
                           md: "180px minmax(0, 1fr) 110px 150px",
                         },
-                        gap: "12px",
+                        gap: { xs: "10px", sm: "12px" },
                         alignItems: "center",
                         border: "1px solid #e5e7eb",
                         borderRadius: "8px",
-                        p: "12px",
+                        p: { xs: "10px", sm: "12px" },
                       }}
                     >
                       <Box>
@@ -386,7 +405,12 @@ export default function EditOrderDialog({
                         >
                           訂購品項
                         </Typography>
-                        <Typography sx={{ fontSize: "14px" }}>
+                        <Typography
+                          sx={{
+                            fontSize: "14px",
+                            overflowWrap: "anywhere",
+                          }}
+                        >
                           {getItemDetailText(item)}
                         </Typography>
                       </Box>
@@ -445,8 +469,22 @@ export default function EditOrderDialog({
         </Stack>
       </DialogContent>
 
-      <DialogActions sx={{ p: "16px 24px" }}>
-        <Button disabled={submitting} onClick={onClose}>
+      <DialogActions
+        sx={{
+          px: { xs: "12px", sm: "24px" },
+          py: { xs: "12px", sm: "16px" },
+          flexDirection: { xs: "column-reverse", sm: "row" },
+          gap: { xs: "8px", sm: 0 },
+          "& > :not(style) ~ :not(style)": {
+            ml: { xs: 0, sm: "8px" },
+          },
+        }}
+      >
+        <Button
+          disabled={submitting}
+          onClick={onClose}
+          sx={{ width: { xs: "100%", sm: "auto" } }}
+        >
           取消
         </Button>
 
@@ -454,6 +492,7 @@ export default function EditOrderDialog({
           variant="contained"
           disabled={loading || submitting}
           onClick={handleSubmit}
+          sx={{ width: { xs: "100%", sm: "auto" } }}
         >
           儲存更新
         </Button>
