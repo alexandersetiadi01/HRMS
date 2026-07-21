@@ -23,7 +23,7 @@ export default function MenuItemsInput({
     const nextRows = rows.map((row, rowIndex) => {
       if (rowIndex !== index) {
         return row;
-      } 
+      }
 
       return {
         ...row,
@@ -73,6 +73,24 @@ export default function MenuItemsInput({
               xs: "stretch",
               sm: "center",
             }}
+            sx={{
+              border: {
+                xs: "1px solid #e5e7eb",
+                sm: "none",
+              },
+              borderRadius: {
+                xs: "8px",
+                sm: 0,
+              },
+              p: {
+                xs: "10px",
+                sm: 0,
+              },
+              bgcolor: {
+                xs: "#fafafa",
+                sm: "transparent",
+              },
+            }}
           >
             <TextField
               fullWidth
@@ -109,15 +127,39 @@ export default function MenuItemsInput({
               direction="row"
               spacing={0.5}
               justifyContent={{
-                xs: "flex-end",
+                xs: "stretch",
                 sm: "center",
               }}
             >
+              <Button
+                size="small"
+                variant="outlined"
+                color="error"
+                disabled={disabled}
+                startIcon={<DeleteOutlineIcon fontSize="small" />}
+                onClick={() => removeRow(index)}
+                sx={{
+                  display: {
+                    xs: "flex",
+                    sm: "none",
+                  },
+                  width: "100%",
+                  borderRadius: "8px",
+                  textTransform: "none",
+                }}
+              >
+                移除此品項
+              </Button>
+
               <IconButton
                 size="small"
                 disabled={disabled}
                 onClick={() => removeRow(index)}
                 sx={{
+                  display: {
+                    xs: "none",
+                    sm: "inline-flex",
+                  },
                   border: "1px solid #e5e7eb",
                   borderRadius: "8px",
                 }}
@@ -135,7 +177,14 @@ export default function MenuItemsInput({
           startIcon={<AddIcon />}
           onClick={addRow}
           sx={{
-            alignSelf: "flex-start",
+            alignSelf: {
+              xs: "stretch",
+              sm: "flex-start",
+            },
+            width: {
+              xs: "100%",
+              sm: "auto",
+            },
             borderRadius: "10px",
             textTransform: "none",
           }}
