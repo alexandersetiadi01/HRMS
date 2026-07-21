@@ -278,10 +278,17 @@ function MobileNode({
 }) {
   if (!node) return null;
 
+  const mobileIndent = Math.min(level, 3) * 12;
+  const tabletIndent = Math.min(level, 4) * 18;
+
   if (node.type === "group") {
     const group = node.data || {};
-    const groupId = group.id || group.groupId || group.rule_group_id;
-    const folderOpen = openGroupIds?.[groupId] !== false;
+    const groupId =
+      group.id || group.groupId || group.rule_group_id;
+
+    const folderOpen =
+      openGroupIds?.[groupId] !== false;
+
     const childNodes = getChildNodes(group);
 
     return (
@@ -292,42 +299,84 @@ function MobileNode({
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            gap: "12px",
-            px: "16px",
-            py: "14px",
-            ml: `${level * 18}px`,
+            minWidth: 0,
+            gap: {
+              xs: "8px",
+              sm: "12px",
+            },
+            pl: {
+              xs: `${10 + mobileIndent}px`,
+              sm: `${14 + tabletIndent}px`,
+            },
+            pr: {
+              xs: "10px",
+              sm: "14px",
+            },
+            py: {
+              xs: "11px",
+              sm: "14px",
+            },
             cursor: "pointer",
             borderBottom: "1px solid #e5e7eb",
+            bgcolor:
+              level === 0 ? "#f8fafc" : "#ffffff",
+            "&:hover": {
+              bgcolor: "#f0f9ff",
+            },
           }}
         >
           <Box
             sx={{
               display: "flex",
               alignItems: "center",
-              gap: "10px",
               minWidth: 0,
+              gap: {
+                xs: "8px",
+                sm: "10px",
+              },
             }}
           >
-            <FolderIcon sx={{ fontSize: "28px", color: "#1f94d2" }} />
+            <FolderIcon
+              sx={{
+                fontSize: {
+                  xs: "23px",
+                  sm: "28px",
+                },
+                color: "#1f94d2",
+                flexShrink: 0,
+              }}
+            />
 
             <Typography
               sx={{
-                fontSize: "15px",
-                color: "#333333",
                 minWidth: 0,
-                wordBreak: "break-word",
+                fontSize: {
+                  xs: "14px",
+                  sm: "15px",
+                },
+                fontWeight: level === 0 ? 700 : 600,
+                color: "#333333",
+                lineHeight: 1.5,
                 whiteSpace: "normal",
+                overflowWrap: "anywhere",
               }}
             >
-              {formatValue(group.name || group.group_name)}
+              {formatValue(
+                group.name || group.group_name,
+              )}
             </Typography>
           </Box>
 
           <ChevronRightIcon
             sx={{
-              fontSize: "24px",
-              color: "#d1d5db",
-              transform: folderOpen ? "rotate(90deg)" : "rotate(0deg)",
+              fontSize: {
+                xs: "22px",
+                sm: "24px",
+              },
+              color: "#94a3b8",
+              transform: folderOpen
+                ? "rotate(90deg)"
+                : "rotate(0deg)",
               transition: "transform 0.2s ease",
               flexShrink: 0,
             }}
@@ -336,16 +385,49 @@ function MobileNode({
 
         {folderOpen ? (
           <Box>
-            {childNodes.map((childNode, index) => (
-              <MobileNode
-                key={getNodeKey(childNode, `${groupId}-${index}`)}
-                node={childNode}
-                level={level + 1}
-                openGroupIds={openGroupIds}
-                onToggleGroup={onToggleGroup}
-                onOpenItem={onOpenItem}
-              />
-            ))}
+            {childNodes.length === 0 ? (
+              <Typography
+                sx={{
+                  pl: {
+                    xs: `${42 + mobileIndent}px`,
+                    sm: `${56 + tabletIndent}px`,
+                  },
+                  pr: {
+                    xs: "10px",
+                    sm: "14px",
+                  },
+                  py: {
+                    xs: "10px",
+                    sm: "12px",
+                  },
+                  borderBottom:
+                    "1px solid #ececec",
+                  fontSize: {
+                    xs: "13px",
+                    sm: "14px",
+                  },
+                  color: "#94a3b8",
+                }}
+              >
+                此資料夾尚無資料
+              </Typography>
+            ) : (
+              childNodes.map(
+                (childNode, index) => (
+                  <MobileNode
+                    key={getNodeKey(
+                      childNode,
+                      `${groupId}-${index}`,
+                    )}
+                    node={childNode}
+                    level={level + 1}
+                    openGroupIds={openGroupIds}
+                    onToggleGroup={onToggleGroup}
+                    onOpenItem={onOpenItem}
+                  />
+                ),
+              )
+            )}
           </Box>
         ) : null}
       </Box>
@@ -353,7 +435,8 @@ function MobileNode({
   }
 
   const item = node.data || {};
-  const ruleId = item.id || item.ruleId || item.rule_id;
+  const ruleId =
+    item.id || item.ruleId || item.rule_id;
 
   return (
     <Box
@@ -361,31 +444,99 @@ function MobileNode({
       onClick={() => onOpenItem(item)}
       sx={{
         display: "flex",
-        alignItems: "center",
-        gap: "14px",
-        px: "10px",
-        py: "18px",
-        ml: `${22 + level * 18}px`,
+        alignItems: "flex-start",
+        minWidth: 0,
+        gap: {
+          xs: "9px",
+          sm: "12px",
+        },
+        pl: {
+          xs: `${22 + mobileIndent}px`,
+          sm: `${30 + tabletIndent}px`,
+        },
+        pr: {
+          xs: "10px",
+          sm: "14px",
+        },
+        py: {
+          xs: "13px",
+          sm: "16px",
+        },
         cursor: "pointer",
         borderBottom: "1px solid #ececec",
-        "&:last-of-type": {
-          borderBottom: "none",
+        bgcolor: "#ffffff",
+        "&:hover": {
+          bgcolor: "#f8fafc",
         },
       }}
     >
-      <DescriptionIcon sx={{ fontSize: "24px", color: "#49b7ea" }} />
-
-      <Typography
+      <DescriptionIcon
         sx={{
-          fontSize: "15px",
-          color: "#222222",
-          lineHeight: 1.5,
-          wordBreak: "break-word",
-          whiteSpace: "normal",
+          mt: "1px",
+          fontSize: {
+            xs: "21px",
+            sm: "24px",
+          },
+          color: "#49b7ea",
+          flexShrink: 0,
         }}
-      >
-        {formatValue(item.title)}
-      </Typography>
+      />
+
+      <Box sx={{ minWidth: 0, flex: 1 }}>
+        <Typography
+          sx={{
+            minWidth: 0,
+            fontSize: {
+              xs: "14px",
+              sm: "15px",
+            },
+            fontWeight: 500,
+            color: "#222222",
+            lineHeight: 1.55,
+            whiteSpace: "normal",
+            overflowWrap: "anywhere",
+          }}
+        >
+          {formatValue(item.title)}
+        </Typography>
+
+        <Typography
+          sx={{
+            mt: "4px",
+            display: {
+              xs: "none",
+              sm: "block",
+            },
+            fontSize: "13px",
+            color: "#64748b",
+            lineHeight: 1.5,
+            overflowWrap: "anywhere",
+          }}
+        >
+          負責單位：
+          {getRuleValue(item, [
+            "ownerUnit",
+            "responsible_unit",
+          ])}
+          {"　"}文件編號：
+          {getRuleValue(item, [
+            "fileCode",
+            "rule_code",
+          ])}
+        </Typography>
+      </Box>
+
+      <LaunchIcon
+        sx={{
+          mt: "2px",
+          fontSize: {
+            xs: "18px",
+            sm: "20px",
+          },
+          color: "#94a3b8",
+          flexShrink: 0,
+        }}
+      />
     </Box>
   );
 }
@@ -398,7 +549,19 @@ export function MobileList({
   onOpenItem,
 }) {
   return (
-    <Box sx={{ bgcolor: "#ffffff" }}>
+    <Box
+      sx={{
+        width: "100%",
+        minWidth: 0,
+        bgcolor: "#ffffff",
+        border: "1px solid #e5e7eb",
+        borderRadius: {
+          xs: "6px",
+          sm: "8px",
+        },
+        overflow: "hidden",
+      }}
+    >
       {loading ? (
         <Box
           sx={{
@@ -417,11 +580,21 @@ export function MobileList({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            fontSize: "15px",
-            color: "#666666",
+            px: "12px",
           }}
         >
-          尚無資料可顯示
+          <Typography
+            sx={{
+              fontSize: {
+                xs: "14px",
+                sm: "15px",
+              },
+              color: "#666666",
+              textAlign: "center",
+            }}
+          >
+            尚無資料可顯示
+          </Typography>
         </Box>
       ) : (
         rows.map((node, index) => (

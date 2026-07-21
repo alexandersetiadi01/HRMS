@@ -112,29 +112,64 @@ export default function CompanyRegulations() {
 
       <Typography
         sx={{
-          fontSize: "18px",
+          fontSize: {
+            xs: "17px",
+            sm: "18px",
+          },
           fontWeight: 700,
           color: "#111827",
-          mb: "18px",
+          mb: {
+            xs: "16px",
+            md: "18px",
+          },
         }}
       >
         公司規章
       </Typography>
 
       {error ? (
-        <Alert severity="error" sx={{ mb: "14px" }}>
+        <Alert
+          severity="error"
+          sx={{
+            mb: "14px",
+            "& .MuiAlert-message": {
+              minWidth: 0,
+              fontSize: {
+                xs: "14px",
+                sm: "15px",
+              },
+              overflowWrap: "anywhere",
+            },
+          }}
+        >
           {error}
         </Alert>
       ) : null}
 
       <Box
         sx={{
-          display: "flex",
+          display: "grid",
           justifyContent: "flex-end",
           alignItems: "center",
-          gap: "10px",
+          gridTemplateColumns: {
+            xs: searchText ? "repeat(2, minmax(0, 1fr))" : "minmax(0, 1fr)",
+            sm: searchText ? "minmax(0, 1fr) auto auto" : "minmax(0, 1fr) auto",
+            md: searchText ? "202px auto auto" : "202px auto",
+          },
+          gap: {
+            xs: "8px",
+            sm: "10px",
+          },
           mb: "14px",
-          flexWrap: "wrap",
+          ml: {
+            xs: 0,
+            sm: "auto",
+          },
+          width: {
+            xs: "100%",
+            sm: "min(100%, 560px)",
+            md: "auto",
+          },
         }}
       >
         <InputBase
@@ -143,12 +178,27 @@ export default function CompanyRegulations() {
           onKeyDown={handleKeywordKeyDown}
           placeholder="請輸入關鍵字"
           sx={{
-            width: { xs: "100%", sm: "260px", md: "202px" },
-            height: "30px",
-            px: "8px",
+            gridColumn: {
+              xs: "1 / -1",
+              sm: "auto",
+            },
+            width: "100%",
+            height: {
+              xs: "38px",
+              sm: "34px",
+              md: "30px",
+            },
+            px: {
+              xs: "10px",
+              md: "8px",
+            },
             border: "1px solid #cfcfcf",
             bgcolor: "#ffffff",
-            fontSize: "14px",
+            fontSize: {
+              xs: "14px",
+              sm: "15px",
+              md: "14px",
+            },
             color: "#333333",
           }}
         />
@@ -156,17 +206,35 @@ export default function CompanyRegulations() {
         <Button
           variant="outlined"
           startIcon={
-            <SearchIcon sx={{ display: { xs: "inline-flex", md: "none" } }} />
+            <SearchIcon
+              sx={{
+                display: {
+                  xs: "inline-flex",
+                  md: "none",
+                },
+              }}
+            />
           }
           onClick={handleSearch}
           disabled={loading}
           sx={{
-            minWidth: "54px",
-            height: "30px",
-            px: "16px",
+            minWidth: 0,
+            width: "100%",
+            height: {
+              xs: "38px",
+              sm: "34px",
+              md: "30px",
+            },
+            px: {
+              xs: "10px",
+              sm: "16px",
+            },
             borderColor: "#c3c3c3",
             color: "#333333",
-            fontSize: "15px",
+            fontSize: {
+              xs: "14px",
+              sm: "15px",
+            },
             bgcolor: "#ffffff",
           }}
         >
@@ -183,12 +251,23 @@ export default function CompanyRegulations() {
             }}
             disabled={loading}
             sx={{
-              minWidth: "54px",
-              height: "30px",
-              px: "16px",
+              minWidth: 0,
+              width: "100%",
+              height: {
+                xs: "38px",
+                sm: "34px",
+                md: "30px",
+              },
+              px: {
+                xs: "10px",
+                sm: "16px",
+              },
               borderColor: "#c3c3c3",
               color: "#333333",
-              fontSize: "15px",
+              fontSize: {
+                xs: "14px",
+                sm: "15px",
+              },
               bgcolor: "#ffffff",
             }}
           >
