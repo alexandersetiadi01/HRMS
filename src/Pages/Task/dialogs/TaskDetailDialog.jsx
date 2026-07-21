@@ -1,4 +1,11 @@
-import { Box, Button, Dialog, DialogContent, IconButton, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  Dialog,
+  DialogContent,
+  IconButton,
+  Typography,
+} from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { formatDateTime } from "../TaskUtils";
 
@@ -14,11 +21,22 @@ function DialogHeader({ title, onClose }) {
         px: "14px",
       }}
     >
-      <Typography sx={{ fontSize: "15px", fontWeight: 700, color: "#ffffff" }}>
+      <Typography
+        sx={{
+          fontSize: { xs: "14px", sm: "15px" },
+          fontWeight: 700,
+          color: "#ffffff",
+          overflowWrap: "anywhere",
+        }}
+      >
         {title}
       </Typography>
 
-      <IconButton onClick={onClose} size="small" sx={{ color: "#ffffff", p: 0 }}>
+      <IconButton
+        onClick={onClose}
+        size="small"
+        sx={{ color: "#ffffff", p: 0 }}
+      >
         <CloseIcon sx={{ fontSize: "18px" }} />
       </IconButton>
     </Box>
@@ -30,19 +48,32 @@ function DetailField({ label, value }) {
     <Box
       sx={{
         display: "grid",
-        gridTemplateColumns: "90px minmax(0, 1fr)",
+        gridTemplateColumns: {
+          xs: "minmax(0, 1fr)",
+          sm: "90px minmax(0, 1fr)",
+        },
         columnGap: "10px",
+        rowGap: { xs: "3px", sm: 0 },
         alignItems: "start",
         mb: "10px",
       }}
     >
-      <Typography sx={{ fontSize: "14px", color: "#777777" }}>{label}</Typography>
       <Typography
         sx={{
-          fontSize: "15px",
+          fontSize: { xs: "12px", sm: "14px" },
+          color: "#777777",
+          fontWeight: { xs: 700, sm: 400 },
+        }}
+      >
+        {label}
+      </Typography>
+
+      <Typography
+        sx={{
+          fontSize: { xs: "14px", sm: "15px" },
           color: "#333333",
           whiteSpace: "pre-wrap",
-          wordBreak: "break-word",
+          overflowWrap: "anywhere",
         }}
       >
         {value || "-"}
@@ -53,7 +84,9 @@ function DetailField({ label, value }) {
 
 function AttachmentLinks({ attachments }) {
   if (!attachments?.length) {
-    return <Typography sx={{ fontSize: "14px", color: "#777777" }}>-</Typography>;
+    return (
+      <Typography sx={{ fontSize: "14px", color: "#777777" }}>-</Typography>
+    );
   }
 
   return (
@@ -95,8 +128,16 @@ export default function TaskDetailDialog({
       maxWidth={false}
       PaperProps={{
         sx: {
-          width: "720px",
-          maxWidth: "calc(100vw - 48px)",
+          width: {
+            xs: "calc(100vw - 16px)",
+            sm: "720px",
+          },
+          maxWidth: "720px",
+          m: { xs: "8px", sm: "32px" },
+          maxHeight: {
+            xs: "calc(100dvh - 16px)",
+            sm: "calc(100dvh - 64px)",
+          },
           borderRadius: "4px",
           overflow: "hidden",
         },
@@ -104,19 +145,26 @@ export default function TaskDetailDialog({
     >
       <DialogHeader title="任務詳細內容" onClose={onClose} />
 
-      <DialogContent sx={{ p: "16px" }}>
+      <DialogContent
+        sx={{
+          p: { xs: "10px", sm: "16px" },
+        }}
+      >
         <Box
           sx={{
             border: "1px solid #d8d8d8",
             borderRadius: "4px",
             bgcolor: "#f7f7f7",
-            p: "14px",
+            p: { xs: "10px", sm: "14px" },
             mb: "14px",
           }}
         >
           <DetailField label="標題" value={row.title} />
           <DetailField label="內容" value={row.description} />
-          <DetailField label="開始時間" value={formatDateTime(row.start_date)} />
+          <DetailField
+            label="開始時間"
+            value={formatDateTime(row.start_date)}
+          />
           <DetailField label="截止時間" value={formatDateTime(row.due_date)} />
           <DetailField label="任務狀態" value={row.task_status} />
           <DetailField label="指派狀態" value={row.assigned_status} />
@@ -124,20 +172,37 @@ export default function TaskDetailDialog({
           <Box
             sx={{
               display: "grid",
-              gridTemplateColumns: "90px minmax(0, 1fr)",
+              gridTemplateColumns: {
+                xs: "minmax(0, 1fr)",
+                sm: "90px minmax(0, 1fr)",
+              },
               columnGap: "10px",
+              rowGap: { xs: "3px", sm: 0 },
               alignItems: "start",
               mt: "10px",
             }}
           >
-            <Typography sx={{ fontSize: "14px", color: "#777777" }}>
+            <Typography
+              sx={{
+                fontSize: { xs: "12px", sm: "14px" },
+                color: "#777777",
+                fontWeight: { xs: 700, sm: 400 },
+              }}
+            >
               任務附件
             </Typography>
+
             <AttachmentLinks attachments={attachments} />
           </Box>
         </Box>
 
-        <Typography sx={{ fontSize: "16px", fontWeight: 700, mb: "10px" }}>
+        <Typography
+          sx={{
+            fontSize: { xs: "15px", sm: "16px" },
+            fontWeight: 700,
+            mb: "10px",
+          }}
+        >
           回覆紀錄
         </Typography>
 
@@ -157,34 +222,32 @@ export default function TaskDetailDialog({
         ) : (
           replies.map((reply) => (
             <Box
-              key={reply.task_reply_id}
               sx={{
-                border: "1px solid #dddddd",
-                borderRadius: "4px",
-                p: "12px",
-                bgcolor: "#ffffff",
-                mb: "10px",
+                display: "grid",
+                gridTemplateColumns: {
+                  xs: "minmax(0, 1fr)",
+                  sm: "90px minmax(0, 1fr)",
+                },
+                columnGap: "10px",
+                rowGap: { xs: "3px", sm: 0 },
+                alignItems: "start",
               }}
             >
-              <DetailField label="回覆時間" value={formatDateTime(reply.reply_date)} />
-              <DetailField label="回覆狀態" value={reply.reply_status} />
-              <DetailField label="回覆內容" value={reply.reply_content} />
-
-              <Box
+              <Typography
                 sx={{
-                  display: "grid",
-                  gridTemplateColumns: "90px minmax(0, 1fr)",
-                  columnGap: "10px",
-                  alignItems: "start",
+                  fontSize: { xs: "12px", sm: "14px" },
+                  color: "#777777",
+                  fontWeight: { xs: 700, sm: 400 },
                 }}
               >
-                <Typography sx={{ fontSize: "14px", color: "#777777" }}>
-                  回覆附件
-                </Typography>
-                <AttachmentLinks
-                  attachments={replyAttachmentsMap[String(reply.task_reply_id)] || []}
-                />
-              </Box>
+                回覆附件
+              </Typography>
+
+              <AttachmentLinks
+                attachments={
+                  replyAttachmentsMap[String(reply.task_reply_id)] || []
+                }
+              />
             </Box>
           ))
         )}
@@ -198,7 +261,13 @@ export default function TaskDetailDialog({
             justifyContent: "flex-end",
           }}
         >
-          <Button variant="outlined" onClick={onClose}>
+          <Button
+            variant="outlined"
+            onClick={onClose}
+            sx={{
+              width: { xs: "100%", sm: "auto" },
+            }}
+          >
             關閉
           </Button>
         </Box>

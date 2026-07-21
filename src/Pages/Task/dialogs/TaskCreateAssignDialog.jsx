@@ -26,11 +26,21 @@ function DialogHeader({ title, onClose }) {
         px: "14px",
       }}
     >
-      <Typography sx={{ fontSize: "15px", fontWeight: 700, color: "#ffffff" }}>
+      <Typography
+        sx={{
+          fontSize: { xs: "14px", sm: "15px" },
+          fontWeight: 700,
+          color: "#ffffff",
+        }}
+      >
         {title}
       </Typography>
 
-      <IconButton onClick={onClose} size="small" sx={{ color: "#ffffff", p: 0 }}>
+      <IconButton
+        onClick={onClose}
+        size="small"
+        sx={{ color: "#ffffff", p: 0 }}
+      >
         <CloseIcon sx={{ fontSize: "18px" }} />
       </IconButton>
     </Box>
@@ -128,9 +138,7 @@ export default function TaskCreateAssignDialog({
 
   const toggleEmployee = (id) => {
     setSelectedEmployeeIds((prev) =>
-      prev.includes(id)
-        ? prev.filter((item) => item !== id)
-        : [...prev, id],
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
     );
   };
 
@@ -141,8 +149,16 @@ export default function TaskCreateAssignDialog({
       maxWidth={false}
       PaperProps={{
         sx: {
-          width: "600px",
-          maxWidth: "calc(100vw - 48px)",
+          width: {
+            xs: "calc(100vw - 16px)",
+            sm: "600px",
+          },
+          maxWidth: "600px",
+          m: { xs: "8px", sm: "32px" },
+          maxHeight: {
+            xs: "calc(100dvh - 16px)",
+            sm: "calc(100dvh - 64px)",
+          },
           borderRadius: "4px",
           overflow: "hidden",
         },
@@ -150,12 +166,51 @@ export default function TaskCreateAssignDialog({
     >
       <DialogHeader title="新增指派事項" onClose={onClose} />
 
-      <Tabs value={tab} onChange={(e, v) => setTab(v)}>
+      <Tabs
+        value={tab}
+        onChange={(e, v) => setTab(v)}
+        variant="fullWidth"
+        sx={{
+          minHeight: {
+            xs: "42px",
+            sm: "48px",
+          },
+          "& .MuiTab-root": {
+            minHeight: {
+              xs: "42px",
+              sm: "48px",
+            },
+            fontSize: {
+              xs: "13px",
+              sm: "14px",
+            },
+          },
+        }}
+      >
         <Tab label="建立任務" />
         <Tab label="指派員工" />
       </Tabs>
 
-      <DialogContent sx={{ p: "16px" }}>
+      <DialogContent
+        sx={{
+          p: {
+            xs: "10px",
+            sm: "16px",
+          },
+          "& .MuiInputBase-input": {
+            fontSize: {
+              xs: "14px",
+              sm: "15px",
+            },
+          },
+          "& .MuiInputLabel-root": {
+            fontSize: {
+              xs: "14px",
+              sm: "15px",
+            },
+          },
+        }}
+      >
         {tab === 0 && (
           <Box>
             <TextField
@@ -195,11 +250,23 @@ export default function TaskCreateAssignDialog({
               onChange={(e) => setDueDate(e.target.value)}
             />
 
-            <Box sx={{ mt: "16px", display: "flex", justifyContent: "flex-end" }}>
+            <Box
+              sx={{
+                mt: "16px",
+                display: "flex",
+                justifyContent: "flex-end",
+              }}
+            >
               <Button
                 variant="contained"
                 onClick={handleCreateTask}
                 disabled={loading}
+                sx={{
+                  width: {
+                    xs: "100%",
+                    sm: "auto",
+                  },
+                }}
               >
                 下一步
               </Button>
@@ -209,31 +276,91 @@ export default function TaskCreateAssignDialog({
 
         {tab === 1 && (
           <Box>
-            {employees.map((emp) => (
-              <Box
-                key={emp.employee_id}
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  mb: "6px",
-                }}
-              >
-                <Checkbox
-                  checked={selectedEmployeeIds.includes(emp.employee_id)}
-                  onChange={() => toggleEmployee(emp.employee_id)}
-                />
+            <Box
+              sx={{
+                display: "grid",
+                gap: "6px",
+                maxHeight: {
+                  xs: "48vh",
+                  sm: "420px",
+                },
+                overflowY: "auto",
+                pr: {
+                  xs: 0,
+                  sm: "4px",
+                },
+              }}
+            >
+              {employees.map((emp) => {
+                const isSelected = selectedEmployeeIds.includes(
+                  emp.employee_id,
+                );
 
-                <Typography>
-                  {emp.employee_id} {emp.display_name}
-                </Typography>
-              </Box>
-            ))}
+                return (
+                  <Box
+                    key={emp.employee_id}
+                    onClick={() => toggleEmployee(emp.employee_id)}
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      minWidth: 0,
+                      border: "1px solid #e5e7eb",
+                      borderRadius: "6px",
+                      px: {
+                        xs: "6px",
+                        sm: "8px",
+                      },
+                      py: "2px",
+                      cursor: "pointer",
+                      bgcolor: isSelected ? "#eff6ff" : "#ffffff",
+                      "&:hover": {
+                        bgcolor: isSelected ? "#dbeafe" : "#f9fafb",
+                      },
+                    }}
+                  >
+                    <Checkbox
+                      checked={isSelected}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                      }}
+                      onChange={() => toggleEmployee(emp.employee_id)}
+                      size="small"
+                    />
 
-            <Box sx={{ mt: "16px", display: "flex", justifyContent: "flex-end" }}>
+                    <Typography
+                      sx={{
+                        minWidth: 0,
+                        fontSize: {
+                          xs: "14px",
+                          sm: "15px",
+                        },
+                        overflowWrap: "anywhere",
+                      }}
+                    >
+                      {emp.employee_id} {emp.display_name}
+                    </Typography>
+                  </Box>
+                );
+              })}
+            </Box>
+
+            <Box
+              sx={{
+                mt: "16px",
+                display: "flex",
+                justifyContent: "flex-end",
+              }}
+            >
               <Button
                 variant="contained"
                 onClick={handleAssign}
                 disabled={loading}
+                sx={{
+                  width: {
+                    xs: "100%",
+                    sm: "auto",
+                  },
+                }}
               >
                 完成指派
               </Button>

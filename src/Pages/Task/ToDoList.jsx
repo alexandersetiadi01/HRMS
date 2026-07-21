@@ -1,9 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Box, Button, Typography } from "@mui/material";
 import Breadcrumb from "../../Utils/Breadcrumb";
 import { getCurrentEmployeeId } from "../../API/account";
@@ -30,18 +25,12 @@ const tabs = [
 ];
 
 export default function TodoList() {
-  const {
-    isSourceUnread,
-    markSourceAsRead,
-  } = useNotifications();
+  const { isSourceUnread, markSourceAsRead } = useNotifications();
 
-  const {
-    highlightedId: highlightedTaskAssigneeId,
-  } = useNotificationHighlight();
+  const { highlightedId: highlightedTaskAssigneeId } =
+    useNotificationHighlight();
 
-  const employeeId = Number(  
-    getCurrentEmployeeId() || 0,
-  );
+  const employeeId = Number(getCurrentEmployeeId() || 0);
 
   const pendingRef = useRef(null);
   const assignedRef = useRef(null);
@@ -104,10 +93,7 @@ export default function TodoList() {
         setDetailReplies(replyRows);
 
         try {
-          await markSourceAsRead(
-            "task_assignee",
-            row.task_assignee_id,
-          );
+          await markSourceAsRead("task_assignee", row.task_assignee_id);
         } catch {
           /*
            * Keep the task detail open if notification
@@ -137,10 +123,7 @@ export default function TodoList() {
         console.error("Failed to load task detail:", error);
       }
     },
-    [
-      employeeId,
-      markSourceAsRead,
-    ],
+    [employeeId, markSourceAsRead],
   );
 
   const handleOpenReply = (row) => {
@@ -163,23 +146,31 @@ export default function TodoList() {
 
       <Typography
         sx={{
-          fontSize: "18px",
+          fontSize: { xs: "17px", sm: "18px" },
           fontWeight: 700,
           color: "#111827",
-          mb: "18px",
+          mb: { xs: "16px", md: "18px" },
         }}
       >
         待辦事項
       </Typography>
 
-      <Box sx={{ display: "flex", alignItems: "flex-start", gap: "20px" }}>
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: { xs: "column", md: "row" },
+          alignItems: "flex-start",
+          gap: { xs: "16px", md: "20px" },
+        }}
+      >
         <Box
           sx={{
-            width: "168px",
+            width: { xs: "100%", md: "168px" },
             border: "1px solid #e0e0e0",
             bgcolor: "#f7f7f7",
             flexShrink: 0,
-            mt: "46px",
+            mt: { xs: 0, md: "46px" },
+            overflow: "hidden",
           }}
         >
           <Box
@@ -195,7 +186,7 @@ export default function TodoList() {
           >
             <Typography
               sx={{
-                fontSize: "16px",
+                fontSize: { xs: "15px", sm: "16px" },
                 fontWeight: 700,
                 color: accentColor,
                 textAlign: "center",
@@ -205,59 +196,77 @@ export default function TodoList() {
             </Typography>
           </Box>
 
-          {tabs.map((tab) => {
-            const isActive = tab.key === activeTab;
-
-            return (
-              <Box
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                sx={{
-                  minHeight: "42px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  px: "12px",
-                  borderBottom: "1px solid #e5e5e5",
-                  color: isActive ? accentColor : "#c9c9c9",
-                  fontWeight: isActive ? 700 : 500,
-                  fontSize: "15px",
-                  textAlign: "center",
-                  cursor: "pointer",
-                  userSelect: "none",
-                  "&:hover": {
-                    color: accentColor,
-                    bgcolor: "#fafafa",
-                  },
-                }}
-              >
-                {tab.label}
-              </Box>
-            );
-          })}
-        </Box>
-
-        <Box sx={{ flex: 1, minWidth: 0 }}>
           <Box
             sx={{
               display: "flex",
-              justifyContent: "flex-end",
-              gap: "10px",
+              flexDirection: { xs: "row", md: "column" },
+              overflowX: { xs: "auto", md: "visible" },
+            }}
+          >
+            {tabs.map((tab) => {
+              const isActive = tab.key === activeTab;
+
+              return (
+                <Box
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  sx={{
+                    minWidth: { xs: "140px", sm: 0 },
+                    flex: { xs: "1 0 auto", sm: "1 1 0" },
+                    minHeight: "42px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    px: "12px",
+                    borderRight: {
+                      xs: "1px solid #e5e5e5",
+                      md: "none",
+                    },
+                    borderBottom: "1px solid #e5e5e5",
+                    color: isActive ? accentColor : "#c9c9c9",
+                    fontWeight: isActive ? 700 : 500,
+                    fontSize: { xs: "14px", sm: "15px" },
+                    textAlign: "center",
+                    whiteSpace: "nowrap",
+                    cursor: "pointer",
+                    userSelect: "none",
+                    "&:hover": {
+                      color: accentColor,
+                      bgcolor: "#fafafa",
+                    },
+                  }}
+                >
+                  {tab.label}
+                </Box>
+              );
+            })}
+          </Box>
+        </Box>
+
+        <Box sx={{ width: "100%", flex: 1, minWidth: 0 }}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: { xs: "stretch", sm: "flex-end" },
+              gap: { xs: "8px", sm: "10px" },
               mb: "12px",
               minHeight: "34px",
+              flexWrap: "wrap",
             }}
           >
             <Button
               variant="outlined"
               onClick={() => setCreateAssignOpen(true)}
               sx={{
-                minWidth: "112px",
+                flex: { xs: "1 1 140px", sm: "0 0 auto" },
+                minWidth: { xs: 0, sm: "112px" },
                 height: "34px",
                 px: "14px",
                 borderColor: "#c5c5c5",
                 color: "#333333",
-                fontSize: "15px",
+                fontSize: { xs: "14px", sm: "15px" },
                 bgcolor: "#ffffff",
+                whiteSpace: "nowrap",
               }}
             >
               新增指派事項
@@ -267,13 +276,15 @@ export default function TodoList() {
               variant="outlined"
               onClick={handleDownloadSelected}
               sx={{
-                minWidth: "112px",
+                flex: { xs: "1 1 140px", sm: "0 0 auto" },
+                minWidth: { xs: 0, sm: "112px" },
                 height: "34px",
                 px: "14px",
                 borderColor: "#c5c5c5",
                 color: "#333333",
-                fontSize: "15px",
+                fontSize: { xs: "14px", sm: "15px" },
                 bgcolor: "#ffffff",
+                whiteSpace: "nowrap",
               }}
             >
               下載勾選項目
@@ -287,14 +298,9 @@ export default function TodoList() {
               active={activeTab === "pending"}
               onOpenDetail={handleOpenDetail}
               onRowsChange={setPendingCount}
-              highlightedId={
-                highlightedTaskAssigneeId
-              }
+              highlightedId={highlightedTaskAssigneeId}
               isSourceUnread={(sourceId) => {
-                return isSourceUnread(
-                  "task_assignee",
-                  sourceId,
-                );
+                return isSourceUnread("task_assignee", sourceId);
               }}
             />
           )}
@@ -313,10 +319,23 @@ export default function TodoList() {
             sx={{
               mt: "18px",
               display: "flex",
-              justifyContent: "flex-end",
+              justifyContent: { xs: "center", md: "flex-end" },
             }}
           >
-            <Typography sx={{ fontSize: "15px", color: "#1f2f4a" }}>
+            <Typography
+              sx={{
+                fontSize: {
+                  xs: "13px",
+                  sm: "14px",
+                  md: "15px",
+                },
+                color: "#1f2f4a",
+                textAlign: {
+                  xs: "center",
+                  md: "right",
+                },
+              }}
+            >
               顯示 {currentRowsCount === 0 ? 0 : 1} - {currentRowsCount} 筆，共{" "}
               {currentRowsCount} 筆
             </Typography>

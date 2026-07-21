@@ -23,11 +23,21 @@ function DialogHeader({ title, onClose }) {
         px: "14px",
       }}
     >
-      <Typography sx={{ fontSize: "15px", fontWeight: 700, color: "#ffffff" }}>
+      <Typography
+        sx={{
+          fontSize: { xs: "14px", sm: "15px" },
+          fontWeight: 700,
+          color: "#ffffff",
+        }}
+      >
         {title}
       </Typography>
 
-      <IconButton onClick={onClose} size="small" sx={{ color: "#ffffff", p: 0 }}>
+      <IconButton
+        onClick={onClose}
+        size="small"
+        sx={{ color: "#ffffff", p: 0 }}
+      >
         <CloseIcon sx={{ fontSize: "18px" }} />
       </IconButton>
     </Box>
@@ -84,8 +94,16 @@ export default function TaskReplyDialog({
       maxWidth={false}
       PaperProps={{
         sx: {
-          width: "560px",
-          maxWidth: "calc(100vw - 48px)",
+          width: {
+            xs: "calc(100vw - 16px)",
+            sm: "560px",
+          },
+          maxWidth: "560px",
+          m: { xs: "8px", sm: "32px" },
+          maxHeight: {
+            xs: "calc(100dvh - 16px)",
+            sm: "calc(100dvh - 64px)",
+          },
           borderRadius: "4px",
           overflow: "hidden",
         },
@@ -93,9 +111,19 @@ export default function TaskReplyDialog({
     >
       <DialogHeader title="回覆任務" onClose={onClose} />
 
-      <DialogContent sx={{ p: "16px" }}>
+      <DialogContent
+        sx={{
+          p: { xs: "10px", sm: "16px" },
+        }}
+      >
         <Box sx={{ mb: "12px" }}>
-          <Typography sx={{ fontSize: "14px", color: "#777777", mb: "4px" }}>
+          <Typography
+            sx={{
+              fontSize: { xs: "13px", sm: "14px" },
+              color: "#777777",
+              mb: "4px",
+            }}
+          >
             回覆內容
           </Typography>
 
@@ -109,13 +137,27 @@ export default function TaskReplyDialog({
         </Box>
 
         <Box sx={{ mb: "12px" }}>
-          <Typography sx={{ fontSize: "14px", color: "#777777", mb: "4px" }}>
+          <Typography
+            sx={{
+              fontSize: { xs: "13px", sm: "14px" },
+              color: "#777777",
+              mb: "4px",
+            }}
+          >
             上傳附件
           </Typography>
 
-          <input
+          <Box
+            component="input"
             type="file"
             onChange={(e) => setFile(e.target.files?.[0] || null)}
+            sx={{
+              display: "block",
+              width: "100%",
+              maxWidth: "100%",
+              fontSize: { xs: "13px", sm: "14px" },
+              overflow: "hidden",
+            }}
           />
         </Box>
 
@@ -125,16 +167,20 @@ export default function TaskReplyDialog({
             borderTop: "1px solid #d7d7d7",
             pt: "12px",
             display: "flex",
+            flexDirection: { xs: "column-reverse", sm: "row" },
             justifyContent: "flex-end",
-            gap: "10px",
+            gap: { xs: "8px", sm: "10px" },
           }}
         >
-          <Button onClick={onClose}>取消</Button>
+          <Button onClick={onClose} sx={{ width: { xs: "100%", sm: "auto" } }}>
+            取消
+          </Button>
 
           <Button
             variant="contained"
             onClick={handleSubmit}
             disabled={submitting}
+            sx={{ width: { xs: "100%", sm: "auto" } }}
           >
             送出
           </Button>
