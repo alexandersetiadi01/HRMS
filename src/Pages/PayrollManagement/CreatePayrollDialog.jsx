@@ -19,6 +19,7 @@ import {
 import {
   createPayrollPeriod,
   createPayrollRun,
+  updatePayrollPeriod,
 } from "../../API/payroll";
 
 const RUN_TYPES = [
@@ -263,18 +264,12 @@ export default function CreatePayrollDialog({
       return;
     }
 
-    if (
-      !existingPeriod &&
-      (!periodStart || !periodEnd)
-    ) {
+    if (!periodStart || !periodEnd) {
       setError("請輸入完整的計薪期間。");
       return;
     }
 
-    if (
-      !existingPeriod &&
-      periodEnd < periodStart
-    ) {
+    if (periodEnd < periodStart) {
       setError(
         "計薪期間結束日期不可早於開始日期。",
       );
@@ -288,18 +283,27 @@ export default function CreatePayrollDialog({
       let payrollPeriodId =
         existingPeriod?.payroll_period_id;
 
-      if (!payrollPeriodId) {
+      const periodPayload = {
+        payroll_range_id: Number(rangeId),
+        year,
+        month,
+        period_start: periodStart,
+        period_end: periodEnd,
+        pay_date: payDate || null,
+        close_status:
+          existingPeriod?.close_status || "開放",
+        status:
+          existingPeriod?.status || "開放",
+      };
+
+      if (payrollPeriodId) {
+        await updatePayrollPeriod(
+          payrollPeriodId,
+          periodPayload,
+        );
+      } else {
         const createdPeriod =
-          await createPayrollPeriod({
-            payroll_range_id: Number(rangeId),
-            year,
-            month,
-            period_start: periodStart,
-            period_end: periodEnd,
-            pay_date: payDate || null,
-            close_status: "開放",
-            status: "開放",
-          });
+          await createPayrollPeriod(periodPayload);
 
         payrollPeriodId =
           createdPeriod?.payroll_period_id;
@@ -460,8 +464,9 @@ export default function CreatePayrollDialog({
           <Box sx={{ gridColumn: "1 / -1" }}>
             {existingPeriod ? (
               <Alert severity="info">
-                此月份已有計薪週期，將直接使用既有週期
-                #{existingPeriod.payroll_period_id}。
+                此月份已有計薪週期
+                #{existingPeriod.payroll_period_id}
+                。您可以調整下方日期；建立薪資結算時，系統會先更新並使用此週期。
               </Alert>
             ) : (
               <Alert severity="warning">
@@ -477,7 +482,6 @@ export default function CreatePayrollDialog({
             onChange={(event) =>
               setPeriodStart(event.target.value)
             }
-            disabled={Boolean(existingPeriod)}
             size="small"
             fullWidth
             InputLabelProps={{ shrink: true }}
@@ -490,7 +494,6 @@ export default function CreatePayrollDialog({
             onChange={(event) =>
               setPeriodEnd(event.target.value)
             }
-            disabled={Boolean(existingPeriod)}
             size="small"
             fullWidth
             InputLabelProps={{ shrink: true }}

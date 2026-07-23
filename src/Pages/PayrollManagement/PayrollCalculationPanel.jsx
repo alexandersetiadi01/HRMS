@@ -41,6 +41,19 @@ function formatNumber(value) {
   }).format(Math.abs(Number(value || 0)));
 }
 
+function formatSignedNumber(value) {
+  return new Intl.NumberFormat("zh-TW", {
+    maximumFractionDigits: 0,
+  }).format(Number(value || 0));
+}
+
+function formatHours(value) {
+  return new Intl.NumberFormat("zh-TW", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(Math.abs(Number(value || 0)));
+}
+
 function formatDateTime(value) {
   if (!value) return "--";
 
@@ -61,12 +74,276 @@ function formatDateTime(value) {
   }).format(date);
 }
 
+function getAllowanceModeLabel(value) {
+  if (value === "quarterly_138") {
+    return "每月上限＋季度 138 小時";
+  }
+
+  if (value === "monthly") {
+    return "每月上限";
+  }
+
+  return "依薪資項目設定";
+}
+
+function OvertimeConsumptionGroup({
+  title,
+  consumption,
+}) {
+  const entries = Object.entries(consumption || {});
+
+  if (entries.length === 0) return null;
+
+  return (
+    <Box sx={{ mt: "12px" }}>
+      <Typography
+        sx={{
+          mb: "7px",
+          color: "#475569",
+          fontSize: "12px",
+          fontWeight: 700,
+        }}
+      >
+        {title}
+      </Typography>
+
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: {
+            xs: "1fr",
+            sm: "repeat(2, minmax(0, 1fr))",
+          },
+          gap: "8px",
+        }}
+      >
+        {entries.map(([periodKey, usage]) => (
+          <Box
+            key={periodKey}
+            sx={{
+              p: "10px",
+              bgcolor: "#ffffff",
+              border: "1px solid #dbe7ef",
+              borderRadius: "5px",
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: "8px",
+              }}
+            >
+              <Typography
+                sx={{
+                  color: "#334155",
+                  fontSize: "12px",
+                  fontWeight: 700,
+                }}
+              >
+                {periodKey}
+              </Typography>
+
+              <Typography
+                sx={{
+                  color: "#168dc5",
+                  fontSize: "12px",
+                  fontWeight: 700,
+                  textAlign: "right",
+                }}
+              >
+                剩餘{" "}
+                {formatHours(
+                  usage?.remaining_hours,
+                )}{" "}
+                小時
+              </Typography>
+            </Box>
+
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns:
+                  "repeat(2, minmax(0, 1fr))",
+                gap: "5px 10px",
+                mt: "7px",
+              }}
+            >
+              <Typography
+                sx={{
+                  color: "#64748b",
+                  fontSize: "11px",
+                }}
+              >
+                上限{" "}
+                {formatHours(
+                  usage?.limit_hours,
+                )}{" "}
+                小時
+              </Typography>
+
+              <Typography
+                sx={{
+                  color: "#64748b",
+                  fontSize: "11px",
+                }}
+              >
+                已使用{" "}
+                {formatHours(
+                  usage?.used_hours,
+                )}{" "}
+                小時
+              </Typography>
+
+              <Typography
+                sx={{
+                  color: "#15803d",
+                  fontSize: "11px",
+                }}
+              >
+                免稅{" "}
+                {formatHours(
+                  usage?.tax_free_hours,
+                )}{" "}
+                小時
+              </Typography>
+
+              <Typography
+                sx={{
+                  color: "#c2410c",
+                  fontSize: "11px",
+                }}
+              >
+                應稅{" "}
+                {formatHours(
+                  usage?.taxable_hours,
+                )}{" "}
+                小時
+              </Typography>
+            </Box>
+          </Box>
+        ))}
+      </Box>
+    </Box>
+  );
+}
+
+function OvertimeAuditPanel({ audit }) {
+  if (!audit) return null;
+
+  return (
+    <Box
+      sx={{
+        mb: "14px",
+        p: {
+          xs: "12px",
+          sm: "14px",
+        },
+        borderRadius: "5px",
+        bgcolor: audit.verified
+          ? "#f2fbf5"
+          : "#fff8f1",
+        border: audit.verified
+          ? "1px solid #cce8d5"
+          : "1px solid #fed7aa",
+      }}
+    >
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: {
+            xs: "flex-start",
+            sm: "center",
+          },
+          justifyContent: "space-between",
+          flexDirection: {
+            xs: "column",
+            sm: "row",
+          },
+          gap: "8px",
+        }}
+      >
+        <Box>
+          <Typography
+            sx={{
+              color: audit.verified
+                ? "#15803d"
+                : "#c2410c",
+              fontSize: "13px",
+              fontWeight: 700,
+            }}
+          >
+            加班免稅額度驗證
+          </Typography>
+
+          <Typography
+            sx={{
+              mt: "3px",
+              color: "#64748b",
+              fontSize: "11px",
+            }}
+          >
+            {getAllowanceModeLabel(
+              audit.allowance_mode,
+            )}
+          </Typography>
+        </Box>
+
+        <Chip
+          size="small"
+          icon={
+            audit.verified ? (
+              <CheckCircleOutlineIcon />
+            ) : undefined
+          }
+          label={
+            audit.verified
+              ? "驗證通過"
+              : "驗證失敗"
+          }
+          sx={{
+            bgcolor: audit.verified
+              ? "#eaf8ef"
+              : "#fff1e6",
+            color: audit.verified
+              ? "#15803d"
+              : "#c2410c",
+            border: audit.verified
+              ? "1px solid #b9e5c8"
+              : "1px solid #fed7aa",
+            fontWeight: 700,
+            "& .MuiChip-icon": {
+              color: "inherit",
+              fontSize: "16px",
+            },
+          }}
+        />
+      </Box>
+
+      <OvertimeConsumptionGroup
+        title="每月額度使用狀況"
+        consumption={
+          audit.monthly_consumption
+        }
+      />
+
+      <OvertimeConsumptionGroup
+        title="季度額度使用狀況"
+        consumption={
+          audit.quarterly_consumption
+        }
+      />
+    </Box>
+  );
+}
+
 function PayrollTotalCard({
   label,
   value,
   color,
   background,
   icon,
+  preserveSign = false,
 }) {
   return (
     <Box
@@ -118,21 +395,31 @@ function PayrollTotalCard({
           overflowWrap: "anywhere",
         }}
       >
-        NT$ {formatNumber(value)}
+        NT${" "}
+        {preserveSign
+          ? formatSignedNumber(value)
+          : formatNumber(value)}
       </Typography>
     </Box>
   );
 }
-
 function ResultLine({
   line,
   deduction = false,
 }) {
   const itemName =
+    line.description ||
     line.item_name ||
     line.item_name_en ||
     line.item_code ||
     "薪資項目";
+
+  const taxableType = String(
+    line.taxable_type_snapshot || "",
+  ).trim();
+
+  const isTaxFree = taxableType === "免稅";
+  const isTaxable = taxableType === "應稅";
 
   return (
     <Box
@@ -140,14 +427,14 @@ function ResultLine({
         display: "grid",
         gridTemplateColumns: {
           xs: "minmax(0, 1fr) auto",
-          sm: "minmax(0, 1fr) 90px 120px",
+          sm: "minmax(0, 1fr) 110px 120px",
         },
         alignItems: "center",
         gap: {
           xs: "8px",
           sm: "12px",
         },
-        py: "8px",
+        py: "9px",
         borderBottom: "1px solid #edf0f3",
         "&:last-child": {
           borderBottom: 0,
@@ -155,28 +442,89 @@ function ResultLine({
       }}
     >
       <Box sx={{ minWidth: 0 }}>
-        <Typography
+        <Box
           sx={{
-            color: "#334155",
-            fontSize: "13px",
-            fontWeight: 600,
-            overflowWrap: "anywhere",
+            display: "flex",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: "6px",
           }}
         >
-          {itemName}
-        </Typography>
-
-        {line.item_code ? (
           <Typography
             sx={{
-              mt: "2px",
-              color: "#94a3b8",
+              color: "#334155",
+              fontSize: "13px",
+              fontWeight: 600,
+              overflowWrap: "anywhere",
+            }}
+          >
+            {itemName}
+          </Typography>
+
+          {taxableType ? (
+            <Chip
+              size="small"
+              label={taxableType}
+              sx={{
+                height: "20px",
+                bgcolor: isTaxFree
+                  ? "#eaf8ef"
+                  : isTaxable
+                    ? "#fff3e8"
+                    : "#f1f5f9",
+                color: isTaxFree
+                  ? "#15803d"
+                  : isTaxable
+                    ? "#c2410c"
+                    : "#64748b",
+                border: isTaxFree
+                  ? "1px solid #b9e5c8"
+                  : isTaxable
+                    ? "1px solid #fed7aa"
+                    : "1px solid #dbe2ea",
+                fontSize: "10px",
+                fontWeight: 700,
+                "& .MuiChip-label": {
+                  px: "7px",
+                },
+              }}
+            />
+          ) : null}
+        </Box>
+
+        <Box
+          sx={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "4px 10px",
+            mt: "3px",
+          }}
+        >
+          {line.item_code ? (
+            <Typography
+              sx={{
+                color: "#94a3b8",
+                fontSize: "11px",
+              }}
+            >
+              {line.item_code}
+            </Typography>
+          ) : null}
+
+          <Typography
+            sx={{
+              display: {
+                xs: "block",
+                sm: "none",
+              },
+              color: "#64748b",
               fontSize: "11px",
             }}
           >
-            {line.item_code}
+            數量 {formatHours(line.quantity)}
+            {line.unit === "hour" ? " 小時" : ""}
           </Typography>
-        ) : null}
+        </Box>
       </Box>
 
       <Typography
@@ -190,7 +538,8 @@ function ResultLine({
           textAlign: "right",
         }}
       >
-        數量 {Number(line.quantity || 0)}
+        {formatHours(line.quantity)}
+        {line.unit === "hour" ? " 小時" : ""}
       </Typography>
 
       <Typography
@@ -224,6 +573,26 @@ function EmployeeResultCard({ result }) {
   const deductions = Array.isArray(result.deductions)
     ? result.deductions
     : [];
+
+  const overtimeLines = Array.isArray(
+    result.overtime_lines,
+  )
+    ? result.overtime_lines
+    : earnings.filter(
+        (line) =>
+          line.source_type === "overtime_request",
+      );
+
+  const regularEarnings = earnings.filter(
+    (line) =>
+      line.source_type !== "overtime_request",
+  );
+
+  const overtimeSummary =
+    result.overtime_tax_summary || {};
+
+  const overtimeAudit =
+    result.overtime_tax_audit || null;
 
   return (
     <Box
@@ -383,7 +752,8 @@ function EmployeeResultCard({ result }) {
                 fontWeight: 700,
               }}
             >
-              NT$ {formatNumber(result.net_pay)}
+              NT${" "}
+              {formatSignedNumber(result.net_pay)}
             </Typography>
           </Box>
         </Box>
@@ -422,6 +792,227 @@ function EmployeeResultCard({ result }) {
         >
           <Divider sx={{ mb: "12px" }} />
 
+          <OvertimeAuditPanel
+            audit={overtimeAudit}
+          />
+
+          {overtimeLines.length > 0 ? (
+            <Box
+              sx={{
+                mb: "14px",
+                p: {
+                  xs: "12px",
+                  sm: "14px",
+                },
+                borderRadius: "5px",
+                bgcolor: "#f8fbff",
+                border: "1px solid #cfe4f2",
+              }}
+            >
+              <Typography
+                sx={{
+                  color: "#168dc5",
+                  fontSize: "13px",
+                  fontWeight: 700,
+                }}
+              >
+                加班費所得稅判定
+              </Typography>
+
+              <Typography
+                sx={{
+                  mt: "3px",
+                  color: "#64748b",
+                  fontSize: "11px",
+                }}
+              >
+                顯示本期加班費依設定規則拆分後的免稅及應稅結果。
+              </Typography>
+
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: {
+                    xs: "repeat(2, minmax(0, 1fr))",
+                    sm: "repeat(3, minmax(0, 1fr))",
+                  },
+                  gap: "8px",
+                  my: "12px",
+                }}
+              >
+                <Box
+                  sx={{
+                    p: "10px",
+                    bgcolor: "#ffffff",
+                    border: "1px solid #dbe7ef",
+                    borderRadius: "5px",
+                  }}
+                >
+                  <Typography
+                    sx={{
+                      color: "#94a3b8",
+                      fontSize: "11px",
+                    }}
+                  >
+                    加班總計
+                  </Typography>
+
+                  <Typography
+                    sx={{
+                      mt: "3px",
+                      color: "#334155",
+                      fontSize: "13px",
+                      fontWeight: 700,
+                    }}
+                  >
+                    {formatHours(
+                      overtimeSummary.total_hours,
+                    )}{" "}
+                    小時
+                  </Typography>
+
+                  <Typography
+                    sx={{
+                      mt: "2px",
+                      color: "#334155",
+                      fontSize: "12px",
+                      fontWeight: 600,
+                    }}
+                  >
+                    NT${" "}
+                    {formatNumber(
+                      overtimeSummary.total_amount,
+                    )}
+                  </Typography>
+                </Box>
+
+                <Box
+                  sx={{
+                    p: "10px",
+                    bgcolor: "#f2fbf5",
+                    border: "1px solid #cce8d5",
+                    borderRadius: "5px",
+                  }}
+                >
+                  <Typography
+                    sx={{
+                      color: "#15803d",
+                      fontSize: "11px",
+                      fontWeight: 700,
+                    }}
+                  >
+                    免稅加班費
+                  </Typography>
+
+                  <Typography
+                    sx={{
+                      mt: "3px",
+                      color: "#15803d",
+                      fontSize: "13px",
+                      fontWeight: 700,
+                    }}
+                  >
+                    {formatHours(
+                      overtimeSummary.tax_free_hours,
+                    )}{" "}
+                    小時
+                  </Typography>
+
+                  <Typography
+                    sx={{
+                      mt: "2px",
+                      color: "#15803d",
+                      fontSize: "12px",
+                      fontWeight: 600,
+                    }}
+                  >
+                    NT${" "}
+                    {formatNumber(
+                      overtimeSummary.tax_free_amount,
+                    )}
+                  </Typography>
+                </Box>
+
+                <Box
+                  sx={{
+                    gridColumn: {
+                      xs: "1 / -1",
+                      sm: "auto",
+                    },
+                    p: "10px",
+                    bgcolor: "#fff8f1",
+                    border: "1px solid #fed7aa",
+                    borderRadius: "5px",
+                  }}
+                >
+                  <Typography
+                    sx={{
+                      color: "#c2410c",
+                      fontSize: "11px",
+                      fontWeight: 700,
+                    }}
+                  >
+                    應稅加班費
+                  </Typography>
+
+                  <Typography
+                    sx={{
+                      mt: "3px",
+                      color: "#c2410c",
+                      fontSize: "13px",
+                      fontWeight: 700,
+                    }}
+                  >
+                    {formatHours(
+                      overtimeSummary.taxable_hours,
+                    )}{" "}
+                    小時
+                  </Typography>
+
+                  <Typography
+                    sx={{
+                      mt: "2px",
+                      color: "#c2410c",
+                      fontSize: "12px",
+                      fontWeight: 600,
+                    }}
+                  >
+                    NT${" "}
+                    {formatNumber(
+                      overtimeSummary.taxable_amount,
+                    )}
+                  </Typography>
+                </Box>
+              </Box>
+
+              <Box>
+                {overtimeLines.map((line) => (
+                  <ResultLine
+                    key={line.result_line_id}
+                    line={line}
+                  />
+                ))}
+              </Box>
+
+              {Number(
+                overtimeSummary.unclassified_hours ||
+                  0,
+              ) > 0 ? (
+                <Alert
+                  severity="warning"
+                  sx={{ mt: "10px" }}
+                >
+                  有{" "}
+                  {formatHours(
+                    overtimeSummary
+                      .unclassified_hours,
+                  )}{" "}
+                  小時未套用加班費所得稅類型，將保留薪資項目的原始所得稅設定。
+                </Alert>
+              ) : null}
+            </Box>
+          ) : null}
+
           <Box
             sx={{
               display: "grid",
@@ -451,8 +1042,8 @@ function EmployeeResultCard({ result }) {
                 加項明細
               </Typography>
 
-              {earnings.length > 0 ? (
-                earnings.map((line) => (
+              {regularEarnings.length > 0 ? (
+                regularEarnings.map((line) => (
                   <ResultLine
                     key={line.result_line_id}
                     line={line}
@@ -466,7 +1057,7 @@ function EmployeeResultCard({ result }) {
                     fontSize: "12px",
                   }}
                 >
-                  沒有加項資料
+                  沒有其他加項資料
                 </Typography>
               )}
             </Box>
@@ -598,7 +1189,7 @@ function EmployeeResultCard({ result }) {
                 }}
               >
                 NT${" "}
-                {formatNumber(
+                {formatSignedNumber(
                   result.bank_transfer_amount,
                 )}
               </Typography>
@@ -635,8 +1226,11 @@ export default function PayrollCalculationPanel({
   const [message, setMessage] = useState("");
   const [messageSeverity, setMessageSeverity] =
     useState("success");
+  const [calculationErrors, setCalculationErrors] =
+    useState([]);
 
-  const loadResults = useCallback(async () => {
+  const loadResults = useCallback(
+    async (auditMap = {}) => {
     if (!payrollRunId) return;
 
     setLoading(true);
@@ -656,7 +1250,20 @@ export default function PayrollCalculationPanel({
           ? result.missing_employees
           : [],
         results: Array.isArray(result?.results)
-          ? result.results
+          ? result.results.map(
+              (employeeResult) => ({
+                ...employeeResult,
+                overtime_tax_audit:
+                  auditMap[
+                    String(
+                      employeeResult.employee_id,
+                    )
+                  ] ||
+                  employeeResult
+                    .overtime_tax_audit ||
+                  null,
+              }),
+            )
           : [],
       });
     } catch (loadError) {
@@ -675,6 +1282,7 @@ export default function PayrollCalculationPanel({
     setData(null);
     setError("");
     setMessage("");
+    setCalculationErrors([]);
     loadResults();
   }, [loadResults]);
 
@@ -688,6 +1296,7 @@ export default function PayrollCalculationPanel({
     setRecalculating(true);
     setError("");
     setMessage("");
+    setCalculationErrors([]);
 
     try {
       const result = await calculatePayrollRun(
@@ -701,6 +1310,34 @@ export default function PayrollCalculationPanel({
         ? result.errors
         : [];
 
+      const calculated = Array.isArray(
+        result?.calculated,
+      )
+        ? result.calculated
+        : [];
+
+      const auditMap = Object.fromEntries([
+        ...calculated
+          .filter(
+            (item) =>
+              item?.overtime_tax_audit,
+          )
+          .map((item) => [
+            String(item.employee_id),
+            item.overtime_tax_audit,
+          ]),
+        ...errors
+          .filter(
+            (item) => item?.data?.audit,
+          )
+          .map((item) => [
+            String(item.employee_id),
+            item.data.audit,
+          ]),
+      ]);
+
+      setCalculationErrors(errors);
+
       if (errors.length > 0) {
         setMessageSeverity("warning");
         setMessage(
@@ -713,7 +1350,7 @@ export default function PayrollCalculationPanel({
         );
       }
 
-      await loadResults();
+      await loadResults(auditMap);
       await onReload?.();
     } catch (recalculateError) {
       setError(
@@ -772,6 +1409,9 @@ export default function PayrollCalculationPanel({
     summary.ready_to_approve === true ||
     Number(summary.ready_to_approve) === 1;
 
+  const hasApprovedResults =
+    Number(summary.approved_count || 0) > 0;
+
   return (
     <Box
       sx={{
@@ -806,6 +1446,51 @@ export default function PayrollCalculationPanel({
           sx={{ mb: "14px" }}
         >
           {message}
+        </Alert>
+      ) : null}
+
+      {calculationErrors.length > 0 ? (
+        <Alert
+          severity="warning"
+          sx={{ mb: "14px" }}
+        >
+          <Typography
+            sx={{
+              fontSize: "13px",
+              fontWeight: 700,
+            }}
+          >
+            薪資計算失敗明細
+          </Typography>
+
+          <Box
+            component="ul"
+            sx={{
+              my: "6px",
+              pl: "20px",
+            }}
+          >
+            {calculationErrors.map(
+              (item, index) => (
+                <Box
+                  component="li"
+                  key={`${
+                    item.employee_id ||
+                    "employee"
+                  }-${index}`}
+                  sx={{ mb: "4px" }}
+                >
+                  <Typography
+                    sx={{ fontSize: "12px" }}
+                  >
+                    員工 #
+                    {item.employee_id || "--"}：
+                    {item.message || "計算失敗"}
+                  </Typography>
+                </Box>
+              ),
+            )}
+          </Box>
         </Alert>
       ) : null}
 
@@ -858,6 +1543,7 @@ export default function PayrollCalculationPanel({
               color="#168dc5"
               background="#f2fbff"
               icon={<TaskAltIcon fontSize="small" />}
+              preserveSign
             />
           </Box>
 
@@ -999,7 +1685,16 @@ export default function PayrollCalculationPanel({
                 )
               }
               onClick={handleRecalculate}
-              disabled={recalculating || approving}
+              disabled={
+                hasApprovedResults ||
+                recalculating ||
+                approving
+              }
+              title={
+                hasApprovedResults
+                  ? "此薪資批次已有核准結果，無法重新計算"
+                  : undefined
+              }
               sx={{
                 color: "#475569",
                 borderColor: "#cbd5e1",

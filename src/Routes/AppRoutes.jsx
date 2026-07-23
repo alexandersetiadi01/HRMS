@@ -18,6 +18,12 @@ import AccountLayout from "../Layouts/AccountLayout";
 import PayrollPage from "../Pages/Payroll/PayrollPage";
 import PayrollDetail from "../Pages/Payroll/PayrollDetail";
 import PayrollManagement from "../Pages/PayrollManagement/PayrollManagement";
+import PayrollWorkspaceLayout from "../Pages/PayrollManagement/PayrollWorkspaceLayout";
+import { PayrollUnavailableModule } from "../Pages/PayrollManagement/PayrollModulePlaceholder";
+import PayrollRangesPage from "../Pages/PayrollManagement/PayrollRangesPage";
+import PayrollPeriodsPage from "../Pages/PayrollManagement/PayrollPeriodsPage";
+import PayrollItemsPage from "../Pages/PayrollManagement/PayrollItemsPage";
+import PayrollOvertimeTaxPage from "../Pages/PayrollManagement/PayrollOvertimeTaxPage";
 import AttendanceFormPage from "../Pages/Attendance/AttendanceForm/AttendanceFormPage";
 import CompanyRegulations from "../Pages/CompanyRegulation/CompanyRegulation";
 import CompanyAnnouncement from "../Pages/Announcement/Company/CompanyAnnouncement";
@@ -28,6 +34,7 @@ import StickyNotes from "../Pages/StickyNote/StickyNotes";
 import Settings from "../Pages/Settings/Settings";
 import MenuShortcuts from "../Pages/Settings/MenuShortcut";
 import RequireAuth from "./RequireAuth";
+import RequirePayrollAdmin from "./RequirePayrollAdmin";
 
 function PlaceholderPage({ title }) {
   return <div style={{ padding: "24px" }}>{title}</div>;
@@ -134,8 +141,49 @@ export default function AppRoutes() {
         />
         <Route
           path="/attendance/admin/payroll-work"
-          element={<PayrollManagement />}
+          element={
+            <RequirePayrollAdmin>
+              <Navigate
+                to="/attendance/admin/payroll/operations/salary"
+                replace
+              />
+            </RequirePayrollAdmin>
+          }
         />
+
+        <Route
+          path="/attendance/admin/payroll"
+          element={
+            <RequirePayrollAdmin>
+              <PayrollWorkspaceLayout />
+            </RequirePayrollAdmin>
+          }
+        >
+          <Route
+            index
+            element={
+              <Navigate
+                to="/attendance/admin/payroll/operations/salary"
+                replace
+              />
+            }
+          />
+
+          <Route path="operations/salary" element={<PayrollManagement />} />
+
+          <Route path="settings/ranges" element={<PayrollRangesPage />} />
+
+          <Route path="settings/periods" element={<PayrollPeriodsPage />} />
+
+          <Route path="settings/items" element={<PayrollItemsPage />} />
+
+          <Route
+            path="settings/overtime-tax"
+            element={<PayrollOvertimeTaxPage />}
+          />
+
+          <Route path="*" element={<PayrollUnavailableModule />} />
+        </Route>
         <Route
           path="/attendance/admin/module-setting"
           element={<PlaceholderPage title="模組設定" />}

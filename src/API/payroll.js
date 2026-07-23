@@ -101,6 +101,47 @@ export async function getPayrollRanges(params = {}) {
   return unwrapResponse(response, []);
 }
 
+export async function getPayrollRange(payrollRangeId) {
+  const response = await http.get(
+    `/payroll-ranges/${payrollRangeId}`,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function createPayrollRange(payload) {
+  const response = await http.post(
+    "/payroll-ranges",
+    payload,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function updatePayrollRange(
+  payrollRangeId,
+  payload,
+) {
+  const response = await http.put(
+    `/payroll-ranges/${payrollRangeId}`,
+    payload,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function deletePayrollRange(
+  payrollRangeId,
+) {
+  const response = await http.delete(
+    `/payroll-ranges/${payrollRangeId}`,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+
+
 export async function getPayrollPeriods(params = {}) {
   const response = await http.get("/payroll-periods", {
     params: buildParams({
@@ -113,6 +154,36 @@ export async function getPayrollPeriods(params = {}) {
 
 export async function createPayrollPeriod(payload) {
   const response = await http.post("/payroll-periods", payload);
+
+  return unwrapResponse(response, null);
+}
+
+export async function getPayrollPeriod(payrollPeriodId) {
+  const response = await http.get(
+    `/payroll-periods/${payrollPeriodId}`,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function updatePayrollPeriod(
+  payrollPeriodId,
+  payload,
+) {
+  const response = await http.put(
+    `/payroll-periods/${payrollPeriodId}`,
+    payload,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function deletePayrollPeriod(
+  payrollPeriodId,
+) {
+  const response = await http.delete(
+    `/payroll-periods/${payrollPeriodId}`,
+  );
 
   return unwrapResponse(response, null);
 }
@@ -272,6 +343,62 @@ export async function getPayrollItems() {
   const response = await http.get("/payroll-items");
 
   return unwrapResponse(response, []);
+}
+
+export async function createPayrollItem(payload) {
+  const response = await http.post(
+    "/payroll-items",
+    payload,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function updatePayrollItem(
+  payrollItemId,
+  payload,
+) {
+  const response = await http.put(
+    `/payroll-items/${payrollItemId}`,
+    payload,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function deletePayrollItem(
+  payrollItemId,
+) {
+  const response = await http.delete(
+    `/payroll-items/${payrollItemId}`,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function getPayrollOvertimeTaxSettings() {
+  const response = await http.get(
+    "/payroll-overtime-tax-settings",
+  );
+
+  return unwrapResponse(response, {
+    setting: null,
+    rules: [],
+  });
+}
+
+export async function updatePayrollOvertimeTaxSettings(
+  payload,
+) {
+  const response = await http.put(
+    "/payroll-overtime-tax-settings",
+    payload,
+  );
+
+  return unwrapResponse(response, {
+    setting: null,
+    rules: [],
+  });
 }
 
 export async function getEmployeeSalaryRecords(

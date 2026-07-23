@@ -11,6 +11,7 @@ import {
   Typography,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
+import CheckIcon from "@mui/icons-material/Check";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import {
   getPayrollPeriods,
@@ -100,7 +101,12 @@ function SummaryItem({ label, value }) {
   );
 }
 
-function PayrollStageBar({ activeStage }) {
+function PayrollStageBar({
+  progressStage,
+  selectedStage,
+  finalStageCompleted,
+  onSelectStage,
+}) {
   return (
     <Box
       sx={{
@@ -111,12 +117,20 @@ function PayrollStageBar({ activeStage }) {
       }}
     >
       {STAGES.map((stage, index) => {
-        const isReached = index <= activeStage;
-        const isActive = index === activeStage;
+        const isAvailable = index <= progressStage;
+        const isSelected = index === selectedStage;
+        const isCompleted =
+          index < progressStage ||
+          (index === 2 && finalStageCompleted);
 
         return (
           <Box
             key={stage}
+            component="button"
+            type="button"
+            onClick={() => onSelectStage(index)}
+            disabled={!isAvailable}
+            aria-current={isSelected ? "step" : undefined}
             sx={{
               position: "relative",
               minWidth: 0,
@@ -129,13 +143,30 @@ function PayrollStageBar({ activeStage }) {
                 sm: "12px",
               },
               textAlign: "center",
-              color: isReached ? "#168dc5" : "#a8b0ba",
+              color: isCompleted
+                ? "#159447"
+                : isAvailable
+                  ? "#168dc5"
+                  : "#a8b0ba",
               fontSize: {
                 xs: "13px",
                 sm: "15px",
               },
-              fontWeight: isActive ? 700 : 500,
-              "&::after": isActive
+              fontWeight: isSelected ? 700 : 500,
+              fontFamily: "inherit",
+              border: 0,
+              bgcolor: isSelected ? "#f2faff" : "transparent",
+              cursor: isAvailable ? "pointer" : "not-allowed",
+              "&:hover": isAvailable
+                ? {
+                    bgcolor: isSelected ? "#eaf7fd" : "#f8fbfd",
+                  }
+                : undefined,
+              "&:focus-visible": {
+                outline: "2px solid #168dc5",
+                outlineOffset: "-2px",
+              },
+              "&::after": isSelected
                 ? {
                     content: '""',
                     position: "absolute",
@@ -167,7 +198,11 @@ function PayrollStageBar({ activeStage }) {
                   sm: "7px",
                 },
                 borderRadius: "50%",
-                bgcolor: isReached ? "#1f9bd1" : "#d7dce1",
+                bgcolor: isCompleted
+                  ? "#159447"
+                  : isAvailable
+                    ? "#1f9bd1"
+                    : "#d7dce1",
                 color: "#ffffff",
                 fontSize: {
                   xs: "11px",
@@ -175,7 +210,11 @@ function PayrollStageBar({ activeStage }) {
                 },
               }}
             >
-              {index + 1}
+              {isCompleted ? (
+                <CheckIcon sx={{ fontSize: "15px" }} />
+              ) : (
+                index + 1
+              )}
             </Box>
 
             {stage}
@@ -187,11 +226,17 @@ function PayrollStageBar({ activeStage }) {
 }
 
 function PayrollRunCard({ run, onReload }) {
-  const activeStage = getRunStage(run);
-  const statusColor = getStatusColor(activeStage);
+  const progressStage = getRunStage(run);
+  const [selectedStage, setSelectedStage] = useState(progressStage);
+  const statusColor = getStatusColor(progressStage);
+
+  const finalStageCompleted =
+    Boolean(run?.closed_at) ||
+    ["已關帳", "已通知"].includes(String(run?.status || ""));
 
   const title =
-    run.run_name || `${run.year || "--"} 年 ${run.month || "--"} 月薪資`;
+    run.run_name ||
+    `${run.year || "--"} 年 ${run.month || "--"} 月薪資`;
 
   return (
     <Box
@@ -259,7 +304,7 @@ function PayrollRunCard({ run, onReload }) {
         </Box>
 
         <Chip
-          label={run.status || STAGES[activeStage]}
+          label={run.status || STAGES[progressStage]}
           size="small"
           sx={{
             height: "26px",
@@ -273,163 +318,112 @@ function PayrollRunCard({ run, onReload }) {
         />
       </Box>
 
-      <PayrollStageBar activeStage={activeStage} />
+      <PayrollStageBar
+        progressStage={progressStage}
+        selectedStage={selectedStage}
+        finalStageCompleted={finalStageCompleted}
+        onSelectStage={setSelectedStage}
+      />
 
       <Box
         sx={{
-          display: "grid",
-          gridTemplateColumns: {
-            xs: "1fr",
-            md: "190px minmax(0, 1fr)",
+          px: {
+            xs: "12px",
+            sm: "20px",
+          },
+          py: {
+            xs: "16px",
+            sm: "20px",
           },
         }}
       >
-        <Box
+        <Typography
           sx={{
-            display: {
-              xs: "grid",
-              md: "block",
+            mb: "16px",
+            color: "#334155",
+            fontSize: {
+              xs: "15px",
+              sm: "16px",
             },
-            gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-            borderRight: {
-              md: "1px solid #e5e7eb",
-            },
-            borderBottom: {
-              xs: "1px solid #e5e7eb",
-              md: "none",
-            },
-            bgcolor: "#fbfcfd",
+            fontWeight: 700,
           }}
         >
-          {STAGES.map((stage, index) => (
-            <Box
-              key={stage}
-              sx={{
-                px: {
-                  xs: "4px",
-                  md: "18px",
-                },
-                py: {
-                  xs: "11px",
-                  md: "13px",
-                },
-                borderBottom: {
-                  md: "1px solid #edf0f2",
-                },
-                borderRight: {
-                  xs: index < STAGES.length - 1 ? "1px solid #edf0f2" : "none",
-                  md: "none",
-                },
-                bgcolor: index === activeStage ? "#eaf7fd" : "transparent",
-                color: index === activeStage ? "#168dc5" : "#7b8794",
-                fontSize: {
-                  xs: "12px",
-                  sm: "14px",
-                },
-                fontWeight: index === activeStage ? 700 : 500,
-                textAlign: {
-                  xs: "center",
-                  md: "left",
-                },
-              }}
-            >
-              {stage}
-            </Box>
-          ))}
-        </Box>
+          {STAGES[selectedStage]}
+        </Typography>
 
         <Box
           sx={{
-            px: {
-              xs: "12px",
-              sm: "20px",
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "repeat(2, minmax(0, 1fr))",
+              sm: "repeat(3, minmax(0, 1fr))",
             },
-            py: {
-              xs: "16px",
-              sm: "20px",
+            columnGap: {
+              xs: "14px",
+              sm: "28px",
+            },
+            rowGap: {
+              xs: "14px",
+              sm: "18px",
             },
           }}
         >
-          <Typography
-            sx={{
-              mb: "16px",
-              color: "#334155",
-              fontSize: {
-                xs: "15px",
-                sm: "16px",
-              },
-              fontWeight: 700,
-            }}
-          >
-            {STAGES[activeStage]}
-          </Typography>
+          <SummaryItem
+            label="計薪期間"
+            value={`${formatDate(run.period_start)} ～ ${formatDate(
+              run.period_end,
+            )}`}
+          />
 
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: {
-                xs: "repeat(2, minmax(0, 1fr))",
-                sm: "repeat(3, minmax(0, 1fr))",
-              },
-              columnGap: {
-                xs: "14px",
-                sm: "28px",
-              },
-              rowGap: {
-                xs: "14px",
-                sm: "18px",
-              },
-            }}
-          >
-            <SummaryItem
-              label="計薪期間"
-              value={`${formatDate(run.period_start)} ～ ${formatDate(run.period_end)}`}
-            />
+          <SummaryItem
+            label="預定發薪日"
+            value={formatDate(
+              run.actual_pay_date || run.period_pay_date,
+            )}
+          />
 
-            <SummaryItem
-              label="預定發薪日"
-              value={formatDate(run.actual_pay_date || run.period_pay_date)}
-            />
+          <SummaryItem label="薪資類型" value={run.run_type} />
 
-            <SummaryItem label="薪資類型" value={run.run_type} />
+          <SummaryItem
+            label="所得稅計算"
+            value={
+              Number(run.include_income_tax) === 1
+                ? "包含"
+                : "不包含"
+            }
+          />
 
-            <SummaryItem
-              label="所得稅計算"
-              value={Number(run.include_income_tax) === 1 ? "包含" : "不包含"}
-            />
+          <SummaryItem
+            label="通知時間"
+            value={formatDateTime(run.notification_at)}
+          />
 
-            <SummaryItem
-              label="通知時間"
-              value={formatDateTime(run.notification_at)}
-            />
-
-            <SummaryItem
-              label="最後計算時間"
-              value={formatDateTime(run.calculated_at)}
-            />
-          </Box>
-
-          {activeStage === 0 ? (
-            <PayrollReadinessPanel
-              payrollRunId={run.payroll_run_id}
-              onCalculated={onReload}
-            />
-          ) : null}
-
-          {activeStage === 1 ? (
-            <PayrollCalculationPanel
-              payrollRunId={run.payroll_run_id}
-              onReload={onReload}
-            />
-          ) : null}
-
-          {activeStage === 2 ? (
-            <PayrollCompletionPanel
-              payrollRunId={run.payroll_run_id}
-              onReload={onReload}
-            />
-          ) : null}
+          <SummaryItem
+            label="最後計算時間"
+            value={formatDateTime(run.calculated_at)}
+          />
         </Box>
+
+        {selectedStage === 0 ? (
+          <PayrollReadinessPanel
+            payrollRunId={run.payroll_run_id}
+            onCalculated={onReload}
+          />
+        ) : null}
+
+        {selectedStage === 1 ? (
+          <PayrollCalculationPanel
+            payrollRunId={run.payroll_run_id}
+            onReload={onReload}
+          />
+        ) : null}
+
+        {selectedStage === 2 ? (
+          <PayrollCompletionPanel
+            payrollRunId={run.payroll_run_id}
+            onReload={onReload}
+          />
+        ) : null}
       </Box>
     </Box>
   );

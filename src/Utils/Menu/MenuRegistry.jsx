@@ -321,7 +321,7 @@ export const MENU_ITEMS = [
   {
     id: "payroll-work",
     label: "結算作業",
-    to: "/attendance/admin/payroll-work",
+    to: "/attendance/admin/payroll/operations/salary",
     iconKey: "attendance-payroll-work",
     disable: false,
     groups: ["attendance"],

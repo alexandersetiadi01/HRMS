@@ -32,6 +32,15 @@ function formatMoney(value) {
   });
 }
 
+function formatHours(value) {
+  const number = Number(value || 0);
+
+  return number.toLocaleString("zh-TW", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
+}
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -70,16 +79,109 @@ function getPayslipLineLabel(line, sectionType = "earning") {
   const description = String(line?.description || "").trim();
 
   if (sectionType === "deduction") {
-    const isDateRange = /^\d{4}-\d{2}-\d{2}\s*~\s*\d{4}-\d{2}-\d{2}$/.test(
-      description,
-    );
+    const isDateRange =
+      /^\d{4}-\d{2}-\d{2}\s*~\s*\d{4}-\d{2}-\d{2}$/.test(
+        description,
+      );
 
-    if (description && description !== itemName && !isDateRange) {
+    if (
+      description &&
+      description !== itemName &&
+      !isDateRange
+    ) {
       return description;
     }
   }
 
   return itemName || description || "-";
+}
+
+function getOvertimeTaxType(line) {
+  return String(
+    line?.taxable_type ||
+      line?.taxable_type_snapshot ||
+      "",
+  ).trim();
+}
+
+function getOvertimeLines(payroll) {
+  const earnings = Array.isArray(payroll?.earnings)
+    ? payroll.earnings
+    : [];
+
+  return earnings.filter(
+    (line) =>
+      String(line?.source_type || "") ===
+      "overtime_request",
+  );
+}
+
+function buildOvertimeTaxSummary(payroll) {
+  const overtimeLines = getOvertimeLines(payroll);
+
+  const summary = {
+    total_hours: 0,
+    total_amount: 0,
+    tax_free_hours: 0,
+    tax_free_amount: 0,
+    taxable_hours: 0,
+    taxable_amount: 0,
+    unclassified_hours: 0,
+    unclassified_amount: 0,
+  };
+
+  overtimeLines.forEach((line) => {
+    const hours = Math.max(
+      0,
+      Number(line?.quantity || 0),
+    );
+    const amount = Math.max(
+      0,
+      Number(line?.amount || 0),
+    );
+    const taxType = getOvertimeTaxType(line);
+
+    summary.total_hours += hours;
+    summary.total_amount += amount;
+
+    if (taxType === "免稅") {
+      summary.tax_free_hours += hours;
+      summary.tax_free_amount += amount;
+    } else if (taxType === "應稅") {
+      summary.taxable_hours += hours;
+      summary.taxable_amount += amount;
+    } else {
+      summary.unclassified_hours += hours;
+      summary.unclassified_amount += amount;
+    }
+  });
+
+  Object.keys(summary).forEach((key) => {
+    summary[key] = Number(summary[key].toFixed(2));
+  });
+
+  return summary;
+}
+
+function getPayslipExportLineLabel(
+  line,
+  sectionType = "earning",
+) {
+  const label = getPayslipLineLabel(
+    line,
+    sectionType,
+  );
+  const taxType = getOvertimeTaxType(line);
+
+  if (
+    String(line?.source_type || "") ===
+      "overtime_request" &&
+    taxType
+  ) {
+    return `${label}（${taxType}）`;
+  }
+
+  return label;
 }
 
 function buildPayslipExcelHtml(payroll) {
@@ -90,8 +192,15 @@ function buildPayslipExcelHtml(payroll) {
     ? payroll.deductions
     : [];
   const notes = buildNoteLines(payroll.notes);
+  const overtimeLines = getOvertimeLines(payroll);
+  const overtimeSummary =
+    buildOvertimeTaxSummary(payroll);
 
-  const maxItemRows = Math.max(earnings.length, deductions.length, 1);
+  const maxItemRows = Math.max(
+    earnings.length,
+    deductions.length,
+    1,
+  );
 
   const itemRows = Array.from({ length: maxItemRows }, (_, index) => {
     const earning = earnings[index];
@@ -99,15 +208,141 @@ function buildPayslipExcelHtml(payroll) {
 
     return `
       <tr>
-        <td>${earning ? escapeHtml(getPayslipLineLabel(earning, "earning")) : ""}</td>
-        <td style="text-align:right;">${earning ? escapeHtml(formatMoney(earning.amount)) : ""}</td>
-        <td>${deduction ? escapeHtml(getPayslipLineLabel(deduction, "deduction")) : ""}</td>
+        <td>${
+          earning
+            ? escapeHtml(
+                getPayslipExportLineLabel(
+                  earning,
+                  "earning",
+                ),
+              )
+            : ""
+        }</td>
+        <td style="text-align:right;">${
+          earning
+            ? escapeHtml(
+                formatMoney(earning.amount),
+              )
+            : ""
+        }</td>
+        <td>${
+          deduction
+            ? escapeHtml(
+                getPayslipExportLineLabel(
+                  deduction,
+                  "deduction",
+                ),
+              )
+            : ""
+        }</td>
         <td style="text-align:right;">${deduction ? escapeHtml(formatMoney(deduction.amount)) : ""}</td>
       </tr>
     `;
   }).join("");
 
-  const noteHtml = notes.map((line) => escapeHtml(line)).join("<br />");
+  const noteHtml = notes
+    .map((line) => escapeHtml(line))
+    .join("<br />");
+
+  const overtimeDetailRows = overtimeLines
+    .map((line) => {
+      const taxType =
+        getOvertimeTaxType(line) || "原設定";
+
+      return `
+        <tr>
+          <td>${escapeHtml(
+            getPayslipLineLabel(line, "earning"),
+          )}</td>
+          <td class="right">${escapeHtml(
+            `${formatHours(line.quantity)}${getUnitLabel(
+              line.unit,
+            )}`,
+          )}</td>
+          <td class="center">${escapeHtml(
+            taxType,
+          )}</td>
+          <td class="right">${escapeHtml(
+            formatMoney(line.amount),
+          )}</td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  const overtimeSectionHtml =
+    overtimeLines.length > 0
+      ? `
+        <tr>
+          <td colspan="4" class="section-title">
+            加班費所得稅判定
+          </td>
+        </tr>
+        <tr>
+          <td class="center">加班項目</td>
+          <td class="center">時數</td>
+          <td class="center">所得稅類型</td>
+          <td class="center">金額</td>
+        </tr>
+
+        ${overtimeDetailRows}
+
+        <tr>
+          <td>加班總計</td>
+          <td class="right">
+            ${escapeHtml(
+              formatHours(
+                overtimeSummary.total_hours,
+              ),
+            )} 小時
+          </td>
+          <td></td>
+          <td class="right">
+            ${escapeHtml(
+              formatMoney(
+                overtimeSummary.total_amount,
+              ),
+            )}
+          </td>
+        </tr>
+        <tr>
+          <td>免稅加班費</td>
+          <td class="right">
+            ${escapeHtml(
+              formatHours(
+                overtimeSummary.tax_free_hours,
+              ),
+            )} 小時
+          </td>
+          <td class="center">免稅</td>
+          <td class="right">
+            ${escapeHtml(
+              formatMoney(
+                overtimeSummary.tax_free_amount,
+              ),
+            )}
+          </td>
+        </tr>
+        <tr>
+          <td>應稅加班費</td>
+          <td class="right">
+            ${escapeHtml(
+              formatHours(
+                overtimeSummary.taxable_hours,
+              ),
+            )} 小時
+          </td>
+          <td class="center">應稅</td>
+          <td class="right">
+            ${escapeHtml(
+              formatMoney(
+                overtimeSummary.taxable_amount,
+              ),
+            )}
+          </td>
+        </tr>
+      `
+      : "";
 
   return `
     <html>
@@ -185,10 +420,14 @@ function buildPayslipExcelHtml(payroll) {
             <td>應扣合計</td>
             <td class="right">${escapeHtml(formatMoney(summary.total_deduction))}</td>
           </tr>
+          ${overtimeSectionHtml}
+
           <tr>
             <td colspan="2"></td>
             <td>實發金額</td>
-            <td class="right">${escapeHtml(formatMoney(summary.net_pay))}</td>
+            <td class="right">${escapeHtml(
+              formatMoney(summary.net_pay),
+            )}</td>
           </tr>
           <tr>
             <td colspan="2"></td>
@@ -578,6 +817,315 @@ function PayslipAmountRows({ items, sectionType = "earning" }) {
   );
 }
 
+function OvertimeTaxBreakdown({ payroll }) {
+  const overtimeLines = getOvertimeLines(payroll);
+  const summary = buildOvertimeTaxSummary(payroll);
+
+  if (overtimeLines.length === 0) {
+    return null;
+  }
+
+  const summaryCards = [
+    {
+      label: "加班總計",
+      hours: summary.total_hours,
+      amount: summary.total_amount,
+      color: "#334155",
+      background: "#f8fafc",
+      border: "#dbe2ea",
+    },
+    {
+      label: "免稅加班費",
+      hours: summary.tax_free_hours,
+      amount: summary.tax_free_amount,
+      color: "#15803d",
+      background: "#f2fbf5",
+      border: "#cce8d5",
+    },
+    {
+      label: "應稅加班費",
+      hours: summary.taxable_hours,
+      amount: summary.taxable_amount,
+      color: "#c2410c",
+      background: "#fff8f1",
+      border: "#fed7aa",
+    },
+  ];
+
+  return (
+    <SectionFrame title="加班費所得稅判定">
+      <Typography
+        sx={{
+          mb: "14px",
+          color: "#64748b",
+          fontSize: {
+            xs: "13px",
+            sm: "14px",
+          },
+          lineHeight: 1.6,
+        }}
+      >
+        顯示本期加班費依薪資設定拆分後的免稅及應稅結果。
+      </Typography>
+
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: {
+            xs: "repeat(2, minmax(0, 1fr))",
+            sm: "repeat(3, minmax(0, 1fr))",
+          },
+          gap: {
+            xs: "8px",
+            sm: "12px",
+          },
+          mb: "18px",
+        }}
+      >
+        {summaryCards.map((card, index) => (
+          <Box
+            key={card.label}
+            sx={{
+              gridColumn: {
+                xs: index === 2 ? "1 / -1" : "auto",
+                sm: "auto",
+              },
+              p: {
+                xs: "10px",
+                sm: "12px",
+              },
+              bgcolor: card.background,
+              border: `1px solid ${card.border}`,
+              borderRadius: "5px",
+            }}
+          >
+            <Typography
+              sx={{
+                color: card.color,
+                fontSize: {
+                  xs: "12px",
+                  sm: "13px",
+                },
+                fontWeight: 700,
+              }}
+            >
+              {card.label}
+            </Typography>
+
+            <Typography
+              sx={{
+                mt: "4px",
+                color: card.color,
+                fontSize: {
+                  xs: "14px",
+                  sm: "15px",
+                },
+                fontWeight: 700,
+              }}
+            >
+              {formatHours(card.hours)} 小時
+            </Typography>
+
+            <Typography
+              sx={{
+                mt: "2px",
+                color: card.color,
+                fontSize: {
+                  xs: "13px",
+                  sm: "14px",
+                },
+                fontWeight: 600,
+              }}
+            >
+              NT$ {formatMoney(card.amount)}
+            </Typography>
+          </Box>
+        ))}
+      </Box>
+
+      <Box
+        sx={{
+          border: "1px solid #dbe2ea",
+          borderRadius: "5px",
+          overflow: "hidden",
+        }}
+      >
+        {overtimeLines.map((line, index) => {
+          const taxType =
+            getOvertimeTaxType(line) || "原設定";
+          const isTaxFree = taxType === "免稅";
+          const isTaxable = taxType === "應稅";
+
+          return (
+            <Box
+              key={
+                line.result_line_id ||
+                `overtime-${index}`
+              }
+              sx={{
+                display: "grid",
+                gridTemplateColumns: {
+                  xs: "minmax(0, 1fr) auto",
+                  sm: "minmax(0, 1fr) 100px 80px 120px",
+                },
+                alignItems: "center",
+                gap: {
+                  xs: "6px 10px",
+                  sm: "12px",
+                },
+                px: {
+                  xs: "10px",
+                  sm: "14px",
+                },
+                py: "11px",
+                borderBottom:
+                  index < overtimeLines.length - 1
+                    ? "1px solid #edf0f3"
+                    : 0,
+              }}
+            >
+              <Box sx={{ minWidth: 0 }}>
+                <Typography
+                  sx={{
+                    color: "#334155",
+                    fontSize: {
+                      xs: "13px",
+                      sm: "14px",
+                    },
+                    fontWeight: 600,
+                    overflowWrap: "anywhere",
+                  }}
+                >
+                  {getPayslipLineLabel(
+                    line,
+                    "earning",
+                  )}
+                </Typography>
+
+                <Typography
+                  sx={{
+                    display: {
+                      xs: "block",
+                      sm: "none",
+                    },
+                    mt: "3px",
+                    color: "#64748b",
+                    fontSize: "11px",
+                  }}
+                >
+                  {formatHours(line.quantity)}
+                  {getUnitLabel(line.unit)}
+                </Typography>
+              </Box>
+
+              <Typography
+                sx={{
+                  display: {
+                    xs: "none",
+                    sm: "block",
+                  },
+                  color: "#64748b",
+                  fontSize: "13px",
+                  textAlign: "right",
+                }}
+              >
+                {formatHours(line.quantity)}
+                {getUnitLabel(line.unit)}
+              </Typography>
+
+              <Box
+                sx={{
+                  display: {
+                    xs: "none",
+                    sm: "flex",
+                  },
+                  justifyContent: "center",
+                }}
+              >
+                <Typography
+                  component="span"
+                  sx={{
+                    px: "8px",
+                    py: "2px",
+                    borderRadius: "10px",
+                    bgcolor: isTaxFree
+                      ? "#eaf8ef"
+                      : isTaxable
+                        ? "#fff3e8"
+                        : "#f1f5f9",
+                    color: isTaxFree
+                      ? "#15803d"
+                      : isTaxable
+                        ? "#c2410c"
+                        : "#64748b",
+                    fontSize: "11px",
+                    fontWeight: 700,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {taxType}
+                </Typography>
+              </Box>
+
+              <Box sx={{ textAlign: "right" }}>
+                <Typography
+                  component="span"
+                  sx={{
+                    display: {
+                      xs: "inline-block",
+                      sm: "none",
+                    },
+                    mr: "6px",
+                    px: "7px",
+                    py: "2px",
+                    borderRadius: "10px",
+                    bgcolor: isTaxFree
+                      ? "#eaf8ef"
+                      : isTaxable
+                        ? "#fff3e8"
+                        : "#f1f5f9",
+                    color: isTaxFree
+                      ? "#15803d"
+                      : isTaxable
+                        ? "#c2410c"
+                        : "#64748b",
+                    fontSize: "10px",
+                    fontWeight: 700,
+                  }}
+                >
+                  {taxType}
+                </Typography>
+
+                <Typography
+                  component="span"
+                  sx={{
+                    color: "#15803d",
+                    fontSize: {
+                      xs: "13px",
+                      sm: "14px",
+                    },
+                    fontWeight: 700,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  NT$ {formatMoney(line.amount)}
+                </Typography>
+              </Box>
+            </Box>
+          );
+        })}
+      </Box>
+
+      {summary.unclassified_hours > 0 ? (
+        <Alert severity="warning" sx={{ mt: "12px" }}>
+          有 {formatHours(summary.unclassified_hours)}{" "}
+          小時未指定加班費所得稅類型，將使用薪資項目的原始所得稅設定。
+        </Alert>
+      ) : null}
+    </SectionFrame>
+  );
+}
+
 function PayrollAmountSection({
   title,
   items,
@@ -962,6 +1510,8 @@ export default function PayrollDetail() {
           isMobile={isMobile}
           sectionType="earning"
         />
+
+        <OvertimeTaxBreakdown payroll={payroll} />
 
         <PayrollAmountSection
           title="應扣項目"
