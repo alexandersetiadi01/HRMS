@@ -3,13 +3,11 @@ import {
   Alert,
   Box,
   Button,
-  Checkbox,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   FormControl,
-  FormControlLabel,
   InputLabel,
   MenuItem,
   Select,
@@ -97,6 +95,28 @@ function getDefaultRunName(year, month, runType) {
   return `${year}年${month}月${runType}`;
 }
 
+function getPeriodYearMonth(
+  periodEnd,
+  fallbackYear,
+  fallbackMonth,
+) {
+  const match = String(periodEnd).match(
+    /^(\d{4})-(\d{2})-\d{2}$/,
+  );
+
+  if (!match) {
+    return {
+      year: Number(fallbackYear),
+      month: Number(fallbackMonth),
+    };
+  }
+
+  return {
+    year: Number(match[1]),
+    month: Number(match[2]),
+  };
+}
+
 export default function CreatePayrollDialog({
   open,
   onClose,
@@ -121,8 +141,6 @@ export default function CreatePayrollDialog({
   const [payDate, setPayDate] = useState("");
   const [notificationAt, setNotificationAt] =
     useState("");
-  const [includeIncomeTax, setIncludeIncomeTax] =
-    useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -183,7 +201,6 @@ export default function CreatePayrollDialog({
     setPeriodEnd(dates.periodEnd);
     setPayDate(dates.payDate);
     setNotificationAt("");
-    setIncludeIncomeTax(false);
     setSubmitting(false);
     setError("");
   }, [
@@ -280,13 +297,20 @@ export default function CreatePayrollDialog({
     setError("");
 
     try {
+      const payrollPeriod =
+        getPeriodYearMonth(
+          periodEnd,
+          year,
+          month,
+        );
+
       let payrollPeriodId =
         existingPeriod?.payroll_period_id;
 
       const periodPayload = {
         payroll_range_id: Number(rangeId),
-        year,
-        month,
+        year: payrollPeriod.year,
+        month: payrollPeriod.month,
         period_start: periodStart,
         period_end: periodEnd,
         pay_date: payDate || null,
@@ -324,9 +348,6 @@ export default function CreatePayrollDialog({
         actual_pay_date: payDate || null,
         notification_at:
           toBackendDateTime(notificationAt),
-        include_income_tax: includeIncomeTax
-          ? 1
-          : 0,
         status: "草稿",
       });
 
@@ -341,8 +362,8 @@ export default function CreatePayrollDialog({
           createdRun.payroll_run_id,
         payrollPeriodId,
         payrollRangeId: Number(rangeId),
-        year,
-        month,
+        year: payrollPeriod.year,
+        month: payrollPeriod.month,
       });
     } catch (submitError) {
       setError(
@@ -556,32 +577,12 @@ export default function CreatePayrollDialog({
             sx={{ gridColumn: "1 / -1" }}
           />
 
-          <Box sx={{ gridColumn: "1 / -1" }}>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={includeIncomeTax}
-                  onChange={(event) =>
-                    setIncludeIncomeTax(
-                      event.target.checked,
-                    )
-                  }
-                />
-              }
-              label="包含所得稅扣繳"
-            />
-
-            <Typography
-              sx={{
-                ml: "32px",
-                color: "#7b8794",
-                fontSize: "12px",
-                lineHeight: 1.5,
-              }}
-            >
-              啟用後，薪資計算會依員工稅務設定產生所得稅扣項。
-            </Typography>
-          </Box>
+          <Alert
+            severity="info"
+            sx={{ gridColumn: "1 / -1" }}
+          >
+            所得稅扣繳將依每位員工在計薪期間生效的稅務設定自動計算。
+          </Alert>
 
           {selectedRange?.holiday_pay_date_rule ? (
             <Typography

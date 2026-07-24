@@ -47,6 +47,28 @@ function formatDateTime(value) {
   return String(value).replaceAll("-", "/");
 }
 
+function getPayrollPeriodIdentity(run) {
+  const periodEnd = String(
+    run?.period_end || "",
+  ).split(" ")[0];
+
+  const match = periodEnd.match(
+    /^(\d{4})-(\d{2})-\d{2}$/,
+  );
+
+  if (match) {
+    return {
+      year: Number(match[1]),
+      month: Number(match[2]),
+    };
+  }
+
+  return {
+    year: Number(run?.year),
+    month: Number(run?.month),
+  };
+}
+
 function getRunStage(run) {
   const status = String(run?.status || "");
 
@@ -227,7 +249,10 @@ function PayrollStageBar({
 
 function PayrollRunCard({ run, onReload }) {
   const progressStage = getRunStage(run);
-  const [selectedStage, setSelectedStage] = useState(progressStage);
+  const payrollPeriod =
+    getPayrollPeriodIdentity(run);
+  const [selectedStage, setSelectedStage] =
+    useState(progressStage);
   const statusColor = getStatusColor(progressStage);
 
   const finalStageCompleted =
@@ -236,7 +261,9 @@ function PayrollRunCard({ run, onReload }) {
 
   const title =
     run.run_name ||
-    `${run.year || "--"} 年 ${run.month || "--"} 月薪資`;
+    `${payrollPeriod.year || "--"} 年 ${
+      payrollPeriod.month || "--"
+    } 月薪資`;
 
   return (
     <Box
@@ -386,11 +413,7 @@ function PayrollRunCard({ run, onReload }) {
 
           <SummaryItem
             label="所得稅計算"
-            value={
-              Number(run.include_income_tax) === 1
-                ? "包含"
-                : "不包含"
-            }
+            value="依員工稅務設定"
           />
 
           <SummaryItem
@@ -479,7 +502,9 @@ export default function PayrollManagement() {
     });
 
     runs.forEach((run) => {
-      values.add(Number(run.year));
+      values.add(
+        getPayrollPeriodIdentity(run).year,
+      );
     });
 
     return [...values]
@@ -489,14 +514,26 @@ export default function PayrollManagement() {
 
   const filteredRuns = useMemo(() => {
     return runs.filter((run) => {
-      const matchesYear = String(run.year) === year;
+      const payrollPeriod =
+        getPayrollPeriodIdentity(run);
 
-      const matchesMonth = String(Number(run.month)) === String(Number(month));
+      const matchesYear =
+        String(payrollPeriod.year) === year;
+
+      const matchesMonth =
+        String(payrollPeriod.month) ===
+        String(Number(month));
 
       const matchesRange =
-        rangeId === "all" || String(run.payroll_range_id) === rangeId;
+        rangeId === "all" ||
+        String(run.payroll_range_id) ===
+          rangeId;
 
-      return matchesYear && matchesMonth && matchesRange;
+      return (
+        matchesYear &&
+        matchesMonth &&
+        matchesRange
+      );
     });
   }, [month, rangeId, runs, year]);
 

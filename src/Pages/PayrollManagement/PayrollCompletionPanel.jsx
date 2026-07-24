@@ -10,6 +10,10 @@ import {
   Button,
   Chip,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Divider,
   Typography,
 } from "@mui/material";
@@ -407,6 +411,8 @@ export default function PayrollCompletionPanel({
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [closing, setClosing] = useState(false);
+  const [closeDialogOpen, setCloseDialogOpen] =
+    useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
@@ -487,12 +493,7 @@ export default function PayrollCompletionPanel({
     Boolean(data?.notification_at);
 
   async function handleClose() {
-    const confirmed = window.confirm(
-      "確定要完成關帳嗎？關帳後薪資結果將被鎖定，無法再重新計算或修改。",
-    );
-
-    if (!confirmed) return;
-
+    setCloseDialogOpen(false);
     setClosing(true);
     setError("");
     setMessage("");
@@ -825,7 +826,7 @@ export default function PayrollCompletionPanel({
                   <TaskAltIcon />
                 )
               }
-              onClick={handleClose}
+              onClick={() => setCloseDialogOpen(true)}
               disabled={!canClose || closing}
               sx={{
                 width: {
@@ -851,6 +852,110 @@ export default function PayrollCompletionPanel({
           </Box>
         </>
       ) : null}
+
+      <Dialog
+        open={closeDialogOpen}
+        onClose={
+          closing
+            ? undefined
+            : () => setCloseDialogOpen(false)
+        }
+        fullWidth
+        maxWidth="xs"
+        PaperProps={{
+          sx: {
+            width: {
+              xs: "calc(100% - 24px)",
+              sm: "100%",
+            },
+            m: {
+              xs: "12px",
+              sm: "32px",
+            },
+            borderRadius: "6px",
+          },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            px: {
+              xs: "16px",
+              sm: "22px",
+            },
+            py: "16px",
+            borderBottom: "1px solid #e5e7eb",
+            color: "#1f2937",
+            fontSize: {
+              xs: "18px",
+              sm: "20px",
+            },
+            fontWeight: 700,
+          }}
+        >
+          確認完成關帳
+        </DialogTitle>
+
+        <DialogContent
+          sx={{
+            px: {
+              xs: "16px",
+              sm: "22px",
+            },
+            py: "20px !important",
+          }}
+        >
+          <Alert severity="warning">
+            確定要完成關帳嗎？關帳後薪資結果將被鎖定，無法再重新計算或修改。
+          </Alert>
+        </DialogContent>
+
+        <DialogActions
+          sx={{
+            px: {
+              xs: "16px",
+              sm: "22px",
+            },
+            py: "14px",
+            borderTop: "1px solid #e5e7eb",
+          }}
+        >
+          <Button
+            variant="outlined"
+            onClick={() => setCloseDialogOpen(false)}
+            disabled={closing}
+            sx={{
+              color: "#475569",
+              borderColor: "#cbd5e1",
+            }}
+          >
+            取消
+          </Button>
+
+          <Button
+            variant="contained"
+            onClick={handleClose}
+            disabled={closing}
+            startIcon={
+              closing ? (
+                <CircularProgress
+                  size={17}
+                  color="inherit"
+                />
+              ) : (
+                <TaskAltIcon />
+              )
+            }
+            sx={{
+              bgcolor: "#1f9bd1",
+              "&:hover": {
+                bgcolor: "#168dc5",
+              },
+            }}
+          >
+            {closing ? "關帳中..." : "確認關帳"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

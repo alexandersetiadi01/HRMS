@@ -74,6 +74,151 @@ function formatDateTime(value) {
   }).format(date);
 }
 
+function getWithholdingMethodLabel(result) {
+  const deductions = Array.isArray(result?.deductions)
+    ? result.deductions
+    : [];
+
+  const withholdingLine = deductions.find(
+    (line) =>
+      String(line?.source_type || "") ===
+      "tax_profile",
+  );
+
+  return (
+    String(
+      withholdingLine?.description || "",
+    ).trim() || "依員工稅務設定"
+  );
+}
+
+function getCalculationErrorEmployee(
+  item,
+  data,
+) {
+  const employeeId = Number(item?.employee_id || 0);
+
+  const employees = [
+    ...(Array.isArray(data?.results)
+      ? data.results
+      : []),
+    ...(Array.isArray(data?.missing_employees)
+      ? data.missing_employees
+      : []),
+  ];
+
+  return employees.find(
+    (employee) =>
+      Number(employee?.employee_id || 0) ===
+      employeeId,
+  );
+}
+
+function getCalculationErrorAmounts(item) {
+  const errorData =
+    item?.data &&
+    typeof item.data === "object" &&
+    !Array.isArray(item.data)
+      ? item.data
+      : {};
+
+  return [
+    ["應發總額", errorData.gross_pay],
+    ["扣款總額", errorData.total_deduction],
+    ["實發金額", errorData.net_pay],
+    ["應稅所得", errorData.taxable_income],
+  ].filter(([, value]) => {
+    return value !== undefined && value !== null;
+  });
+}
+
+function CalculationErrorItem({
+  item,
+  data,
+  index,
+}) {
+  const employee = getCalculationErrorEmployee(
+    item,
+    data,
+  );
+
+  const employeeName =
+    employee?.display_name ||
+    employee?.english_name ||
+    `員工 #${item.employee_id || "--"}`;
+
+  const amountItems =
+    getCalculationErrorAmounts(item);
+
+  return (
+    <Box
+      component="li"
+      key={`${
+        item.employee_id || "employee"
+      }-${index}`}
+      sx={{ mb: "8px" }}
+    >
+      <Typography
+        sx={{
+          fontSize: "12px",
+          fontWeight: 700,
+        }}
+      >
+        {employeeName}
+        {employee?.employee_no
+          ? `（${employee.employee_no}）`
+          : ""}
+      </Typography>
+
+      <Typography
+        sx={{
+          mt: "2px",
+          fontSize: "12px",
+          lineHeight: 1.55,
+        }}
+      >
+        {item.message || "計算失敗"}
+      </Typography>
+
+      {item.code ? (
+        <Typography
+          sx={{
+            mt: "2px",
+            color: "#7b8794",
+            fontSize: "11px",
+          }}
+        >
+          錯誤代碼：{item.code}
+        </Typography>
+      ) : null}
+
+      {amountItems.length > 0 ? (
+        <Box
+          sx={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "4px 12px",
+            mt: "3px",
+          }}
+        >
+          {amountItems.map(([label, value]) => (
+            <Typography
+              key={label}
+              sx={{
+                color: "#7b8794",
+                fontSize: "11px",
+              }}
+            >
+              {label}：NT${" "}
+              {formatSignedNumber(value)}
+            </Typography>
+          ))}
+        </Box>
+      ) : null}
+    </Box>
+  );
+}
+
 function getAllowanceModeLabel(value) {
   if (value === "quarterly_138") {
     return "每月上限＋季度 138 小時";
@@ -594,6 +739,9 @@ function EmployeeResultCard({ result }) {
   const overtimeAudit =
     result.overtime_tax_audit || null;
 
+  const withholdingMethod =
+    getWithholdingMethodLabel(result);
+
   return (
     <Box
       sx={{
@@ -684,7 +832,7 @@ function EmployeeResultCard({ result }) {
             display: "grid",
             gridTemplateColumns: {
               xs: "repeat(2, minmax(0, 1fr))",
-              sm: "repeat(3, minmax(0, 1fr))",
+              sm: "repeat(4, minmax(0, 1fr))",
             },
             gap: "10px",
             mt: "14px",
@@ -754,6 +902,41 @@ function EmployeeResultCard({ result }) {
             >
               NT${" "}
               {formatSignedNumber(result.net_pay)}
+            </Typography>
+          </Box>
+
+          <Box>
+            <Typography
+              sx={{
+                color: "#94a3b8",
+                fontSize: "11px",
+              }}
+            >
+              所得稅扣繳
+            </Typography>
+
+            <Typography
+              sx={{
+                mt: "3px",
+                color: "#c2410c",
+                fontSize: "14px",
+                fontWeight: 700,
+              }}
+            >
+              NT${" "}
+              {formatNumber(result.withholding_tax)}
+            </Typography>
+
+            <Typography
+              sx={{
+                mt: "2px",
+                color: "#64748b",
+                fontSize: "11px",
+                lineHeight: 1.45,
+                overflowWrap: "anywhere",
+              }}
+            >
+              {withholdingMethod}
             </Typography>
           </Box>
         </Box>
@@ -1287,8 +1470,19 @@ export default function PayrollCalculationPanel({
   }, [loadResults]);
 
   async function handleRecalculate() {
+    const employeeIds = (data?.results || [])
+      .map((item) => Number(item.employee_id))
+      .filter((employeeId) => employeeId > 0);
+
+    if (employeeIds.length === 0) {
+      setError(
+        "此薪資批次目前沒有可重新計算的已選員工。",
+      );
+      return;
+    }
+
     const confirmed = window.confirm(
-      "確定要重新計算此薪資批次嗎？目前的計算結果將被更新。",
+      `確定要重新計算此薪資批次嗎？系統將重新計算 ${employeeIds.length} 位已選員工，目前的計算結果將被更新。`,
     );
 
     if (!confirmed) return;
@@ -1301,6 +1495,7 @@ export default function PayrollCalculationPanel({
     try {
       const result = await calculatePayrollRun(
         payrollRunId,
+        employeeIds,
       );
 
       const calculatedCount = Number(
@@ -1472,22 +1667,15 @@ export default function PayrollCalculationPanel({
           >
             {calculationErrors.map(
               (item, index) => (
-                <Box
-                  component="li"
+                <CalculationErrorItem
                   key={`${
                     item.employee_id ||
                     "employee"
                   }-${index}`}
-                  sx={{ mb: "4px" }}
-                >
-                  <Typography
-                    sx={{ fontSize: "12px" }}
-                  >
-                    員工 #
-                    {item.employee_id || "--"}：
-                    {item.message || "計算失敗"}
-                  </Typography>
-                </Box>
+                  item={item}
+                  data={data}
+                  index={index}
+                />
               ),
             )}
           </Box>
@@ -1582,6 +1770,17 @@ export default function PayrollCalculationPanel({
                 color: "#15803d",
               }}
             />
+
+            {calculationErrors.length > 0 ? (
+              <Chip
+                size="small"
+                label={`計算失敗 ${calculationErrors.length} 人`}
+                sx={{
+                  bgcolor: "#feecec",
+                  color: "#c62828",
+                }}
+              />
+            ) : null}
           </Box>
 
           {missingEmployees.length > 0 ? (

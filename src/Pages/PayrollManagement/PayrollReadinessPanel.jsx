@@ -7,6 +7,7 @@ import {
   Alert,
   Box,
   Button,
+  Checkbox,
   Chip,
   CircularProgress,
   Collapse,
@@ -37,6 +38,52 @@ function formatNumber(value) {
   return new Intl.NumberFormat("zh-TW", {
     maximumFractionDigits: 0,
   }).format(Number(value || 0));
+}
+
+function isEmployeeSelectable(employee) {
+  if (
+    Object.prototype.hasOwnProperty.call(
+      employee,
+      "can_select",
+    )
+  ) {
+    return Boolean(employee.can_select);
+  }
+
+  return Boolean(employee.is_ready);
+}
+
+function getEmployeeMessages(
+  employee,
+  primaryKey,
+  fallbackKey,
+) {
+  if (Array.isArray(employee?.[primaryKey])) {
+    return employee[primaryKey];
+  }
+
+  if (Array.isArray(employee?.[fallbackKey])) {
+    return employee[fallbackKey];
+  }
+
+  return [];
+}
+
+function getTaxMethodLabel(employee) {
+  const method =
+    String(employee.withholding_method || "").trim() ||
+    "未設定";
+
+  const profile = [
+    employee.taxpayer_type,
+    employee.residency_status,
+  ]
+    .filter(Boolean)
+    .join("／");
+
+  return profile
+    ? `所得稅：${method}（${profile}）`
+    : `所得稅：${method}`;
 }
 
 function ReadinessSummaryCard({
@@ -122,11 +169,30 @@ function ReadinessStatus({
   );
 }
 
-function EmployeeReadinessRow({ employee }) {
+function EmployeeReadinessRow({
+  employee,
+  selected,
+  onToggle,
+}) {
   const employeeName =
+    employee.employee_name ||
     employee.display_name ||
     employee.english_name ||
     `員工 #${employee.employee_id}`;
+
+  const canSelect = isEmployeeSelectable(employee);
+
+  const blockingMessages = getEmployeeMessages(
+    employee,
+    "blocking_messages",
+    "blocking_issues",
+  );
+
+  const warningMessages = getEmployeeMessages(
+    employee,
+    "warning_messages",
+    "warnings",
+  );
 
   return (
     <Box
@@ -137,7 +203,7 @@ function EmployeeReadinessRow({ employee }) {
         },
         border: "1px solid #e5e7eb",
         borderRadius: "5px",
-        bgcolor: employee.is_ready
+        bgcolor: canSelect
           ? "#ffffff"
           : "#fffafa",
       }}
@@ -157,49 +223,79 @@ function EmployeeReadinessRow({ employee }) {
           gap: "10px",
         }}
       >
-        <Box sx={{ minWidth: 0 }}>
-          <Typography
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "flex-start",
+            gap: "8px",
+            minWidth: 0,
+          }}
+        >
+          <Checkbox
+            checked={selected}
+            disabled={!canSelect}
+            onChange={() =>
+              onToggle(employee.employee_id)
+            }
+            inputProps={{
+              "aria-label": `選擇 ${employeeName}`,
+            }}
             sx={{
-              color: "#1f2937",
-              fontSize: {
-                xs: "14px",
-                sm: "15px",
+              p: "2px",
+              mt: "-1px",
+              color: "#94a3b8",
+              "&.Mui-checked": {
+                color: "#1f9bd1",
               },
-              fontWeight: 700,
-              overflowWrap: "anywhere",
             }}
-          >
-            {employeeName}
-          </Typography>
+          />
 
-          <Typography
-            sx={{
-              mt: "2px",
-              color: "#7b8794",
-              fontSize: "12px",
-            }}
-          >
-            員工編號：
-            {employee.employee_no || "--"}
-          </Typography>
+          <Box sx={{ minWidth: 0 }}>
+            <Typography
+              sx={{
+                color: "#1f2937",
+                fontSize: {
+                  xs: "14px",
+                  sm: "15px",
+                },
+                fontWeight: 700,
+                overflowWrap: "anywhere",
+              }}
+            >
+              {employeeName}
+            </Typography>
+
+            <Typography
+              sx={{
+                mt: "2px",
+                color: "#7b8794",
+                fontSize: "12px",
+              }}
+            >
+              員工編號：
+              {employee.employee_no || "--"}
+            </Typography>
+          </Box>
         </Box>
 
         <Chip
           label={
-            employee.is_ready
-              ? "可以計算"
-              : "需要處理"
+            canSelect
+              ? selected
+                ? "已選取"
+                : "可以選取"
+              : "不可選取"
           }
           size="small"
           sx={{
             flexShrink: 0,
-            bgcolor: employee.is_ready
+            bgcolor: canSelect
               ? "#eaf8ef"
               : "#feecec",
-            color: employee.is_ready
+            color: canSelect
               ? "#15803d"
               : "#c62828",
-            border: employee.is_ready
+            border: canSelect
               ? "1px solid #b9e5c8"
               : "1px solid #f2b8b5",
             fontWeight: 700,
@@ -222,15 +318,27 @@ function EmployeeReadinessRow({ employee }) {
         />
 
         <ReadinessStatus
-          ready={employee.insurance_ready}
-          readyLabel="保險級距已設定"
-          missingLabel="保險級距未設定"
+          ready={employee.shift_ready}
+          readyLabel={`班別 ${employee.schedule_count || 0} 筆`}
+          missingLabel="尚未設定班別"
         />
 
         <ReadinessStatus
           ready={employee.attendance_ready}
           readyLabel={`出勤 ${employee.attendance_count || 0} 筆`}
           missingLabel="尚無出勤紀錄"
+        />
+
+        <ReadinessStatus
+          ready={employee.insurance_ready}
+          readyLabel="保險級距已設定"
+          missingLabel="保險級距未設定"
+        />
+
+        <ReadinessStatus
+          ready={employee.tax_ready}
+          readyLabel={getTaxMethodLabel(employee)}
+          missingLabel="員工稅務設定未完成"
         />
 
         <Chip
@@ -257,8 +365,7 @@ function EmployeeReadinessRow({ employee }) {
         本薪：NT$ {formatNumber(employee.base_salary)}
       </Typography>
 
-      {Array.isArray(employee.blocking_issues) &&
-      employee.blocking_issues.length > 0 ? (
+      {blockingMessages.length > 0 ? (
         <Box
           sx={{
             display: "grid",
@@ -266,7 +373,7 @@ function EmployeeReadinessRow({ employee }) {
             mt: "10px",
           }}
         >
-          {employee.blocking_issues.map(
+          {blockingMessages.map(
             (message, index) => (
               <Typography
                 key={`${message}-${index}`}
@@ -283,8 +390,7 @@ function EmployeeReadinessRow({ employee }) {
         </Box>
       ) : null}
 
-      {Array.isArray(employee.warnings) &&
-      employee.warnings.length > 0 ? (
+      {warningMessages.length > 0 ? (
         <Box
           sx={{
             display: "grid",
@@ -292,7 +398,7 @@ function EmployeeReadinessRow({ employee }) {
             mt: "8px",
           }}
         >
-          {employee.warnings.map(
+          {warningMessages.map(
             (message, index) => (
               <Typography
                 key={`${message}-${index}`}
@@ -319,13 +425,22 @@ export default function PayrollReadinessPanel({
   const [expanded, setExpanded] = useState(false);
   const [readiness, setReadiness] = useState(null);
   const [loading, setLoading] = useState(false);
+
   const [calculating, setCalculating] =
     useState(false);
+
   const [error, setError] = useState("");
+
   const [resultMessage, setResultMessage] =
     useState("");
+
   const [resultSeverity, setResultSeverity] =
     useState("success");
+
+  const [
+    selectedEmployeeIds,
+    setSelectedEmployeeIds,
+  ] = useState([]);
 
   const loadReadiness = useCallback(async () => {
     if (!payrollRunId) return;
@@ -338,13 +453,41 @@ export default function PayrollReadinessPanel({
         payrollRunId,
       );
 
+      const normalizedEmployees = Array.isArray(
+        data?.employees,
+      )
+        ? data.employees
+        : [];
+
       setReadiness({
         ...data,
         summary: data?.summary || {},
-        employees: Array.isArray(data?.employees)
-          ? data.employees
-          : [],
+        employees: normalizedEmployees,
       });
+
+      const selectableIds = normalizedEmployees
+        .filter(isEmployeeSelectable)
+        .map((employee) =>
+          Number(employee.employee_id),
+        )
+        .filter((employeeId) => employeeId > 0);
+
+      const savedSelectedIds = normalizedEmployees
+        .filter(
+          (employee) =>
+            isEmployeeSelectable(employee) &&
+            Boolean(employee.is_selected),
+        )
+        .map((employee) =>
+          Number(employee.employee_id),
+        )
+        .filter((employeeId) => employeeId > 0);
+
+      setSelectedEmployeeIds(
+        savedSelectedIds.length > 0
+          ? savedSelectedIds
+          : selectableIds,
+      );
     } catch (loadError) {
       setError(
         getErrorMessage(
@@ -362,6 +505,7 @@ export default function PayrollReadinessPanel({
     setReadiness(null);
     setError("");
     setResultMessage("");
+    setSelectedEmployeeIds([]);
   }, [payrollRunId]);
 
   useEffect(() => {
@@ -381,21 +525,61 @@ export default function PayrollReadinessPanel({
   const employeeCount = Number(
     summary.employee_count || 0,
   );
-  const needsAttentionCount = Number(
-    summary.needs_attention_count || 0,
+
+  const selectableEmployees = employees.filter(
+    isEmployeeSelectable,
   );
 
+  const blockedEmployees = employees.filter(
+    (employee) => !isEmployeeSelectable(employee),
+  );
+
+  const selectableEmployeeIds =
+    selectableEmployees.map((employee) =>
+      Number(employee.employee_id),
+    );
+
+  const selectedCount = selectedEmployeeIds.length;
+
+  const allSelectableSelected =
+    selectableEmployeeIds.length > 0 &&
+    selectableEmployeeIds.every((employeeId) =>
+      selectedEmployeeIds.includes(employeeId),
+    );
+
+  const someSelectableSelected =
+    selectedCount > 0 && !allSelectableSelected;
+
   const canCalculate =
-    employeeCount > 0 &&
-    needsAttentionCount === 0 &&
+    selectedCount > 0 &&
     !loading &&
     !calculating;
+
+  function handleToggleEmployee(employeeId) {
+    const normalizedId = Number(employeeId);
+
+    if (normalizedId <= 0) return;
+
+    setSelectedEmployeeIds((current) => {
+      return current.includes(normalizedId)
+        ? current.filter((id) => id !== normalizedId)
+        : [...current, normalizedId];
+    });
+  }
+
+  function handleToggleAll() {
+    setSelectedEmployeeIds(
+      allSelectableSelected
+        ? []
+        : selectableEmployeeIds,
+    );
+  }
 
   async function handleCalculate() {
     if (!canCalculate) return;
 
     const confirmed = window.confirm(
-      `確定要計算此薪資批次嗎？系統將計算 ${employeeCount} 位員工的薪資。`,
+      `確定要計算此薪資批次嗎？系統將計算 ${selectedCount} 位已選員工的薪資。`,
     );
 
     if (!confirmed) return;
@@ -407,11 +591,13 @@ export default function PayrollReadinessPanel({
     try {
       const result = await calculatePayrollRun(
         payrollRunId,
+        selectedEmployeeIds,
       );
 
       const calculatedCount = Number(
         result?.calculated_count || 0,
       );
+
       const calculationErrors = Array.isArray(
         result?.errors,
       )
@@ -454,7 +640,9 @@ export default function PayrollReadinessPanel({
       <Button
         variant="outlined"
         fullWidth
-        onClick={() => setExpanded((value) => !value)}
+        onClick={() =>
+          setExpanded((value) => !value)
+        }
         endIcon={
           expanded ? (
             <ExpandLessIcon />
@@ -533,24 +721,25 @@ export default function PayrollReadinessPanel({
                 />
 
                 <ReadinessSummaryCard
-                  label="可以計算"
-                  value={summary.ready_count}
+                  label="符合選取資格"
+                  value={
+                    summary.eligible_count ??
+                    selectableEmployees.length
+                  }
                   color="#15803d"
                   background="#f2fbf5"
                 />
 
                 <ReadinessSummaryCard
-                  label="需要處理"
-                  value={
-                    summary.needs_attention_count
-                  }
+                  label="不可選取"
+                  value={blockedEmployees.length}
                   color="#c62828"
                   background="#fff7f7"
                 />
 
                 <ReadinessSummaryCard
-                  label="手動加扣項"
-                  value={summary.extra_item_count}
+                  label="本次已選取"
+                  value={selectedCount}
                   color="#168dc5"
                   background="#f2fbff"
                 />
@@ -562,6 +751,7 @@ export default function PayrollReadinessPanel({
                   gridTemplateColumns: {
                     xs: "repeat(2, minmax(0, 1fr))",
                     sm: "repeat(3, minmax(0, 1fr))",
+                    md: "repeat(5, minmax(0, 1fr))",
                   },
                   gap: "8px",
                   mt: "10px",
@@ -580,11 +770,11 @@ export default function PayrollReadinessPanel({
                 <ReadinessStatus
                   ready={
                     Number(
-                      summary.insurance_ready_count,
+                      summary.shift_ready_count,
                     ) === employeeCount
                   }
-                  readyLabel={`保險級距 ${summary.insurance_ready_count || 0}/${employeeCount}`}
-                  missingLabel={`保險級距 ${summary.insurance_ready_count || 0}/${employeeCount}`}
+                  readyLabel={`班別設定 ${summary.shift_ready_count || 0}/${employeeCount}`}
+                  missingLabel={`班別設定 ${summary.shift_ready_count || 0}/${employeeCount}`}
                 />
 
                 <ReadinessStatus
@@ -596,6 +786,26 @@ export default function PayrollReadinessPanel({
                   readyLabel={`出勤紀錄 ${summary.attendance_ready_count || 0}/${employeeCount}`}
                   missingLabel={`出勤紀錄 ${summary.attendance_ready_count || 0}/${employeeCount}`}
                 />
+
+                <ReadinessStatus
+                  ready={
+                    Number(
+                      summary.insurance_ready_count,
+                    ) === employeeCount
+                  }
+                  readyLabel={`保險級距 ${summary.insurance_ready_count || 0}/${employeeCount}`}
+                  missingLabel={`保險級距 ${summary.insurance_ready_count || 0}/${employeeCount}`}
+                />
+
+                <ReadinessStatus
+                  ready={
+                    Number(
+                      summary.tax_ready_count,
+                    ) === employeeCount
+                  }
+                  readyLabel={`稅務設定 ${summary.tax_ready_count || 0}/${employeeCount}`}
+                  missingLabel={`稅務設定 ${summary.tax_ready_count || 0}/${employeeCount}`}
+                />
               </Box>
 
               {employeeCount === 0 ? (
@@ -605,46 +815,96 @@ export default function PayrollReadinessPanel({
                 >
                   此薪資範圍目前沒有可計算的員工。請先確認員工的薪資範圍與薪資設定。
                 </Alert>
-              ) : needsAttentionCount > 0 ? (
+              ) : selectableEmployees.length === 0 ? (
                 <Alert
                   severity="error"
                   sx={{ mt: "14px" }}
                 >
-                  尚有 {needsAttentionCount} 位員工存在阻擋問題。完成薪資與保險設定後，重新整理資料才能開始計算。
+                  此計薪期間目前沒有符合計薪資格的員工。請先完成薪資、班別、出勤、保險及稅務設定。
                 </Alert>
-              ) : Number(
-                  summary.attendance_ready_count,
-                ) < employeeCount ? (
+              ) : blockedEmployees.length > 0 ? (
                 <Alert
                   severity="warning"
                   sx={{ mt: "14px" }}
                 >
-                  部分員工尚無出勤紀錄。這不會阻止計算，但可能影響缺勤、請假與加班金額。
+                  有 {blockedEmployees.length} 位員工不可選取；其阻擋原因顯示於下方。您仍可計算其他符合資格且已選取的員工。
                 </Alert>
               ) : (
                 <Alert
                   severity="success"
                   sx={{ mt: "14px" }}
                 >
-                  所有員工的必要薪資資料均已完成，可以開始計算。
+                  所有候選員工均符合資格。請確認本次要計算的員工。
                 </Alert>
               )}
 
               <Divider sx={{ my: "16px" }} />
 
-              <Typography
+              <Box
                 sx={{
-                  mb: "10px",
-                  color: "#334155",
-                  fontSize: {
-                    xs: "14px",
-                    sm: "15px",
+                  display: "flex",
+                  alignItems: {
+                    xs: "flex-start",
+                    sm: "center",
                   },
-                  fontWeight: 700,
+                  justifyContent: "space-between",
+                  flexDirection: {
+                    xs: "column",
+                    sm: "row",
+                  },
+                  gap: "8px",
+                  mb: "10px",
                 }}
               >
-                員工確認結果
-              </Typography>
+                <Typography
+                  sx={{
+                    color: "#334155",
+                    fontSize: {
+                      xs: "14px",
+                      sm: "15px",
+                    },
+                    fontWeight: 700,
+                  }}
+                >
+                  可選擇員工（已選 {selectedCount}／
+                  {selectableEmployees.length}）
+                </Typography>
+
+                <Box
+                  component="label"
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    color: "#475569",
+                    fontSize: "13px",
+                    cursor:
+                      selectableEmployees.length > 0
+                        ? "pointer"
+                        : "default",
+                  }}
+                >
+                  <Checkbox
+                    checked={allSelectableSelected}
+                    indeterminate={someSelectableSelected}
+                    onChange={handleToggleAll}
+                    disabled={
+                      selectableEmployees.length === 0
+                    }
+                    size="small"
+                    sx={{
+                      color: "#94a3b8",
+                      "&.Mui-checked": {
+                        color: "#1f9bd1",
+                      },
+                      "&.MuiCheckbox-indeterminate": {
+                        color: "#1f9bd1",
+                      },
+                    }}
+                  />
+
+                  全選符合資格員工
+                </Box>
+              </Box>
 
               <Box
                 sx={{
@@ -652,13 +912,59 @@ export default function PayrollReadinessPanel({
                   gap: "10px",
                 }}
               >
-                {employees.map((employee) => (
-                  <EmployeeReadinessRow
-                    key={employee.employee_id}
-                    employee={employee}
-                  />
-                ))}
+                {selectableEmployees.map(
+                  (employee) => (
+                    <EmployeeReadinessRow
+                      key={employee.employee_id}
+                      employee={employee}
+                      selected={selectedEmployeeIds.includes(
+                        Number(employee.employee_id),
+                      )}
+                      onToggle={
+                        handleToggleEmployee
+                      }
+                    />
+                  ),
+                )}
               </Box>
+
+              {blockedEmployees.length > 0 ? (
+                <>
+                  <Typography
+                    sx={{
+                      mt: "18px",
+                      mb: "10px",
+                      color: "#c62828",
+                      fontSize: {
+                        xs: "14px",
+                        sm: "15px",
+                      },
+                      fontWeight: 700,
+                    }}
+                  >
+                    不可選擇員工（
+                    {blockedEmployees.length}）
+                  </Typography>
+
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gap: "10px",
+                    }}
+                  >
+                    {blockedEmployees.map(
+                      (employee) => (
+                        <EmployeeReadinessRow
+                          key={employee.employee_id}
+                          employee={employee}
+                          selected={false}
+                          onToggle={() => {}}
+                        />
+                      ),
+                    )}
+                  </Box>
+                </>
+              ) : null}
 
               <Box
                 sx={{
@@ -708,7 +1014,7 @@ export default function PayrollReadinessPanel({
                 >
                   {calculating
                     ? "計算中..."
-                    : "開始薪資計算"}
+                    : `計算已選員工（${selectedCount}）`}
                 </Button>
               </Box>
             </>

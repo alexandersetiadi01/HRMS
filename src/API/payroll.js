@@ -254,15 +254,14 @@ export async function closePayrollRun(
 
 export async function calculatePayrollRun(
   payrollRunId,
-  employeeId = null,
+  employeeIds,
 ) {
   const response = await http.post(
     `/payroll-runs/${payrollRunId}/calculate`,
-    null,
     {
-      params: buildParams({
-        employee_id: employeeId,
-      }),
+      employee_ids: Array.isArray(employeeIds)
+        ? employeeIds.map(Number)
+        : [],
     },
   );
 
