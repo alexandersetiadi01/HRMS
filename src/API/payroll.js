@@ -400,6 +400,50 @@ export async function updatePayrollOvertimeTaxSettings(
   });
 }
 
+export async function getPayrollCalculationRules(
+  params = {},
+) {
+  const response = await http.get(
+    "/payroll-calculation-rules",
+    {
+      params: buildParams({
+        rule_category: params.rule_category,
+        source_type: params.source_type,
+        status: params.status,
+      }),
+    },
+  );
+
+  return unwrapResponse(response, []);
+}
+
+export async function getPayrollCalculationRuleOptions(
+  params = {},
+) {
+  const response = await http.get(
+    "/payroll-calculation-rule-options",
+    {
+      params: buildParams({
+        status: params.status,
+      }),
+    },
+  );
+
+  return unwrapResponse(response, []);
+}
+
+export async function updatePayrollCalculationRule(
+  calculationRuleId,
+  payload,
+) {
+  const response = await http.put(
+    `/payroll-calculation-rules/${calculationRuleId}`,
+    payload,
+  );
+
+  return unwrapResponse(response, null);
+}
+
 export async function getEmployeeSalaryRecords(
   employeeId = null,
 ) {

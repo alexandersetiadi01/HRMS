@@ -35,6 +35,7 @@ import Settings from "../Pages/Settings/Settings";
 import MenuShortcuts from "../Pages/Settings/MenuShortcut";
 import RequireAuth from "./RequireAuth";
 import RequirePayrollAdmin from "./RequirePayrollAdmin";
+import PayrollHourlyFormulaPage from "../Pages/PayrollManagement/PayrollHourlyFormulaPage";
 
 function PlaceholderPage({ title }) {
   return <div style={{ padding: "24px" }}>{title}</div>;
@@ -180,6 +181,11 @@ export default function AppRoutes() {
           <Route
             path="settings/overtime-tax"
             element={<PayrollOvertimeTaxPage />}
+          />
+
+          <Route
+            path="settings/hourly-formula"
+            element={<PayrollHourlyFormulaPage />}
           />
 
           <Route path="*" element={<PayrollUnavailableModule />} />
