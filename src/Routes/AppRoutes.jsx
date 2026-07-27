@@ -24,6 +24,7 @@ import PayrollRangesPage from "../Pages/PayrollManagement/PayrollRangesPage";
 import PayrollPeriodsPage from "../Pages/PayrollManagement/PayrollPeriodsPage";
 import PayrollItemsPage from "../Pages/PayrollManagement/PayrollItemsPage";
 import PayrollOvertimeTaxPage from "../Pages/PayrollManagement/PayrollOvertimeTaxPage";
+import PayrollSalaryBanksPage from "../Pages/PayrollManagement/PayrollSalaryBanksPage";
 import AttendanceFormPage from "../Pages/Attendance/AttendanceForm/AttendanceFormPage";
 import CompanyRegulations from "../Pages/CompanyRegulation/CompanyRegulation";
 import CompanyAnnouncement from "../Pages/Announcement/Company/CompanyAnnouncement";
@@ -36,6 +37,7 @@ import MenuShortcuts from "../Pages/Settings/MenuShortcut";
 import RequireAuth from "./RequireAuth";
 import RequirePayrollAdmin from "./RequirePayrollAdmin";
 import PayrollHourlyFormulaPage from "../Pages/PayrollManagement/PayrollHourlyFormulaPage";
+import PayrollInsuranceUnitsPage from "../Pages/PayrollManagement/PayrollInsuranceUnitPage";
 
 function PlaceholderPage({ title }) {
   return <div style={{ padding: "24px" }}>{title}</div>;
@@ -186,6 +188,16 @@ export default function AppRoutes() {
           <Route
             path="settings/hourly-formula"
             element={<PayrollHourlyFormulaPage />}
+          />
+
+           <Route
+            path="settings/banks"
+            element={<PayrollSalaryBanksPage />}
+          />
+
+          <Route
+            path="settings/insurance-units"
+            element={<PayrollInsuranceUnitsPage />}
           />
 
           <Route path="*" element={<PayrollUnavailableModule />} />

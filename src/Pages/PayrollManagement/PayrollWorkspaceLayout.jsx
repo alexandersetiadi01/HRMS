@@ -8,6 +8,7 @@ import {
   Typography,
 } from "@mui/material";
 import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import MenuIcon from "@mui/icons-material/Menu";
@@ -117,7 +118,27 @@ function PayrollSidebarContent({ pathname, onNavigate }) {
                         },
                       }}
                     >
-                      {item.label}
+                      <Box
+                        component="span"
+                        sx={{
+                          minWidth: 0,
+                          flex: 1,
+                        }}
+                      >
+                        {item.label}
+                      </Box>
+
+                      {item.implemented ? (
+                        <CheckCircleIcon
+                          aria-label="功能已完成"
+                          sx={{
+                            flexShrink: 0,
+                            ml: "8px",
+                            color: "#22c55e",
+                            fontSize: "17px",
+                          }}
+                        />
+                      ) : null}
                     </Box>
                   );
                 })}

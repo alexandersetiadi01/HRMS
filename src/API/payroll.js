@@ -400,6 +400,94 @@ export async function updatePayrollOvertimeTaxSettings(
   });
 }
 
+export async function getInsuranceUnits(
+  params = {},
+) {
+  const response = await http.get(
+    "/insurance-units",
+    {
+      params: buildParams({
+        search: params.search,
+        status: params.status,
+      }),
+    },
+  );
+
+  return unwrapResponse(response, []);
+}
+
+export async function getInsuranceUnit(
+  insuranceUnitId,
+) {
+  const response = await http.get(
+    `/insurance-units/${insuranceUnitId}`,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function createInsuranceUnit(
+  payload,
+) {
+  const response = await http.post(
+    "/insurance-units",
+    payload,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function updateInsuranceUnit(
+  insuranceUnitId,
+  payload,
+) {
+  const response = await http.put(
+    `/insurance-units/${insuranceUnitId}`,
+    payload,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function deleteInsuranceUnit(
+  insuranceUnitId,
+) {
+  const response = await http.delete(
+    `/insurance-units/${insuranceUnitId}`,
+  );
+
+  return unwrapResponse(response, {
+    deleted: false,
+    disabled: false,
+  });
+}
+
+export async function createInsuranceUnitAccidentRate(
+  insuranceUnitId,
+  payload,
+) {
+  const response = await http.post(
+    `/insurance-units/${insuranceUnitId}/accident-rates`,
+    payload,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function deleteInsuranceUnitAccidentRate(
+  insuranceUnitId,
+  accidentRateId,
+) {
+  const response = await http.delete(
+    `/insurance-units/${insuranceUnitId}/accident-rates/${accidentRateId}`,
+  );
+
+  return unwrapResponse(response, {
+    deleted: false,
+    insurance_unit: null,
+  });
+}
+
 export async function getPayrollCalculationRules(
   params = {},
 ) {
@@ -439,6 +527,55 @@ export async function updatePayrollCalculationRule(
   const response = await http.put(
     `/payroll-calculation-rules/${calculationRuleId}`,
     payload,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function getPayrollSalaryBanks(
+  params = {},
+) {
+  const response = await http.get(
+    "/payroll-salary-banks",
+    {
+      params: buildParams({
+        search: params.search,
+        status: params.status,
+      }),
+    },
+  );
+
+  return unwrapResponse(response, []);
+}
+
+export async function createPayrollSalaryBank(
+  payload,
+) {
+  const response = await http.post(
+    "/payroll-salary-banks",
+    payload,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function updatePayrollSalaryBank(
+  salaryBankId,
+  payload,
+) {
+  const response = await http.put(
+    `/payroll-salary-banks/${salaryBankId}`,
+    payload,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function deletePayrollSalaryBank(
+  salaryBankId,
+) {
+  const response = await http.delete(
+    `/payroll-salary-banks/${salaryBankId}`,
   );
 
   return unwrapResponse(response, null);

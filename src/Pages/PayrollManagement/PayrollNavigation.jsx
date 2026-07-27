@@ -13,6 +13,7 @@ export const PAYROLL_NAVIGATION = [
         id: "periods",
         label: "計薪週期維護",
         path: "/attendance/admin/payroll/settings/periods",
+        implemented: true,
       },
       {
         id: "items",
@@ -30,16 +31,19 @@ export const PAYROLL_NAVIGATION = [
         id: "hourly-formula",
         label: "時薪計算公式",
         path: "/attendance/admin/payroll/settings/hourly-formula",
+        implemented: true,
       },
       {
         id: "banks",
         label: "薪資帳戶銀行",
         path: "/attendance/admin/payroll/settings/banks",
+        implemented: true,
       },
       {
         id: "insurance-units",
         label: "投保單位",
         path: "/attendance/admin/payroll/settings/insurance-units",
+        implemented: true,
       },
       {
         id: "insurance-grades",
@@ -56,7 +60,7 @@ export const PAYROLL_NAVIGATION = [
         label: "投保身分",
         path: "/attendance/admin/payroll/settings/insurance-identities",
       },
-      {
+      {   
         id: "tax-units",
         label: "所得稅申報單位",
         path: "/attendance/admin/payroll/settings/tax-units",
