@@ -49,6 +49,7 @@ export const PAYROLL_NAVIGATION = [
         id: "insurance-grades",
         label: "投保金額分級表",
         path: "/attendance/admin/payroll/settings/insurance-grades",
+        implemented: true,  
       },
       {
         id: "insurance-rates",
@@ -90,6 +91,13 @@ export const PAYROLL_NAVIGATION = [
         id: "bulk-adjustment",
         label: "批次薪資調整",
         path: "/attendance/admin/payroll/employee-data/bulk-adjustment",
+        implemented: true,
+      },
+      {
+        id: "adjustment-history",
+        label: "薪資異動紀錄",
+        path: "/attendance/admin/payroll/employee-data/adjustment-history",
+        implemented: true,
       },
     ],
   },

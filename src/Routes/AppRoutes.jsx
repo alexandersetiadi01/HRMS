@@ -38,6 +38,9 @@ import RequireAuth from "./RequireAuth";
 import RequirePayrollAdmin from "./RequirePayrollAdmin";
 import PayrollHourlyFormulaPage from "../Pages/PayrollManagement/PayrollHourlyFormulaPage";
 import PayrollInsuranceUnitsPage from "../Pages/PayrollManagement/PayrollInsuranceUnitPage";
+import PayrollInsuranceGradesPage from "../Pages/PayrollManagement/PayrollInsuranceGradesPage";
+import PayrollBulkAdjustmentPage from "../Pages/PayrollManagement/PayrollBulkAdjustmentPage";
+import PayrollAdjustmentHistoryPage from "../Pages/PayrollManagement/PayrollAdjustmentHistoryPage";
 
 function PlaceholderPage({ title }) {
   return <div style={{ padding: "24px" }}>{title}</div>;
@@ -198,6 +201,21 @@ export default function AppRoutes() {
           <Route
             path="settings/insurance-units"
             element={<PayrollInsuranceUnitsPage />}
+          />
+
+          <Route
+            path="settings/insurance-grades"
+            element={<PayrollInsuranceGradesPage />}
+          />
+
+          <Route
+            path="employee-data/bulk-adjustment"
+            element={<PayrollBulkAdjustmentPage />}
+          />
+
+          <Route
+            path="employee-data/adjustment-history"
+            element={<PayrollAdjustmentHistoryPage />}
           />
 
           <Route path="*" element={<PayrollUnavailableModule />} />

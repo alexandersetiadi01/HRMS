@@ -488,6 +488,80 @@ export async function deleteInsuranceUnitAccidentRate(
   });
 }
 
+export async function getInsuranceGradeVersions(
+  params = {},
+) {
+  const response = await http.get(
+    "/insurance-grade-versions",
+    {
+      params: buildParams({
+        search: params.search,
+        status: params.status,
+      }),
+    },
+  );
+
+  return unwrapResponse(response, []);
+}
+
+export async function getInsuranceGradeVersion(
+  insuranceGradeVersionId,
+) {
+  const response = await http.get(
+    `/insurance-grade-versions/${insuranceGradeVersionId}`,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function createInsuranceGradeVersion(
+  payload,
+) {
+  const response = await http.post(
+    "/insurance-grade-versions",
+    payload,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function updateInsuranceGradeVersion(
+  insuranceGradeVersionId,
+  payload,
+) {
+  const response = await http.put(
+    `/insurance-grade-versions/${insuranceGradeVersionId}`,
+    payload,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function publishInsuranceGradeVersion(
+  insuranceGradeVersionId,
+) {
+  const response = await http.post(
+    `/insurance-grade-versions/${insuranceGradeVersionId}/publish`,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function getEffectiveInsuranceGradeVersion(
+  date,
+) {
+  const response = await http.get(
+    "/insurance-grade-versions/effective",
+    {
+      params: buildParams({
+        date,
+      }),
+    },
+  );
+
+  return unwrapResponse(response, null);
+}
+
 export async function getPayrollCalculationRules(
   params = {},
 ) {
@@ -581,6 +655,21 @@ export async function deletePayrollSalaryBank(
   return unwrapResponse(response, null);
 }
 
+export async function getPayrollEmployees(
+  params = {},
+) {
+  const response = await http.get("/employees", {
+    params: buildParams({
+      page: params.page || 1,
+      per_page: params.per_page || 100,
+      search: params.search,
+      employee_status: params.employee_status,
+    }),
+  });
+
+  return unwrapResponse(response, []);
+}
+
 export async function getEmployeeSalaryRecords(
   employeeId = null,
 ) {
@@ -603,6 +692,67 @@ export async function getSalaryRecordItems(
   });
 
   return unwrapResponse(response, []);
+}
+
+export async function previewSalaryAdjustments(
+  payload,
+) {
+  const response = await http.post(
+    "/salary-adjustments/preview",
+    payload,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function applySalaryAdjustments(
+  payload,
+) {
+  const response = await http.post(
+    "/salary-adjustments/apply",
+    payload,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function getSalaryAdjustmentHistory(
+  params = {},
+) {
+  const response = await http.get(
+    "/salary-adjustments/history",
+    {
+      params: buildParams({
+        page: params.page || 1,
+        per_page: params.per_page || 20,
+        search: params.search,
+        status: params.status,
+        employee_id: params.employee_id,
+        date_from: params.date_from,
+        date_to: params.date_to,
+      }),
+    },
+  );
+
+  return unwrapResponse(response, {
+    rows: [],
+    pagination: {
+      page: 1,
+      per_page: 20,
+      total: 0,
+      total_pages: 0,
+    },
+  });
+}
+
+export async function getSalaryAdjustmentHistoryDetail(
+  batchId,
+) {
+  const response = await http.get(
+    `/salary-adjustments/history/${batchId}`,
+  );
+
+  return unwrapResponse(response, null);
 }
 
 export async function verifyPayrollPassword(password) {
