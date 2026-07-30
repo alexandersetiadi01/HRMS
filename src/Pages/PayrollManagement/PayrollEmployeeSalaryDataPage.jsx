@@ -36,6 +36,7 @@ import AddIcon from "@mui/icons-material/Add";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import HistoryIcon from "@mui/icons-material/History";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import PriceChangeOutlinedIcon from "@mui/icons-material/PriceChangeOutlined";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import SearchIcon from "@mui/icons-material/Search";
@@ -65,6 +66,23 @@ function getErrorMessage(error, fallback) {
     error?.response?.data?.data?.message ||
     error?.message ||
     fallback
+  );
+}
+
+function getApiErrorCode(error) {
+  return (
+    error?.response?.data?.code ||
+    error?.response?.data?.data?.code ||
+    error?.code ||
+    ""
+  );
+}
+
+function isSalaryRecordLockError(error) {
+  return (
+    getApiErrorCode(error) === "hrms_salary_record_payroll_used" ||
+    Number(error?.response?.status || 0) === 409 ||
+    error?.response?.data?.data?.is_payroll_used === true
   );
 }
 
@@ -101,6 +119,14 @@ function normalizeComparableDate(value) {
   }
 
   return String(value).slice(0, 10);
+}
+
+function isPayrollUsedRecord(record) {
+  return (
+    record?.is_payroll_used === true ||
+    Number(record?.is_payroll_used || 0) === 1 ||
+    Number(record?.payroll_result_count || 0) > 0
+  );
 }
 
 function findEditableSalaryRecord(employee, records) {
@@ -699,13 +725,42 @@ function SalaryHistoryDialog({
                     {formatDate(record.effective_to)}
                   </Typography>
 
-                  <Chip
-                    label={record.status || "未設定"}
-                    size="small"
-                    color={record.status === "啟用" ? "success" : "default"}
-                    variant={record.status === "啟用" ? "filled" : "outlined"}
-                    sx={{ fontWeight: 700 }}
-                  />
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      flexWrap: "wrap",
+                      gap: "7px",
+                    }}
+                  >
+                    {isPayrollUsedRecord(record) ? (
+                      <Tooltip
+                        title="此薪資資料已用於計薪結果，只能查看。薪資變更請使用「調薪異動」。"
+                        arrow
+                      >
+                        <Chip
+                          icon={<LockOutlinedIcon />}
+                          label={`已用於計薪・唯讀${
+                            Number(record.payroll_result_count || 0) > 0
+                              ? `（${Number(record.payroll_result_count)} 筆）`
+                              : ""
+                          }`}
+                          size="small"
+                          color="warning"
+                          variant="outlined"
+                          sx={{ fontWeight: 700 }}
+                        />
+                      </Tooltip>
+                    ) : null}
+
+                    <Chip
+                      label={record.status || "未設定"}
+                      size="small"
+                      color={record.status === "啟用" ? "success" : "default"}
+                      variant={record.status === "啟用" ? "filled" : "outlined"}
+                      sx={{ fontWeight: 700 }}
+                    />
+                  </Box>
                 </Box>
 
                 <Box
@@ -1038,6 +1093,7 @@ function EmployeeMobileCard({
   onViewHistory,
   onViewAdjustments,
   managing,
+  salaryDataLocked,
 }) {
   return (
     <Paper
@@ -1142,26 +1198,41 @@ function EmployeeMobileCard({
           mt: "12px",
         }}
       >
-        <Button
-          type="button"
-          variant={employee.has_salary_data ? "outlined" : "contained"}
-          fullWidth
-          disabled={managing}
-          onClick={() => onManageSalaryData(employee)}
-          sx={{
-            fontWeight: 700,
-            gridColumn: {
-              xs: "auto",
-              sm: "1 / -1",
-            },
-          }}
+        <Tooltip
+          title={
+            salaryDataLocked
+              ? "此薪資資料已用於計薪，只能查看。薪資變更請使用「調薪異動」。"
+              : employee.has_salary_data
+                ? "編輯薪資資料"
+                : "新增薪資資料"
+          }
+          arrow
         >
-          {managing
-            ? "讀取中..."
-            : employee.has_salary_data
-              ? "編輯薪資資料"
-              : "新增薪資資料"}
-        </Button>
+          <span
+            style={{
+              gridColumn: "1 / -1",
+              width: "100%",
+            }}
+          >
+            <Button
+              type="button"
+              variant={employee.has_salary_data ? "outlined" : "contained"}
+              fullWidth
+              disabled={managing || salaryDataLocked}
+              startIcon={salaryDataLocked ? <LockOutlinedIcon /> : null}
+              onClick={() => onManageSalaryData(employee)}
+              sx={{ fontWeight: 700 }}
+            >
+              {managing
+                ? "讀取中..."
+                : salaryDataLocked
+                  ? "薪資資料唯讀"
+                  : employee.has_salary_data
+                    ? "編輯薪資資料"
+                    : "新增薪資資料"}
+            </Button>
+          </span>
+        </Tooltip>
 
         <Button
           type="button"
@@ -1210,6 +1281,7 @@ export default function PayrollEmployeeSalaryDataPage() {
   const [formLoadingEmployeeId, setFormLoadingEmployeeId] = useState(null);
   const [formSaving, setFormSaving] = useState(false);
   const [formSaveError, setFormSaveError] = useState("");
+  const [lockedSalaryEmployees, setLockedSalaryEmployees] = useState({});
 
   const [historyEmployee, setHistoryEmployee] = useState(null);
   const [historyRecords, setHistoryRecords] = useState([]);
@@ -1295,6 +1367,13 @@ export default function PayrollEmployeeSalaryDataPage() {
       return;
     }
 
+    if (lockedSalaryEmployees[Number(employee.employee_id)]) {
+      setError(
+        "此員工目前的薪資資料已用於計薪結果，不能直接編輯。請使用「調薪異動」建立新的薪資設定。",
+      );
+      return;
+    }
+
     setFormLoadingEmployeeId(employee.employee_id);
     setFormSaveError("");
     setError("");
@@ -1320,6 +1399,26 @@ export default function PayrollEmployeeSalaryDataPage() {
       if (!editableRecord?.salary_record_id) {
         throw new Error("找不到此員工目前可編輯的薪資資料。");
       }
+
+      if (isPayrollUsedRecord(editableRecord)) {
+        setLockedSalaryEmployees((current) => ({
+          ...current,
+          [Number(employee.employee_id)]: true,
+        }));
+
+        setError(
+          "此員工目前的薪資資料已用於計薪結果，不能直接編輯。請使用「調薪異動」建立新的薪資設定。",
+        );
+        return;
+      }
+
+      setLockedSalaryEmployees((current) => {
+        const next = { ...current };
+
+        delete next[Number(employee.employee_id)];
+
+        return next;
+      });
 
       const recordItems = await getSalaryRecordItems(
         editableRecord.salary_record_id,
@@ -1388,6 +1487,37 @@ export default function PayrollEmployeeSalaryDataPage() {
           : `已新增 ${savedEmployeeName} 的薪資資料。`,
       );
     } catch (requestError) {
+      const salaryRecordLocked = isSalaryRecordLockError(requestError);
+
+      if (salaryRecordLocked) {
+        const lockedEmployeeId = Number(formEmployee.employee_id);
+
+        setLockedSalaryEmployees((current) => ({
+          ...current,
+          [lockedEmployeeId]: true,
+        }));
+
+        setFormEmployee(null);
+        setFormRecord(null);
+        setFormRecordItems([]);
+        setFormSaveError("");
+
+        try {
+          await loadEmployees();
+        } catch {
+          // loadEmployees already displays its own error.
+        }
+
+        setError(
+          getErrorMessage(
+            requestError,
+            "此薪資資料已用於計薪結果，不能直接修改。請使用「調薪異動」建立新的薪資設定。",
+          ),
+        );
+
+        return;
+      }
+
       const partialSave = Boolean(requestError?.partialSave);
 
       if (partialSave) {
@@ -1402,17 +1532,28 @@ export default function PayrollEmployeeSalaryDataPage() {
           );
 
           if (refreshedRecord?.salary_record_id) {
-            const refreshedItems = await getSalaryRecordItems(
-              refreshedRecord.salary_record_id,
-            );
+            if (isPayrollUsedRecord(refreshedRecord)) {
+              setLockedSalaryEmployees((current) => ({
+                ...current,
+                [Number(formEmployee.employee_id)]: true,
+              }));
 
-            setFormRecord(refreshedRecord);
-            setFormRecordItems(
-              Array.isArray(refreshedItems) ? refreshedItems : [],
-            );
+              setFormEmployee(null);
+              setFormRecord(null);
+              setFormRecordItems([]);
+            } else {
+              const refreshedItems = await getSalaryRecordItems(
+                refreshedRecord.salary_record_id,
+              );
+
+              setFormRecord(refreshedRecord);
+              setFormRecordItems(
+                Array.isArray(refreshedItems) ? refreshedItems : [],
+              );
+            }
           }
 
-          await loadEmployees();
+          await loadEmployees();    
         } catch {
           // Preserve the original save error.
         }
@@ -1750,6 +1891,9 @@ export default function PayrollEmployeeSalaryDataPage() {
                 managing={
                   Number(formLoadingEmployeeId) === Number(employee.employee_id)
                 }
+                salaryDataLocked={Boolean(
+                  lockedSalaryEmployees[Number(employee.employee_id)],
+                )}
               />
             ))}
           </Box>
@@ -1856,12 +2000,14 @@ export default function PayrollEmployeeSalaryDataPage() {
                       >
                         <Tooltip
                           title={
-                            Number(formLoadingEmployeeId) ===
-                            Number(employee.employee_id)
-                              ? "讀取中..."
-                              : employee.has_salary_data
-                                ? "編輯"
-                                : "新增資料"
+                            lockedSalaryEmployees[Number(employee.employee_id)]
+                              ? "此薪資資料已用於計薪，只能查看。薪資變更請使用「調薪異動」。"
+                              : Number(formLoadingEmployeeId) ===
+                                  Number(employee.employee_id)
+                                ? "讀取中..."
+                                : employee.has_salary_data
+                                  ? "編輯"
+                                  : "新增資料"
                           }
                           arrow
                         >
@@ -1869,16 +2015,23 @@ export default function PayrollEmployeeSalaryDataPage() {
                             <IconButton
                               type="button"
                               aria-label={
-                                employee.has_salary_data
-                                  ? "編輯"
-                                  : "新增資料"
+                                lockedSalaryEmployees[
+                                  Number(employee.employee_id)
+                                ]
+                                  ? "薪資資料唯讀"
+                                  : employee.has_salary_data
+                                    ? "編輯"
+                                    : "新增資料"
                               }
                               disabled={
-                                formLoadingEmployeeId !== null
+                                formLoadingEmployeeId !== null ||
+                                Boolean(
+                                  lockedSalaryEmployees[
+                                    Number(employee.employee_id)
+                                  ],
+                                )
                               }
-                              onClick={() =>
-                                handleManageSalaryData(employee)
-                              }
+                              onClick={() => handleManageSalaryData(employee)}
                               sx={{
                                 width: "40px",
                                 height: "40px",
@@ -1905,6 +2058,10 @@ export default function PayrollEmployeeSalaryDataPage() {
                               {Number(formLoadingEmployeeId) ===
                               Number(employee.employee_id) ? (
                                 <CircularProgress size={19} />
+                              ) : lockedSalaryEmployees[
+                                  Number(employee.employee_id)
+                                ] ? (
+                                <LockOutlinedIcon fontSize="small" />
                               ) : employee.has_salary_data ? (
                                 <EditOutlinedIcon fontSize="small" />
                               ) : (
@@ -1922,9 +2079,7 @@ export default function PayrollEmployeeSalaryDataPage() {
                               )}
                               color="success"
                               invisible={
-                                Number(
-                                  employee.salary_record_count || 0,
-                                ) === 0
+                                Number(employee.salary_record_count || 0) === 0
                               }
                               max={99}
                               sx={{
@@ -1944,13 +2099,10 @@ export default function PayrollEmployeeSalaryDataPage() {
                                 type="button"
                                 aria-label="薪資歷程"
                                 disabled={
-                                  Number(
-                                    employee.salary_record_count || 0,
-                                  ) === 0
+                                  Number(employee.salary_record_count || 0) ===
+                                  0
                                 }
-                                onClick={() =>
-                                  handleOpenHistory(employee)
-                                }
+                                onClick={() => handleOpenHistory(employee)}
                                 sx={{
                                   width: "40px",
                                   height: "40px",
@@ -1973,9 +2125,7 @@ export default function PayrollEmployeeSalaryDataPage() {
                           <IconButton
                             type="button"
                             aria-label="調薪異動"
-                            onClick={() =>
-                              handleOpenAdjustments(employee)
-                            }
+                            onClick={() => handleOpenAdjustments(employee)}
                             sx={{
                               width: "40px",
                               height: "40px",
