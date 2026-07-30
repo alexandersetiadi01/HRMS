@@ -39,6 +39,7 @@ import RequirePayrollAdmin from "./RequirePayrollAdmin";
 import PayrollHourlyFormulaPage from "../Pages/PayrollManagement/PayrollHourlyFormulaPage";
 import PayrollInsuranceUnitsPage from "../Pages/PayrollManagement/PayrollInsuranceUnitPage";
 import PayrollInsuranceGradesPage from "../Pages/PayrollManagement/PayrollInsuranceGradesPage";
+import PayrollInsuranceRatesPage from "../Pages/PayrollManagement/PayrollInsuranceRatesPage";
 import PayrollBulkAdjustmentPage from "../Pages/PayrollManagement/PayrollBulkAdjustmentPage";
 import PayrollAdjustmentHistoryPage from "../Pages/PayrollManagement/PayrollAdjustmentHistoryPage";
 import PayrollEmployeeSalaryDataPage from "../Pages/PayrollManagement/PayrollEmployeeSalaryDataPage";
@@ -207,6 +208,11 @@ export default function AppRoutes() {
           <Route
             path="settings/insurance-grades"
             element={<PayrollInsuranceGradesPage />}
+          />
+
+          <Route
+            path="settings/insurance-rates"
+            element={<PayrollInsuranceRatesPage />}
           />
 
           <Route

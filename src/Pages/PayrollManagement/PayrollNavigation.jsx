@@ -55,6 +55,7 @@ export const PAYROLL_NAVIGATION = [
         id: "insurance-rates",
         label: "保險費率",
         path: "/attendance/admin/payroll/settings/insurance-rates",
+        // implemented: true,
       },
       {
         id: "insurance-identities",

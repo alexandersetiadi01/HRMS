@@ -1018,6 +1018,90 @@ export async function getSalaryAdjustmentHistoryDetail(
   return unwrapResponse(response, null);
 }
 
+export async function getInsuranceRateVersions(
+  params = {},
+) {
+  const response = await http.get(
+    "/insurance-rate-versions",
+    {
+      params: buildParams({
+        search: params.search,
+        status: params.status,
+      }),
+    },
+  );
+
+  return unwrapResponse(response, []);
+}
+
+export async function getInsuranceRateVersion(
+  insuranceRateVersionId,
+) {
+  const response = await http.get(
+    `/insurance-rate-versions/${insuranceRateVersionId}`,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function getEffectiveInsuranceRateVersion(
+  date,
+) {
+  const response = await http.get(
+    "/insurance-rate-versions/effective",
+    {
+      params: buildParams({
+        date,
+      }),
+    },
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function createInsuranceRateVersion(
+  payload,
+) {
+  const response = await http.post(
+    "/insurance-rate-versions",
+    payload,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function updateInsuranceRateVersion(
+  insuranceRateVersionId,
+  payload,
+) {
+  const response = await http.put(
+    `/insurance-rate-versions/${insuranceRateVersionId}`,
+    payload,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function deleteInsuranceRateVersion(
+  insuranceRateVersionId,
+) {
+  const response = await http.delete(
+    `/insurance-rate-versions/${insuranceRateVersionId}`,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function publishInsuranceRateVersion(
+  insuranceRateVersionId,
+) {
+  const response = await http.post(
+    `/insurance-rate-versions/${insuranceRateVersionId}/publish`,
+  );
+
+  return unwrapResponse(response, null);
+}
+
 export async function verifyPayrollPassword(password) {
   const response = await http.post("/payroll/verify-password", {
     password,
