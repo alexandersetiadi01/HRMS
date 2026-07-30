@@ -41,6 +41,7 @@ import PayrollInsuranceUnitsPage from "../Pages/PayrollManagement/PayrollInsuran
 import PayrollInsuranceGradesPage from "../Pages/PayrollManagement/PayrollInsuranceGradesPage";
 import PayrollBulkAdjustmentPage from "../Pages/PayrollManagement/PayrollBulkAdjustmentPage";
 import PayrollAdjustmentHistoryPage from "../Pages/PayrollManagement/PayrollAdjustmentHistoryPage";
+import PayrollEmployeeSalaryDataPage from "../Pages/PayrollManagement/PayrollEmployeeSalaryDataPage";
 
 function PlaceholderPage({ title }) {
   return <div style={{ padding: "24px" }}>{title}</div>;
@@ -206,6 +207,11 @@ export default function AppRoutes() {
           <Route
             path="settings/insurance-grades"
             element={<PayrollInsuranceGradesPage />}
+          />
+
+          <Route
+            path="employee-data/settings"
+            element={<PayrollEmployeeSalaryDataPage />}
           />
 
           <Route

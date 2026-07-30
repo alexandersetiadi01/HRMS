@@ -670,6 +670,33 @@ export async function getPayrollEmployees(
   return unwrapResponse(response, []);
 }
 
+export async function getPayrollEmployeeSalaryData(
+  params = {},
+) {
+  const response = await http.get(
+    "/payroll/employee-salary-data",
+    {
+      params: buildParams({
+        page: params.page || 1,
+        per_page: params.per_page || 20,
+        search: params.search,
+        employee_status: params.employee_status,
+        salary_data_status: params.salary_data_status,
+      }),
+    },
+  );
+
+  return unwrapResponse(response, {
+    rows: [],
+    pagination: {
+      page: 1,
+      per_page: 20,
+      total: 0,
+      total_pages: 0,
+    },
+  });
+}
+
 export async function getEmployeeSalaryRecords(
   employeeId = null,
 ) {
@@ -682,6 +709,39 @@ export async function getEmployeeSalaryRecords(
   return unwrapResponse(response, []);
 }
 
+export async function createEmployeeSalaryRecord(
+  payload,
+) {
+  const response = await http.post(
+    "/salary-records",
+    payload,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function updateEmployeeSalaryRecord(
+  salaryRecordId,
+  payload,
+) {
+  const response = await http.put(
+    `/salary-records/${salaryRecordId}`,
+    payload,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function deleteEmployeeSalaryRecord(
+  salaryRecordId,
+) {
+  const response = await http.delete(
+    `/salary-records/${salaryRecordId}`,
+  );
+
+  return unwrapResponse(response, null);
+}
+
 export async function getSalaryRecordItems(
   salaryRecordId = null,
 ) {
@@ -692,6 +752,209 @@ export async function getSalaryRecordItems(
   });
 
   return unwrapResponse(response, []);
+}
+
+export async function createSalaryRecordItem(payload) {
+  const response = await http.post(
+    "/salary-items",
+    payload,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function updateSalaryRecordItem(
+  salaryItemId,
+  payload,
+) {
+  const response = await http.put(
+    `/salary-items/${salaryItemId}`,
+    payload,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function deleteSalaryRecordItem(
+  salaryItemId,
+) {
+  const response = await http.delete(
+    `/salary-items/${salaryItemId}`,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+function createSalaryMasterPayload(values) {
+  return {
+    payroll_range_id: values.payroll_range_id,
+    effective_from: values.effective_from,
+    effective_to: values.effective_to,
+    salary_type: values.salary_type,
+    welfare_fee_deduct_type:
+      values.welfare_fee_deduct_type,
+    salary_bank_id: values.salary_bank_id,
+    bank_branch_code: values.bank_branch_code,
+    bank_account_no: values.bank_account_no,
+    print_payslip_enabled:
+      values.print_payslip_enabled,
+    status: values.status,
+    remarks: values.remarks,
+  };
+}
+
+function createSalaryItemPayload(
+  salaryRecordId,
+  item,
+) {
+  return {
+    salary_record_id: Number(salaryRecordId),
+    payroll_item_id: Number(
+      item.payroll_item_id,
+    ),
+    amount: Number(item.amount),
+  };
+}
+
+export async function saveEmployeeSalaryRecord({
+  employeeId,
+  record = null,
+  originalItems = [],
+  values,
+}) {
+  const editing = Boolean(
+    record?.salary_record_id,
+  );
+
+  const masterPayload =
+    createSalaryMasterPayload(values);
+
+  let salaryRecordId = editing
+    ? Number(record.salary_record_id)
+    : null;
+
+  if (editing) {
+    await updateEmployeeSalaryRecord(
+      salaryRecordId,
+      masterPayload,
+    );
+  } else {
+    const createResult =
+      await createEmployeeSalaryRecord({
+        ...masterPayload,
+        employee_ids: [Number(employeeId)],
+      });
+
+    salaryRecordId = Number(
+      createResult?.salary_record_ids?.[0] || 0,
+    );
+
+    if (!salaryRecordId) {
+      const createError = new Error(
+        "薪資主檔已送出，但系統未回傳薪資資料 ID。",
+      );
+
+      createError.code =
+        "salary_record_id_missing";
+
+      throw createError;
+    }
+  }
+
+  const submittedItems = Array.isArray(
+    values.salary_items,
+  )
+    ? values.salary_items
+    : [];
+
+  const existingItems = Array.isArray(
+    originalItems,
+  )
+    ? originalItems
+    : [];
+
+  const submittedExistingIds = new Set(
+    submittedItems
+      .map((item) =>
+        Number(item.salary_item_id || 0),
+      )
+      .filter((itemId) => itemId > 0),
+  );
+
+  const removedItems = existingItems.filter(
+    (item) => {
+      const salaryItemId = Number(
+        item.salary_item_id || 0,
+      );
+
+      return (
+        salaryItemId > 0 &&
+        !submittedExistingIds.has(salaryItemId)
+      );
+    },
+  );
+
+  try {
+    /*
+     * Finish all create/update requests before
+     * deleting removed items. This prevents an
+     * early deletion if an upsert fails.
+     */
+    for (const item of submittedItems) {
+      const itemPayload =
+        createSalaryItemPayload(
+          salaryRecordId,
+          item,
+        );
+
+      if (item.salary_item_id) {
+        await updateSalaryRecordItem(
+          Number(item.salary_item_id),
+          itemPayload,
+        );
+      } else {
+        await createSalaryRecordItem(
+          itemPayload,
+        );
+      }
+    }
+
+    for (const removedItem of removedItems) {
+      await deleteSalaryRecordItem(
+        Number(removedItem.salary_item_id),
+      );
+    }
+  } catch (requestError) {
+    /*
+     * A newly created record can be removed safely
+     * when one of its item requests fails.
+     */
+    if (!editing && salaryRecordId) {
+      try {
+        await deleteEmployeeSalaryRecord(
+          salaryRecordId,
+        );
+      } catch {
+        requestError.salaryRecordId =
+          salaryRecordId;
+
+        requestError.partialSave = true;
+      }
+    } else {
+      requestError.salaryRecordId =
+        salaryRecordId;
+
+      requestError.partialSave = true;
+    }
+
+    throw requestError;
+  }
+
+  return {
+    salary_record_id: salaryRecordId,
+    created: !editing,
+    updated: editing,
+  };
 }
 
 export async function previewSalaryAdjustments(

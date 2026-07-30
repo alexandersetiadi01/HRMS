@@ -675,6 +675,7 @@ function EmployeeAdjustment({
 export default function PayrollAdjustmentHistoryDialog({
   open,
   batchId,
+  employeeId = null,
   onClose,
 }) {
   const theme = useTheme();
@@ -751,6 +752,17 @@ export default function PayrollAdjustmentHistoryDialog({
     ? detail.employees
     : [];
 
+  const visibleEmployees = employeeId
+    ? employees.filter(
+        (employee) =>
+          Number(employee.employee_id) ===
+          Number(employeeId),
+      )
+    : employees;
+
+  const employeeSpecificMode =
+    Number(employeeId) > 0;
+
   return (
     <Dialog
       open={open}
@@ -795,7 +807,9 @@ export default function PayrollAdjustmentHistoryDialog({
               overflowWrap: "anywhere",
             }}
           >
-            薪資異動批次明細
+            {employeeSpecificMode
+              ? "員工調薪異動明細"
+              : "薪資異動批次明細"}
           </Typography>
 
           <Typography
@@ -1043,7 +1057,9 @@ export default function PayrollAdjustmentHistoryDialog({
                   fontWeight: 700,
                 }}
               >
-                員工異動明細
+                {employeeSpecificMode
+                  ? "本次調薪明細"
+                  : "員工異動明細"}
               </Typography>
 
               <Typography
@@ -1052,13 +1068,15 @@ export default function PayrollAdjustmentHistoryDialog({
                   fontSize: "12px",
                 }}
               >
-                共 {employees.length} 位
+                共 {visibleEmployees.length} 位
               </Typography>
             </Box>
 
-            {employees.length === 0 ? (
+            {visibleEmployees.length === 0 ? (
               <Alert severity="info">
-                此批次沒有員工異動明細。
+                {employeeSpecificMode
+                  ? "此員工不在這筆調薪批次中。"
+                  : "此批次沒有員工異動明細。"}
               </Alert>
             ) : (
               <Box
@@ -1067,20 +1085,16 @@ export default function PayrollAdjustmentHistoryDialog({
                   gap: "10px",
                 }}
               >
-                {employees.map(
-                  (
-                    employee,
-                    index,
-                  ) => (
+                {visibleEmployees.map(
+                  (employee, index) => (
                     <EmployeeAdjustment
                       key={
                         employee.salary_adjustment_employee_id ||
                         employee.employee_id
                       }
-                      employee={
-                        employee
-                      }
+                      employee={employee}
                       defaultExpanded={
+                        employeeSpecificMode ||
                         index === 0
                       }
                     />

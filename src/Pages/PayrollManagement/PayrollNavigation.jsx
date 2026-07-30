@@ -86,6 +86,7 @@ export const PAYROLL_NAVIGATION = [
         id: "employee-settings",
         label: "員工薪資保險資料",
         path: "/attendance/admin/payroll/employee-data/settings",
+        implemented: true,
       },
       {
         id: "bulk-adjustment",
