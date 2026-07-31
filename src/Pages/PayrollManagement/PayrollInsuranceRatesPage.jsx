@@ -31,6 +31,7 @@ import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import PublishOutlinedIcon from "@mui/icons-material/PublishOutlined";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import SearchIcon from "@mui/icons-material/Search";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
@@ -39,6 +40,7 @@ import {
   deleteInsuranceRateVersion,
   getInsuranceRateVersion,
   getInsuranceRateVersions,
+  publishInsuranceRateVersion,
   updateInsuranceRateVersion,
 } from "../../API/payroll";
 import InsuranceRateVersionFormDialog from "./InsuranceRateVersionFormDialog";
@@ -218,12 +220,15 @@ function VersionMobileCard({
   onView,
   onEdit,
   onDelete,
+  onPublish,
   detailLoading,
   editLoading,
   deleteLoading,
+  publishLoading,
 }) {
   const isDraft = version.status === "草稿";
-  const actionLoading = detailLoading || editLoading || deleteLoading;
+  const actionLoading =
+    detailLoading || editLoading || deleteLoading || publishLoading;
   return (
     <Paper
       variant="outlined"
@@ -276,25 +281,94 @@ function VersionMobileCard({
       <Box
         sx={{
           display: "grid",
-          gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-          gap: {
-            xs: "12px",
-            sm: "16px",
+          gridTemplateColumns: {
+            xs: "minmax(0, 1fr)",
+            sm: isDraft ? "repeat(2, minmax(0, 1fr))" : "minmax(0, 1fr)",
           },
+          gap: "10px",
           mt: "16px",
         }}
       >
-        <DetailField label="生效日期">
-          {formatDate(version.effective_from, "-")}
-        </DetailField>
+        <Button
+          fullWidth
+          variant="outlined"
+          startIcon={
+            detailLoading ? (
+              <CircularProgress size={16} />
+            ) : (
+              <VisibilityOutlinedIcon />
+            )
+          }
+          onClick={() => onView(version)}
+          disabled={actionLoading}
+          sx={{
+            borderColor: "#cbd5e1",
+            color: "#475569",
+          }}
+        >
+          {getDetailActionLabel(version.status)}
+        </Button>
 
-        <DetailField label="結束日期">
-          {formatDate(version.effective_to)}
-        </DetailField>
+        {isDraft ? (
+          <>
+            <Button
+              fullWidth
+              variant="outlined"
+              startIcon={
+                editLoading ? (
+                  <CircularProgress size={16} />
+                ) : (
+                  <EditOutlinedIcon />
+                )
+              }
+              onClick={() => onEdit(version)}
+              disabled={actionLoading}
+              sx={{
+                borderColor: "#1f9bd1",
+                color: "#168dc5",
+              }}
+            >
+              編輯草稿
+            </Button>
 
-        <DetailField label="資料來源" fullWidth>
-          <SourceContent version={version} />
-        </DetailField>
+            <Button
+              fullWidth
+              variant="outlined"
+              startIcon={
+                publishLoading ? (
+                  <CircularProgress size={16} color="inherit" />
+                ) : (
+                  <PublishOutlinedIcon />
+                )
+              }
+              onClick={() => onPublish(version)}
+              disabled={actionLoading}
+              sx={{
+                borderColor: "#16a34a",
+                color: "#15803d",
+              }}
+            >
+              發布版本
+            </Button>
+
+            <Button
+              fullWidth
+              variant="outlined"
+              color="error"
+              startIcon={
+                deleteLoading ? (
+                  <CircularProgress size={16} color="inherit" />
+                ) : (
+                  <DeleteOutlineIcon />
+                )
+              }
+              onClick={() => onDelete(version)}
+              disabled={actionLoading}
+            >
+              刪除草稿
+            </Button>
+          </>
+        ) : null}
       </Box>
 
       <Box
@@ -615,6 +689,150 @@ function DeleteVersionDialog({
   );
 }
 
+function PublishVersionDialog({
+  open,
+  version,
+  publishing,
+  errorMessage,
+  onClose,
+  onConfirm,
+}) {
+  const versionName =
+    version?.version_name || version?.version_code || "此草稿";
+
+  return (
+    <Dialog
+      open={open}
+      onClose={publishing ? undefined : onClose}
+      fullWidth
+      maxWidth="sm"
+    >
+      <DialogTitle>
+        <Typography
+          component="div"
+          sx={{
+            color: "#1f2937",
+            fontSize: "18px",
+            fontWeight: 700,
+          }}
+        >
+          發布保險費率版本
+        </Typography>
+
+        <Typography
+          component="div"
+          sx={{
+            mt: "2px",
+            color: "#64748b",
+            fontSize: "12px",
+          }}
+        >
+          Publish Insurance Rate Version
+        </Typography>
+      </DialogTitle>
+
+      <DialogContent dividers>
+        {errorMessage ? (
+          <Alert severity="error" sx={{ mb: "16px" }}>
+            {errorMessage}
+          </Alert>
+        ) : null}
+
+        <Typography
+          sx={{
+            color: "#334155",
+            fontSize: "14px",
+            lineHeight: 1.7,
+          }}
+        >
+          確定要發布保險費率版本
+          <Box
+            component="span"
+            sx={{
+              mx: "4px",
+              color: "#15803d",
+              fontWeight: 700,
+              overflowWrap: "anywhere",
+            }}
+          >
+            「{versionName}」
+          </Box>
+          嗎？
+        </Typography>
+
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "minmax(0, 1fr)",
+              sm: "repeat(2, minmax(0, 1fr))",
+            },
+            gap: "12px",
+            mt: "18px",
+            p: "14px",
+            border: "1px solid #dbe4ea",
+            borderRadius: "8px",
+            bgcolor: "#f8fafc",
+          }}
+        >
+          <DetailField label="生效日期">
+            {formatDate(version?.effective_from, "-")}
+          </DetailField>
+
+          <DetailField label="結束日期">
+            {formatDate(version?.effective_to)}
+          </DetailField>
+        </Box>
+
+        <Alert severity="warning" sx={{ mt: "16px" }}>
+          發布後，此版本不能再編輯或刪除。若有效期間與現有已發布版本重疊，後端會依費率版本規則調整受影響版本的狀態或有效期間。
+        </Alert>
+      </DialogContent>
+
+      <DialogActions
+        sx={{
+          px: {
+            xs: "16px",
+            sm: "24px",
+          },
+          py: "14px",
+        }}
+      >
+        <Button
+          type="button"
+          onClick={onClose}
+          disabled={publishing}
+          sx={{ color: "#64748b" }}
+        >
+          取消
+        </Button>
+
+        <Button
+          type="button"
+          variant="contained"
+          onClick={onConfirm}
+          disabled={publishing}
+          startIcon={
+            publishing ? (
+              <CircularProgress size={16} color="inherit" />
+            ) : (
+              <PublishOutlinedIcon />
+            )
+          }
+          sx={{
+            bgcolor: "#15803d",
+            "&:hover": {
+              bgcolor: "#166534",
+            },
+          }}
+        >
+          {publishing ? "發布中..." : "確認發布"}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
+
 export default function PayrollInsuranceRatesPage() {
   const [versions, setVersions] = useState([]);
   const [searchInput, setSearchInput] = useState("");
@@ -634,6 +852,10 @@ export default function PayrollInsuranceRatesPage() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteErrorMessage, setDeleteErrorMessage] = useState("");
+
+  const [publishTarget, setPublishTarget] = useState(null);
+  const [publishing, setPublishing] = useState(false);
+  const [publishErrorMessage, setPublishErrorMessage] = useState("");
 
   const [successMessage, setSuccessMessage] = useState("");
 
@@ -799,6 +1021,59 @@ export default function PayrollInsuranceRatesPage() {
       setDeleteErrorMessage(getErrorMessage(error, "刪除保險費率草稿失敗。"));
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleOpenPublishDialog = (version) => {
+    if (version.status !== "草稿") {
+      return;
+    }
+
+    setPublishTarget(version);
+    setPublishErrorMessage("");
+  };
+
+  const handleClosePublishDialog = () => {
+    if (publishing) {
+      return;
+    }
+
+    setPublishTarget(null);
+    setPublishErrorMessage("");
+  };
+
+  const handlePublishVersion = async () => {
+    const versionId = publishTarget?.insurance_rate_version_id;
+
+    if (!versionId || publishTarget.status !== "草稿") {
+      setPublishErrorMessage("只有草稿狀態的費率版本可以發布。");
+      return;
+    }
+
+    const publishedName =
+      publishTarget.version_name || publishTarget.version_code || "";
+
+    setPublishing(true);
+    setPublishErrorMessage("");
+    setErrorMessage("");
+
+    try {
+      const publishedVersion = await publishInsuranceRateVersion(versionId);
+
+      setPublishTarget(null);
+      setSuccessMessage(
+        publishedVersion?.version_name
+          ? `保險費率版本「${publishedVersion.version_name}」已發布。`
+          : publishedName
+            ? `保險費率版本「${publishedName}」已發布。`
+            : "保險費率版本已發布。",
+      );
+
+      await loadVersions();
+    } catch (error) {
+      setPublishErrorMessage(getErrorMessage(error, "發布保險費率版本失敗。"));
+    } finally {
+      setPublishing(false);
     }
   };
 
@@ -1192,7 +1467,9 @@ export default function PayrollInsuranceRatesPage() {
                                   version.status,
                                 )}
                                 disabled={
-                                  deleting || editLoadingId === versionId
+                                  deleting ||
+                                  publishing ||
+                                  editLoadingId === versionId
                                 }
                                 sx={{
                                   color: "#475569",
@@ -1209,7 +1486,9 @@ export default function PayrollInsuranceRatesPage() {
                                     onClick={() => handleEditVersion(version)}
                                     aria-label="編輯草稿"
                                     disabled={
-                                      deleting || editLoadingId === versionId
+                                      deleting ||
+                                      publishing ||
+                                      editLoadingId === versionId
                                     }
                                     sx={{
                                       color: "#168dc5",
@@ -1223,6 +1502,34 @@ export default function PayrollInsuranceRatesPage() {
                                   </IconButton>
                                 </Tooltip>
 
+                                <Tooltip title="發布版本">
+                                  <IconButton
+                                    onClick={() =>
+                                      handleOpenPublishDialog(version)
+                                    }
+                                    aria-label="發布版本"
+                                    disabled={
+                                      deleting ||
+                                      publishing ||
+                                      editLoadingId === versionId
+                                    }
+                                    sx={{
+                                      color: "#15803d",
+                                    }}
+                                  >
+                                    {publishing &&
+                                    publishTarget?.insurance_rate_version_id ===
+                                      versionId ? (
+                                      <CircularProgress
+                                        size={20}
+                                        color="inherit"
+                                      />
+                                    ) : (
+                                      <PublishOutlinedIcon />
+                                    )}
+                                  </IconButton>
+                                </Tooltip>
+
                                 <Tooltip title="刪除草稿">
                                   <IconButton
                                     onClick={() =>
@@ -1230,7 +1537,9 @@ export default function PayrollInsuranceRatesPage() {
                                     }
                                     aria-label="刪除草稿"
                                     disabled={
-                                      deleting || editLoadingId === versionId
+                                      deleting ||
+                                      publishing ||
+                                      editLoadingId === versionId
                                     }
                                     sx={{
                                       color: "#dc2626",
@@ -1270,6 +1579,7 @@ export default function PayrollInsuranceRatesPage() {
                   onView={handleViewVersion}
                   onEdit={handleEditVersion}
                   onDelete={handleOpenDeleteDialog}
+                  onPublish={handleOpenPublishDialog}
                   detailLoading={detailLoading && detailOpen}
                   editLoading={
                     editLoadingId === version.insurance_rate_version_id
@@ -1277,6 +1587,11 @@ export default function PayrollInsuranceRatesPage() {
                   deleteLoading={
                     deleting &&
                     deleteTarget?.insurance_rate_version_id ===
+                      version.insurance_rate_version_id
+                  }
+                  publishLoading={
+                    publishing &&
+                    publishTarget?.insurance_rate_version_id ===
                       version.insurance_rate_version_id
                   }
                 />
@@ -1308,6 +1623,15 @@ export default function PayrollInsuranceRatesPage() {
         errorMessage={deleteErrorMessage}
         onClose={handleCloseDeleteDialog}
         onConfirm={handleDeleteVersion}
+      />
+
+      <PublishVersionDialog
+        open={Boolean(publishTarget)}
+        version={publishTarget}
+        publishing={publishing}
+        errorMessage={publishErrorMessage}
+        onClose={handleClosePublishDialog}
+        onConfirm={handlePublishVersion}
       />
 
       <Snackbar

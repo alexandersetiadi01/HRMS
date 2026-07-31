@@ -42,7 +42,7 @@ import PayrollInsuranceGradesPage from "../Pages/PayrollManagement/PayrollInsura
 import PayrollInsuranceRatesPage from "../Pages/PayrollManagement/PayrollInsuranceRatesPage";
 import PayrollBulkAdjustmentPage from "../Pages/PayrollManagement/PayrollBulkAdjustmentPage";
 import PayrollAdjustmentHistoryPage from "../Pages/PayrollManagement/PayrollAdjustmentHistoryPage";
-import PayrollEmployeeSalaryDataPage from "../Pages/PayrollManagement/PayrollEmployeeSalaryDataPage";
+import PayrollEmployeeDataPage from "../Pages/PayrollManagement/PayrollEmployeeDataPage";
 
 function PlaceholderPage({ title }) {
   return <div style={{ padding: "24px" }}>{title}</div>;
@@ -217,7 +217,7 @@ export default function AppRoutes() {
 
           <Route
             path="employee-data/settings"
-            element={<PayrollEmployeeSalaryDataPage />}
+            element={<PayrollEmployeeDataPage />}
           />
 
           <Route

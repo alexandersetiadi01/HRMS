@@ -1102,6 +1102,326 @@ export async function publishInsuranceRateVersion(
   return unwrapResponse(response, null);
 }
 
+export async function getInsuranceIdentities(
+  params = {},
+) {
+  const response = await http.get(
+    "/insurance-identities",
+    {
+      params: buildParams({
+        search: params.search,
+        status: params.status,
+      }),
+    },
+  );
+
+  return unwrapResponse(response, []);
+}
+
+export async function getInsuranceIdentity(
+  insuranceIdentityId,
+) {
+  const response = await http.get(
+    `/insurance-identities/${insuranceIdentityId}`,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function createInsuranceIdentity(
+  payload,
+) {
+  const response = await http.post(
+    "/insurance-identities",
+    payload,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function updateInsuranceIdentity(
+  insuranceIdentityId,
+  payload,
+) {
+  const response = await http.put(
+    `/insurance-identities/${insuranceIdentityId}`,
+    payload,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function deleteInsuranceIdentity(
+  insuranceIdentityId,
+) {
+  const response = await http.delete(
+    `/insurance-identities/${insuranceIdentityId}`,
+  );
+
+  return unwrapResponse(response, {
+    deleted: false,
+    disabled: false,
+  });
+}
+
+async function getEmployeeInsuranceRecords(
+  endpoint,
+  params = {},
+) {
+  const response = await http.get(endpoint, {
+    params: buildParams({
+      page: params.page || 1,
+      per_page: params.per_page || 100,
+      employee_id: params.employee_id,
+      action_type: params.action_type,
+      include_deleted: params.include_deleted
+        ? 1
+        : undefined,
+      date_from: params.date_from,
+      date_to: params.date_to,
+    }),
+  });
+
+  return unwrapResponse(response, []);
+}
+
+async function getEmployeeInsuranceRecord(
+  endpoint,
+  recordId,
+) {
+  const response = await http.get(
+    `${endpoint}/${recordId}`,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+async function createEmployeeInsuranceRecord(
+  endpoint,
+  payload,
+) {
+  const response = await http.post(
+    endpoint,
+    payload,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+async function updateEmployeeInsuranceRecord(
+  endpoint,
+  recordId,
+  payload,
+) {
+  const response = await http.put(
+    `${endpoint}/${recordId}`,
+    payload,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+async function deleteEmployeeInsuranceRecord(
+  endpoint,
+  recordId,
+) {
+  const response = await http.delete(
+    `${endpoint}/${recordId}`,
+  );
+
+  return unwrapResponse(response, {
+    deleted: false,
+    record: null,
+  });
+}
+
+async function transferEmployeeInsuranceRecord(
+  endpoint,
+  payload,
+) {
+  const response = await http.post(
+    `${endpoint}/transfer`,
+    payload,
+  );
+
+  return unwrapResponse(response, {
+    transferred: false,
+    withdrawal_record: null,
+    enrollment_record: null,
+  });
+}
+
+
+const LABOR_INSURANCE_RECORDS_ENDPOINT =
+  "/employee-labor-insurance-records";
+
+const OCCUPATIONAL_INSURANCE_RECORDS_ENDPOINT =
+  "/employee-occupational-insurance-records";
+
+const PENSION_INSURANCE_RECORDS_ENDPOINT =
+  "/employee-pension-insurance-records";
+
+export async function getEmployeeLaborInsuranceRecords(
+  params = {},
+) {
+  return getEmployeeInsuranceRecords(
+    LABOR_INSURANCE_RECORDS_ENDPOINT,
+    params,
+  );
+}
+
+export async function getEmployeeLaborInsuranceRecord(
+  recordId,
+) {
+  return getEmployeeInsuranceRecord(
+    LABOR_INSURANCE_RECORDS_ENDPOINT,
+    recordId,
+  );
+}
+
+export async function createEmployeeLaborInsuranceRecord(
+  payload,
+) {
+  return createEmployeeInsuranceRecord(
+    LABOR_INSURANCE_RECORDS_ENDPOINT,
+    payload,
+  );
+}
+
+export async function updateEmployeeLaborInsuranceRecord(
+  recordId,
+  payload,
+) {
+  return updateEmployeeInsuranceRecord(
+    LABOR_INSURANCE_RECORDS_ENDPOINT,
+    recordId,
+    payload,
+  );
+}
+
+export async function deleteEmployeeLaborInsuranceRecord(
+  recordId,
+) {
+  return deleteEmployeeInsuranceRecord(
+    LABOR_INSURANCE_RECORDS_ENDPOINT,
+    recordId,
+  );
+}
+
+export async function transferEmployeeLaborInsurance(
+  payload,
+) {
+  return transferEmployeeInsuranceRecord(
+    LABOR_INSURANCE_RECORDS_ENDPOINT,
+    payload,
+  );
+}
+
+
+export async function getEmployeeOccupationalInsuranceRecords(
+  params = {},
+) {
+  return getEmployeeInsuranceRecords(
+    OCCUPATIONAL_INSURANCE_RECORDS_ENDPOINT,
+    params,
+  );
+}
+
+export async function getEmployeeOccupationalInsuranceRecord(
+  recordId,
+) {
+  return getEmployeeInsuranceRecord(
+    OCCUPATIONAL_INSURANCE_RECORDS_ENDPOINT,
+    recordId,
+  );
+}
+
+export async function createEmployeeOccupationalInsuranceRecord(
+  payload,
+) {
+  return createEmployeeInsuranceRecord(
+    OCCUPATIONAL_INSURANCE_RECORDS_ENDPOINT,
+    payload,
+  );
+}
+
+export async function updateEmployeeOccupationalInsuranceRecord(
+  recordId,
+  payload,
+) {
+  return updateEmployeeInsuranceRecord(
+    OCCUPATIONAL_INSURANCE_RECORDS_ENDPOINT,
+    recordId,
+    payload,
+  );
+}
+
+export async function deleteEmployeeOccupationalInsuranceRecord(
+  recordId,
+) {
+  return deleteEmployeeInsuranceRecord(
+    OCCUPATIONAL_INSURANCE_RECORDS_ENDPOINT,
+    recordId,
+  );
+}
+
+export async function transferEmployeeOccupationalInsurance(
+  payload,
+) {
+  return transferEmployeeInsuranceRecord(
+    OCCUPATIONAL_INSURANCE_RECORDS_ENDPOINT,
+    payload,
+  );
+}
+
+export async function getEmployeePensionInsuranceRecords(
+  params = {},
+) {
+  return getEmployeeInsuranceRecords(
+    PENSION_INSURANCE_RECORDS_ENDPOINT,
+    params,
+  );
+}
+
+export async function getEmployeePensionInsuranceRecord(
+  recordId,
+) {
+  return getEmployeeInsuranceRecord(
+    PENSION_INSURANCE_RECORDS_ENDPOINT,
+    recordId,
+  );
+}
+
+export async function createEmployeePensionInsuranceRecord(
+  payload,
+) {
+  return createEmployeeInsuranceRecord(
+    PENSION_INSURANCE_RECORDS_ENDPOINT,
+    payload,
+  );
+}
+
+export async function updateEmployeePensionInsuranceRecord(
+  recordId,
+  payload,
+) {
+  return updateEmployeeInsuranceRecord(
+    PENSION_INSURANCE_RECORDS_ENDPOINT,
+    recordId,
+    payload,
+  );
+}
+
+export async function deleteEmployeePensionInsuranceRecord(
+  recordId,
+) {
+  return deleteEmployeeInsuranceRecord(
+    PENSION_INSURANCE_RECORDS_ENDPOINT,
+    recordId,
+  );
+}
+
+
 export async function verifyPayrollPassword(password) {
   const response = await http.post("/payroll/verify-password", {
     password,
