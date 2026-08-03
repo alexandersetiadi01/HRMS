@@ -40,6 +40,7 @@ import PayrollHourlyFormulaPage from "../Pages/PayrollManagement/PayrollHourlyFo
 import PayrollInsuranceUnitsPage from "../Pages/PayrollManagement/PayrollInsuranceUnitPage";
 import PayrollInsuranceGradesPage from "../Pages/PayrollManagement/PayrollInsuranceGradesPage";
 import PayrollInsuranceRatesPage from "../Pages/PayrollManagement/PayrollInsuranceRatesPage";
+import PayrollInsuranceIdentitiesPage from "../Pages/PayrollManagement/PayrollInsuranceIdentitiesPage";
 import PayrollBulkAdjustmentPage from "../Pages/PayrollManagement/PayrollBulkAdjustmentPage";
 import PayrollAdjustmentHistoryPage from "../Pages/PayrollManagement/PayrollAdjustmentHistoryPage";
 import PayrollEmployeeDataPage from "../Pages/PayrollManagement/PayrollEmployeeDataPage";
@@ -213,6 +214,11 @@ export default function AppRoutes() {
           <Route
             path="settings/insurance-rates"
             element={<PayrollInsuranceRatesPage />}
+          />
+
+          <Route
+            path="settings/insurance-identities"
+            element={<PayrollInsuranceIdentitiesPage />}
           />
 
           <Route

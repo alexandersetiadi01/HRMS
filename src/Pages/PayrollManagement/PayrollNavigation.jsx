@@ -61,6 +61,7 @@ export const PAYROLL_NAVIGATION = [
         id: "insurance-identities",
         label: "投保身分",
         path: "/attendance/admin/payroll/settings/insurance-identities",
+        implemented: true,
       },
       {   
         id: "tax-units",
