@@ -22,10 +22,13 @@ import {
 import {
   deleteEmployeeLaborInsuranceRecord,
   deleteEmployeeOccupationalInsuranceRecord,
+  deleteEmployeePensionInsuranceRecord,
   getEmployeeLaborInsuranceRecord,
   getEmployeeOccupationalInsuranceRecord,
+  getEmployeePensionInsuranceRecord,
   updateEmployeeLaborInsuranceRecord,
   updateEmployeeOccupationalInsuranceRecord,
+  updateEmployeePensionInsuranceRecord,
 } from "../../API/payroll";
 
 const TYPE_CONFIG = {
@@ -42,6 +45,12 @@ const TYPE_CONFIG = {
       updateEmployeeOccupationalInsuranceRecord,
     delete:
       deleteEmployeeOccupationalInsuranceRecord,
+  },
+  pension: {
+    label: "勞退",
+    get: getEmployeePensionInsuranceRecord,
+    update: updateEmployeePensionInsuranceRecord,
+    delete: deleteEmployeePensionInsuranceRecord,
   },
 };
 
@@ -94,9 +103,15 @@ function formatAmount(value) {
 }
 
 function getRecordId(record, type) {
-  return type === "labor"
-    ? record?.labor_insurance_record_id
-    : record?.occupational_insurance_record_id;
+  if (type === "labor") {
+    return record?.labor_insurance_record_id;
+  }
+
+  if (type === "occupational") {
+    return record?.occupational_insurance_record_id;
+  }
+
+  return record?.pension_insurance_record_id;
 }
 
 function getUnitLabel(record) {
@@ -120,7 +135,9 @@ function getActorLabel(historyItem) {
   );
 }
 
-function RecordSummary({ record }) {
+function RecordSummary({ record, type }) {
+  const isPension = type === "pension";
+
   return (
     <Paper
       variant="outlined"
@@ -151,19 +168,49 @@ function RecordSummary({ record }) {
         </Typography>
 
         <Typography sx={{ fontSize: "13px" }}>
-          投保單位：{getUnitLabel(record) || "--"}
+          {isPension ? "提繳單位" : "投保單位"}：
+          {getUnitLabel(record) || "--"}
         </Typography>
 
-        <Typography sx={{ fontSize: "13px" }}>
-          投保薪資：NT${" "}
-          {formatAmount(record?.insured_salary)}
-        </Typography>
+        {isPension ? (
+          <>
+            <Typography sx={{ fontSize: "13px" }}>
+              勞退類別：{record?.pension_type || "--"}
+            </Typography>
+
+            <Typography sx={{ fontSize: "13px" }}>
+              籍別：{record?.nationality_type || "--"}
+            </Typography>
+
+            <Typography sx={{ fontSize: "13px" }}>
+              月提繳工資：NT${" "}
+              {formatAmount(record?.insured_salary)}
+            </Typography>
+
+            <Typography sx={{ fontSize: "13px" }}>
+              雇主提繳率：
+              {record?.employer_contribution_rate ?? "--"}%
+            </Typography>
+
+            <Typography sx={{ fontSize: "13px" }}>
+              個人提繳率：
+              {record?.employee_contribution_rate ?? "--"}%
+            </Typography>
+          </>
+        ) : (
+          <Typography sx={{ fontSize: "13px" }}>
+            投保薪資：NT${" "}
+            {formatAmount(record?.insured_salary)}
+          </Typography>
+        )}
       </Box>
     </Paper>
   );
 }
 
-function HistorySnapshot({ snapshot }) {
+function HistorySnapshot({ snapshot, type }) {
+  const isPension = type === "pension";
+
   return (
     <Box
       sx={{
@@ -190,9 +237,31 @@ function HistorySnapshot({ snapshot }) {
       </Typography>
 
       <Typography sx={{ fontSize: "12px" }}>
-        投保薪資：NT${" "}
+        {isPension ? "月提繳工資" : "投保薪資"}：NT${" "}
         {formatAmount(snapshot?.insured_salary)}
       </Typography>
+
+      {isPension && (
+        <>
+          <Typography sx={{ fontSize: "12px" }}>
+            勞退類別：{snapshot?.pension_type || "--"}
+          </Typography>
+
+          <Typography sx={{ fontSize: "12px" }}>
+            籍別：{snapshot?.nationality_type || "--"}
+          </Typography>
+
+          <Typography sx={{ fontSize: "12px" }}>
+            雇主提繳率：
+            {snapshot?.employer_contribution_rate ?? "--"}%
+          </Typography>
+
+          <Typography sx={{ fontSize: "12px" }}>
+            個人提繳率：
+            {snapshot?.employee_contribution_rate ?? "--"}%
+          </Typography>
+        </>
+      )}
 
       <Typography
         sx={{
@@ -382,7 +451,10 @@ export default function InsuranceRecordManagementDialog({
           </Alert>
         )}
 
-        <RecordSummary record={record} />
+        <RecordSummary
+          record={record}
+          type={type}
+        />
 
         {mode === "remarks" && (
           <>
@@ -390,7 +462,9 @@ export default function InsuranceRecordManagementDialog({
               severity="info"
               sx={{ mb: "16px" }}
             >
-              只會修改備註，不會變更生效日、投保單位或投保薪資。
+              {type === "pension"
+                ? "只會修改備註，不會變更生效日、提繳單位、月提繳工資或提繳率。"
+                : "只會修改備註，不會變更生效日、投保單位或投保薪資。"}
             </Alert>
 
             <TextField
@@ -509,6 +583,7 @@ export default function InsuranceRecordManagementDialog({
                       snapshot={
                         historyItem.snapshot || {}
                       }
+                      type={type}
                     />
                   </Paper>
                 ),

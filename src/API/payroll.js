@@ -1421,6 +1421,15 @@ export async function deleteEmployeePensionInsuranceRecord(
   );
 }
 
+export async function transferEmployeePensionInsurance(
+  payload,
+) {
+  return transferEmployeeInsuranceRecord(
+    PENSION_INSURANCE_RECORDS_ENDPOINT,
+    payload,
+  );
+}
+
 
 export async function verifyPayrollPassword(password) {
   const response = await http.post("/payroll/verify-password", {
