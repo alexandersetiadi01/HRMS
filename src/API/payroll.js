@@ -1370,6 +1370,118 @@ export async function deleteTaxParameter(
   });
 }
 
+export async function getPayrollTaxProfiles(
+  params = {},
+) {
+  const response = await http.get(
+    "/payroll-tax-profiles",
+    {
+      params: buildParams({
+        employee_id: params.employee_id,
+      }),
+    },
+  );
+
+  return unwrapResponse(response, []);
+}
+
+export async function createPayrollTaxProfile(
+  payload,
+) {
+  const response = await http.post(
+    "/payroll-tax-profiles",
+    payload,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function updatePayrollTaxProfile(
+  taxProfileId,
+  payload,
+) {
+  const response = await http.put(
+    `/payroll-tax-profiles/${taxProfileId}`,
+    payload,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function deletePayrollTaxProfile(
+  taxProfileId,
+) {
+  const response = await http.delete(
+    `/payroll-tax-profiles/${taxProfileId}`,
+  );
+
+  return unwrapResponse(response, {
+    deleted: false,
+    retired: false,
+    already_retired: false,
+    tax_profile_id: null,
+    status: "",
+    effective_to: null,
+    payroll_usage_count: 0,
+    is_payroll_used: false,
+    message: "",
+  });
+}
+
+export async function getPayrollTaxDependents(
+  params = {},
+) {
+  const response = await http.get(
+    "/payroll-tax-dependents",
+    {
+      params: buildParams({
+        employee_id: params.employee_id,
+        tax_profile_id:
+          params.tax_profile_id,
+        status: params.status,
+      }),
+    },
+  );
+
+  return unwrapResponse(response, []);
+}
+
+export async function createPayrollTaxDependent(
+  payload,
+) {
+  const response = await http.post(
+    "/payroll-tax-dependents",
+    payload,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function updatePayrollTaxDependent(
+  taxDependentId,
+  payload,
+) {
+  const response = await http.put(
+    `/payroll-tax-dependents/${taxDependentId}`,
+    payload,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function deletePayrollTaxDependent(
+  taxDependentId,
+) {
+  const response = await http.delete(
+    `/payroll-tax-dependents/${taxDependentId}`,
+  );
+
+  return unwrapResponse(response, {
+    deleted: false,
+    tax_dependent_id: null,
+  });
+}
+
 async function getEmployeeInsuranceRecords(
   endpoint,
   params = {},

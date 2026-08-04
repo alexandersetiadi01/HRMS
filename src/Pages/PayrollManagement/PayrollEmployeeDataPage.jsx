@@ -1,5 +1,4 @@
 import {
-  Alert,
   Box,
   Paper,
   Tab,
@@ -9,6 +8,7 @@ import {
 import { useSearchParams } from "react-router-dom";
 
 import PayrollEmployeeInsurancePage from "./PayrollEmployeeInsurancePage";
+import PayrollEmployeeTaxDataPage from "./PayrollEmployeeTaxDataPage";
 import PayrollEmployeeSalaryDataPage from "./PayrollEmployeeSalaryDataPage";
 
 const EMPLOYEE_DATA_TABS = [
@@ -25,52 +25,6 @@ const EMPLOYEE_DATA_TABS = [
     label: "所得稅資料",
   },
 ];
-
-function PayrollEmployeeTaxDataPlaceholder() {
-  return (
-    <Box
-      sx={{
-        minHeight: "280px",
-        p: {
-          xs: "16px",
-          sm: "22px",
-        },
-        border: "1px solid #dfe4e8",
-        borderRadius: "5px",
-        bgcolor: "#ffffff",
-      }}
-    >
-      <Typography
-        component="h1"
-        sx={{
-          color: "#111827",
-          fontSize: {
-            xs: "18px",
-            sm: "20px",
-          },
-          fontWeight: 700,
-        }}
-      >
-        員工所得稅資料
-      </Typography>
-
-      <Typography
-        sx={{
-          mt: "5px",
-          mb: "20px",
-          color: "#7b8794",
-          fontSize: "13px",
-        }}
-      >
-        管理員工所得稅身分、扶養親屬及扣繳設定
-      </Typography>
-
-      <Alert severity="info">
-        所得稅資料將在所得稅後端模組完成後接入。
-      </Alert>
-    </Box>
-  );
-}
 
 export default function PayrollEmployeeDataPage() {
   const [searchParams, setSearchParams] =
@@ -164,7 +118,7 @@ export default function PayrollEmployeeDataPage() {
       )}
 
       {activeTab === "tax" && (
-        <PayrollEmployeeTaxDataPlaceholder />
+        <PayrollEmployeeTaxDataPage />
       )}
     </Box>
   );
