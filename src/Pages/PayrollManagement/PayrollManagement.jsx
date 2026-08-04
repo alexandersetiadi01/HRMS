@@ -22,6 +22,8 @@ import CreatePayrollDialog from "./CreatePayrollDialog";
 import PayrollReadinessPanel from "./PayrollReadinessPanel";
 import PayrollCalculationPanel from "./PayrollCalculationPanel";
 import PayrollCompletionPanel from "./PayrollCompletionPanel";
+import { getStoredAuthUser } from "../../API/auth";
+import { hasPayrollPermission } from "../../Utils/PayrollPermissions";
 
 const STAGES = ["資料確認", "資料計算", "計算完成"];
 
@@ -48,13 +50,9 @@ function formatDateTime(value) {
 }
 
 function getPayrollPeriodIdentity(run) {
-  const periodEnd = String(
-    run?.period_end || "",
-  ).split(" ")[0];
+  const periodEnd = String(run?.period_end || "").split(" ")[0];
 
-  const match = periodEnd.match(
-    /^(\d{4})-(\d{2})-\d{2}$/,
-  );
+  const match = periodEnd.match(/^(\d{4})-(\d{2})-\d{2}$/);
 
   if (match) {
     return {
@@ -142,8 +140,7 @@ function PayrollStageBar({
         const isAvailable = index <= progressStage;
         const isSelected = index === selectedStage;
         const isCompleted =
-          index < progressStage ||
-          (index === 2 && finalStageCompleted);
+          index < progressStage || (index === 2 && finalStageCompleted);
 
         return (
           <Box
@@ -247,12 +244,10 @@ function PayrollStageBar({
   );
 }
 
-function PayrollRunCard({ run, onReload }) {
+function PayrollRunCard({ run, onReload, canCalculate, canApprove, canClose }) {
   const progressStage = getRunStage(run);
-  const payrollPeriod =
-    getPayrollPeriodIdentity(run);
-  const [selectedStage, setSelectedStage] =
-    useState(progressStage);
+  const payrollPeriod = getPayrollPeriodIdentity(run);
+  const [selectedStage, setSelectedStage] = useState(progressStage);
   const statusColor = getStatusColor(progressStage);
 
   const finalStageCompleted =
@@ -261,9 +256,7 @@ function PayrollRunCard({ run, onReload }) {
 
   const title =
     run.run_name ||
-    `${payrollPeriod.year || "--"} 年 ${
-      payrollPeriod.month || "--"
-    } 月薪資`;
+    `${payrollPeriod.year || "--"} 年 ${payrollPeriod.month || "--"} 月薪資`;
 
   return (
     <Box
@@ -404,17 +397,12 @@ function PayrollRunCard({ run, onReload }) {
 
           <SummaryItem
             label="預定發薪日"
-            value={formatDate(
-              run.actual_pay_date || run.period_pay_date,
-            )}
+            value={formatDate(run.actual_pay_date || run.period_pay_date)}
           />
 
           <SummaryItem label="薪資類型" value={run.run_type} />
 
-          <SummaryItem
-            label="所得稅計算"
-            value="依員工稅務設定"
-          />
+          <SummaryItem label="所得稅計算" value="依員工稅務設定" />
 
           <SummaryItem
             label="通知時間"
@@ -430,6 +418,7 @@ function PayrollRunCard({ run, onReload }) {
         {selectedStage === 0 ? (
           <PayrollReadinessPanel
             payrollRunId={run.payroll_run_id}
+            canCalculate={canCalculate}
             onCalculated={onReload}
           />
         ) : null}
@@ -437,6 +426,8 @@ function PayrollRunCard({ run, onReload }) {
         {selectedStage === 1 ? (
           <PayrollCalculationPanel
             payrollRunId={run.payroll_run_id}
+            canCalculate={canCalculate}
+            canApprove={canApprove}
             onReload={onReload}
           />
         ) : null}
@@ -444,6 +435,7 @@ function PayrollRunCard({ run, onReload }) {
         {selectedStage === 2 ? (
           <PayrollCompletionPanel
             payrollRunId={run.payroll_run_id}
+            canClose={canClose}
             onReload={onReload}
           />
         ) : null}
@@ -453,6 +445,14 @@ function PayrollRunCard({ run, onReload }) {
 }
 
 export default function PayrollManagement() {
+  const authUser = useMemo(() => getStoredAuthUser(), []);
+
+  const canCalculate = hasPayrollPermission(authUser, "payroll_calculate");
+
+  const canApprove = hasPayrollPermission(authUser, "payroll_approve");
+
+  const canClose = hasPayrollPermission(authUser, "payroll_close");
+
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
 
@@ -502,9 +502,7 @@ export default function PayrollManagement() {
     });
 
     runs.forEach((run) => {
-      values.add(
-        getPayrollPeriodIdentity(run).year,
-      );
+      values.add(getPayrollPeriodIdentity(run).year);
     });
 
     return [...values]
@@ -514,26 +512,17 @@ export default function PayrollManagement() {
 
   const filteredRuns = useMemo(() => {
     return runs.filter((run) => {
-      const payrollPeriod =
-        getPayrollPeriodIdentity(run);
+      const payrollPeriod = getPayrollPeriodIdentity(run);
 
-      const matchesYear =
-        String(payrollPeriod.year) === year;
+      const matchesYear = String(payrollPeriod.year) === year;
 
       const matchesMonth =
-        String(payrollPeriod.month) ===
-        String(Number(month));
+        String(payrollPeriod.month) === String(Number(month));
 
       const matchesRange =
-        rangeId === "all" ||
-        String(run.payroll_range_id) ===
-          rangeId;
+        rangeId === "all" || String(run.payroll_range_id) === rangeId;
 
-      return (
-        matchesYear &&
-        matchesMonth &&
-        matchesRange
-      );
+      return matchesYear && matchesMonth && matchesRange;
     });
   }, [month, rangeId, runs, year]);
 
@@ -614,26 +603,28 @@ export default function PayrollManagement() {
             重新整理
           </Button>
 
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setCreateDialogOpen(true)}
-            disabled={loading || ranges.length === 0}
-            sx={{
-              height: "36px",
-              flex: {
-                xs: 1,
-                sm: "initial",
-              },
-              bgcolor: "#1f9bd1",
-              fontSize: "14px",
-              "&:hover": {
-                bgcolor: "#168dc5",
-              },
-            }}
-          >
-            建立薪資
-          </Button>
+          {canCalculate ? (
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => setCreateDialogOpen(true)}
+              disabled={loading || ranges.length === 0}
+              sx={{
+                height: "36px",
+                flex: {
+                  xs: 1,
+                  sm: "initial",
+                },
+                bgcolor: "#1f9bd1",
+                fontSize: "14px",
+                "&:hover": {
+                  bgcolor: "#168dc5",
+                },
+              }}
+            >
+              建立薪資
+            </Button>
+          ) : null}
         </Box>
       </Box>
 
@@ -765,6 +756,9 @@ export default function PayrollManagement() {
             <PayrollRunCard
               key={run.payroll_run_id}
               run={run}
+              canCalculate={canCalculate}
+              canApprove={canApprove}
+              canClose={canClose}
               onReload={loadPayrollData}
             />
           ))}

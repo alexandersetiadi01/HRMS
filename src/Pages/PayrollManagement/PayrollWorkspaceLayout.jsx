@@ -16,8 +16,14 @@ import {
   PAYROLL_NAVIGATION,
   findPayrollNavigationItem,
 } from "./PayrollNavigation";
+import { getStoredAuthUser } from "../../API/auth";
+import { filterPayrollNavigation } from "../../Utils/PayrollPermissions";
 
-function PayrollSidebarContent({ pathname, onNavigate }) {
+function PayrollSidebarContent({
+  pathname,
+  navigation,
+  onNavigate,
+}) {
   const current = useMemo(
     () => findPayrollNavigationItem(pathname),
     [pathname],
@@ -29,7 +35,7 @@ function PayrollSidebarContent({ pathname, onNavigate }) {
 
   return (
     <Box component="nav" aria-label="薪資管理功能">
-      {PAYROLL_NAVIGATION.map((section) => {
+      {navigation.map((section) => {
         const hasActiveItem = section.items.some(
           (item) => item.path === pathname,
         );
@@ -153,7 +159,22 @@ function PayrollSidebarContent({ pathname, onNavigate }) {
 
 export default function PayrollWorkspaceLayout() {
   const location = useLocation();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] =
+    useState(false);
+
+  const authUser = useMemo(
+    () => getStoredAuthUser(),
+    [],
+  );
+
+  const visibleNavigation = useMemo(
+    () =>
+      filterPayrollNavigation(
+        PAYROLL_NAVIGATION,
+        authUser,
+      ),
+    [authUser],
+  );
 
   return (
     <Box sx={{ width: "100%", minWidth: 0 }}>
@@ -230,7 +251,10 @@ export default function PayrollWorkspaceLayout() {
         >
           <PayrollSidebarContent
             pathname={location.pathname}
-            onNavigate={() => setMobileMenuOpen(false)}
+            navigation={visibleNavigation}
+            onNavigate={() =>
+              setMobileMenuOpen(false)
+            }
           />
         </Box>
       </Collapse>
@@ -258,7 +282,10 @@ export default function PayrollWorkspaceLayout() {
             bgcolor: "#ffffff",
           }}
         >
-          <PayrollSidebarContent pathname={location.pathname} />
+          <PayrollSidebarContent
+            pathname={location.pathname}
+            navigation={visibleNavigation}
+          />
         </Box>
 
         <Box component="main" sx={{ minWidth: 0 }}>

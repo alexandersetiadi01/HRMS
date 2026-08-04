@@ -172,6 +172,7 @@ function ReadinessStatus({
 function EmployeeReadinessRow({
   employee,
   selected,
+  canCalculate,
   onToggle,
 }) {
   const employeeName =
@@ -233,7 +234,10 @@ function EmployeeReadinessRow({
         >
           <Checkbox
             checked={selected}
-            disabled={!canSelect}
+            disabled={
+              !canSelect ||
+              !canCalculate
+            }
             onChange={() =>
               onToggle(employee.employee_id)
             }
@@ -420,6 +424,7 @@ function EmployeeReadinessRow({
 
 export default function PayrollReadinessPanel({
   payrollRunId,
+  canCalculate = false,
   onCalculated,
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -550,12 +555,15 @@ export default function PayrollReadinessPanel({
   const someSelectableSelected =
     selectedCount > 0 && !allSelectableSelected;
 
-  const canCalculate =
+  const calculationEnabled =
+    canCalculate &&
     selectedCount > 0 &&
     !loading &&
     !calculating;
 
   function handleToggleEmployee(employeeId) {
+    if (!canCalculate) return;
+
     const normalizedId = Number(employeeId);
 
     if (normalizedId <= 0) return;
@@ -568,6 +576,8 @@ export default function PayrollReadinessPanel({
   }
 
   function handleToggleAll() {
+    if (!canCalculate) return;
+
     setSelectedEmployeeIds(
       allSelectableSelected
         ? []
@@ -576,7 +586,7 @@ export default function PayrollReadinessPanel({
   }
 
   async function handleCalculate() {
-    if (!canCalculate) return;
+    if (!calculationEnabled) return;
 
     const confirmed = window.confirm(
       `確定要計算此薪資批次嗎？系統將計算 ${selectedCount} 位已選員工的薪資。`,
@@ -888,6 +898,7 @@ export default function PayrollReadinessPanel({
                     indeterminate={someSelectableSelected}
                     onChange={handleToggleAll}
                     disabled={
+                      !canCalculate ||
                       selectableEmployees.length === 0
                     }
                     size="small"
@@ -918,8 +929,13 @@ export default function PayrollReadinessPanel({
                       key={employee.employee_id}
                       employee={employee}
                       selected={selectedEmployeeIds.includes(
-                        Number(employee.employee_id),
+                        Number(
+                          employee.employee_id,
+                        ),
                       )}
+                      canCalculate={
+                        canCalculate
+                      }
                       onToggle={
                         handleToggleEmployee
                       }
@@ -958,6 +974,9 @@ export default function PayrollReadinessPanel({
                           key={employee.employee_id}
                           employee={employee}
                           selected={false}
+                          canCalculate={
+                            false
+                          }
                           onToggle={() => {}}
                         />
                       ),
@@ -991,31 +1010,35 @@ export default function PayrollReadinessPanel({
                   重新確認資料
                 </Button>
 
-                <Button
-                  variant="contained"
-                  startIcon={
-                    calculating ? (
-                      <CircularProgress
-                        size={17}
-                        color="inherit"
-                      />
-                    ) : (
-                      <PlayArrowIcon />
-                    )
-                  }
-                  onClick={handleCalculate}
-                  disabled={!canCalculate}
-                  sx={{
-                    bgcolor: "#1f9bd1",
-                    "&:hover": {
-                      bgcolor: "#168dc5",
-                    },
-                  }}
-                >
-                  {calculating
-                    ? "計算中..."
-                    : `計算已選員工（${selectedCount}）`}
-                </Button>
+                {canCalculate ? (
+                  <Button
+                    variant="contained"
+                    startIcon={
+                      calculating ? (
+                        <CircularProgress
+                          size={17}
+                          color="inherit"
+                        />
+                      ) : (
+                        <PlayArrowIcon />
+                      )
+                    }
+                    onClick={handleCalculate}
+                    disabled={
+                      !calculationEnabled
+                    }
+                    sx={{
+                      bgcolor: "#1f9bd1",
+                      "&:hover": {
+                        bgcolor: "#168dc5",
+                      },
+                    }}
+                  >
+                    {calculating
+                      ? "計算中..."
+                      : `計算已選員工（${selectedCount}）`}
+                  </Button>
+                ) : null}
               </Box>
             </>
           ) : null}

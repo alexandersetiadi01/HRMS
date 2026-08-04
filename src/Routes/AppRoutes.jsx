@@ -36,11 +36,17 @@ import Settings from "../Pages/Settings/Settings";
 import MenuShortcuts from "../Pages/Settings/MenuShortcut";
 import RequireAuth from "./RequireAuth";
 import RequirePayrollAdmin from "./RequirePayrollAdmin";
+import RequirePayrollPermission, {
+  PayrollDefaultRedirect,
+} from "./RequirePayrollPermission";
 import PayrollHourlyFormulaPage from "../Pages/PayrollManagement/PayrollHourlyFormulaPage";
 import PayrollInsuranceUnitsPage from "../Pages/PayrollManagement/PayrollInsuranceUnitPage";
 import PayrollInsuranceGradesPage from "../Pages/PayrollManagement/PayrollInsuranceGradesPage";
 import PayrollInsuranceRatesPage from "../Pages/PayrollManagement/PayrollInsuranceRatesPage";
 import PayrollInsuranceIdentitiesPage from "../Pages/PayrollManagement/PayrollInsuranceIdentitiesPage";
+import PayrollTaxDeclarationUnitsPage from "../Pages/PayrollManagement/PayrollTaxDeclarationUnitsPage";
+import PayrollTaxParametersPage from "../Pages/PayrollManagement/PayrollTaxParametersPage";
+import PayrollPermissionsPage from "../Pages/PayrollManagement/PayrollPermissionsPage";
 import PayrollBulkAdjustmentPage from "../Pages/PayrollManagement/PayrollBulkAdjustmentPage";
 import PayrollAdjustmentHistoryPage from "../Pages/PayrollManagement/PayrollAdjustmentHistoryPage";
 import PayrollEmployeeDataPage from "../Pages/PayrollManagement/PayrollEmployeeDataPage";
@@ -152,10 +158,7 @@ export default function AppRoutes() {
           path="/attendance/admin/payroll-work"
           element={
             <RequirePayrollAdmin>
-              <Navigate
-                to="/attendance/admin/payroll/operations/salary"
-                replace
-              />
+              <PayrollDefaultRedirect />
             </RequirePayrollAdmin>
           }
         />
@@ -171,69 +174,234 @@ export default function AppRoutes() {
           <Route
             index
             element={
-              <Navigate
-                to="/attendance/admin/payroll/operations/salary"
-                replace
-              />
+              <PayrollDefaultRedirect />
             }
           />
 
-          <Route path="operations/salary" element={<PayrollManagement />} />
+          <Route
+            path="operations/salary"
+            element={
+              <RequirePayrollPermission
+                permissions={[
+                  "payroll_view",
+                  "payroll_calculate",
+                  "payroll_approve",
+                  "payroll_close",
+                  "payroll_mark_paid",
+                ]}
+              >
+                <PayrollManagement />
+              </RequirePayrollPermission>
+            }
+          />
 
-          <Route path="settings/ranges" element={<PayrollRangesPage />} />
+          <Route
+            path="settings/ranges"
+            element={
+              <RequirePayrollPermission
+                permissions={[
+                  "payroll_settings_manage",
+                ]}
+              >
+                <PayrollRangesPage />
+              </RequirePayrollPermission>
+            }
+          />
 
-          <Route path="settings/periods" element={<PayrollPeriodsPage />} />
+          <Route
+            path="settings/periods"
+            element={
+              <RequirePayrollPermission
+                permissions={[
+                  "payroll_settings_manage",
+                ]}
+              >
+                <PayrollPeriodsPage />
+              </RequirePayrollPermission>
+            }
+          />
 
-          <Route path="settings/items" element={<PayrollItemsPage />} />
+          <Route
+            path="settings/items"
+            element={
+              <RequirePayrollPermission
+                permissions={[
+                  "payroll_settings_manage",
+                ]}
+              >
+                <PayrollItemsPage />
+              </RequirePayrollPermission>
+            }
+          />
 
           <Route
             path="settings/overtime-tax"
-            element={<PayrollOvertimeTaxPage />}
+            element={
+              <RequirePayrollPermission
+                permissions={[
+                  "payroll_settings_manage",
+                ]}
+              >
+                <PayrollOvertimeTaxPage />
+              </RequirePayrollPermission>
+            }
           />
 
           <Route
             path="settings/hourly-formula"
-            element={<PayrollHourlyFormulaPage />}
+            element={
+              <RequirePayrollPermission
+                permissions={[
+                  "payroll_settings_manage",
+                ]}
+              >
+                <PayrollHourlyFormulaPage />
+              </RequirePayrollPermission>
+            }
           />
 
-           <Route
+          <Route
             path="settings/banks"
-            element={<PayrollSalaryBanksPage />}
+            element={
+              <RequirePayrollPermission
+                permissions={[
+                  "payroll_settings_manage",
+                ]}
+              >
+                <PayrollSalaryBanksPage />
+              </RequirePayrollPermission>
+            }
           />
 
           <Route
             path="settings/insurance-units"
-            element={<PayrollInsuranceUnitsPage />}
+            element={
+              <RequirePayrollPermission
+                permissions={[
+                  "payroll_tax_insurance_manage",
+                ]}
+              >
+                <PayrollInsuranceUnitsPage />
+              </RequirePayrollPermission>
+            }
           />
 
           <Route
             path="settings/insurance-grades"
-            element={<PayrollInsuranceGradesPage />}
+            element={
+              <RequirePayrollPermission
+                permissions={[
+                  "payroll_tax_insurance_manage",
+                ]}
+              >
+                <PayrollInsuranceGradesPage />
+              </RequirePayrollPermission>
+            }
           />
 
           <Route
             path="settings/insurance-rates"
-            element={<PayrollInsuranceRatesPage />}
+            element={
+              <RequirePayrollPermission
+                permissions={[
+                  "payroll_tax_insurance_manage",
+                ]}
+              >
+                <PayrollInsuranceRatesPage />
+              </RequirePayrollPermission>
+            }
           />
 
           <Route
             path="settings/insurance-identities"
-            element={<PayrollInsuranceIdentitiesPage />}
+            element={
+              <RequirePayrollPermission
+                permissions={[
+                  "payroll_tax_insurance_manage",
+                ]}
+              >
+                <PayrollInsuranceIdentitiesPage />
+              </RequirePayrollPermission>
+            }
+          />
+
+          <Route
+            path="settings/tax-units"
+            element={
+              <RequirePayrollPermission
+                permissions={[
+                  "payroll_tax_insurance_manage",
+                ]}
+              >
+                <PayrollTaxDeclarationUnitsPage />
+              </RequirePayrollPermission>
+            }
+          />
+
+          <Route
+            path="settings/tax-parameters"
+            element={
+              <RequirePayrollPermission
+                permissions={[
+                  "payroll_tax_insurance_manage",
+                ]}
+              >
+                <PayrollTaxParametersPage />
+              </RequirePayrollPermission>
+            }
+          />
+
+          <Route
+            path="settings/permissions"
+            element={
+              <RequirePayrollPermission
+                permissions={[
+                  "payroll_permissions_manage",
+                ]}
+              >
+                <PayrollPermissionsPage />
+              </RequirePayrollPermission>
+            }
           />
 
           <Route
             path="employee-data/settings"
-            element={<PayrollEmployeeDataPage />}
+            element={
+              <RequirePayrollPermission
+                permissions={[
+                  "payroll_settings_manage",
+                  "payroll_tax_insurance_manage",
+                ]}
+              >
+                <PayrollEmployeeDataPage />
+              </RequirePayrollPermission>
+            }
           />
 
           <Route
             path="employee-data/bulk-adjustment"
-            element={<PayrollBulkAdjustmentPage />}
+            element={
+              <RequirePayrollPermission
+                permissions={[
+                  "payroll_settings_manage",
+                ]}
+              >
+                <PayrollBulkAdjustmentPage />
+              </RequirePayrollPermission>
+            }
           />
 
           <Route
             path="employee-data/adjustment-history"
-            element={<PayrollAdjustmentHistoryPage />}
+            element={
+              <RequirePayrollPermission
+                permissions={[
+                  "payroll_settings_manage",
+                ]}
+              >
+                <PayrollAdjustmentHistoryPage />
+              </RequirePayrollPermission>
+            }
           />
 
           <Route path="*" element={<PayrollUnavailableModule />} />

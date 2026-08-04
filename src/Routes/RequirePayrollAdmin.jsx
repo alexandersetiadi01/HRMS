@@ -2,12 +2,13 @@ import { Alert, Box, Button, Paper, Typography } from "@mui/material";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import { useNavigate } from "react-router-dom";
 import { getStoredAuthUser } from "../API/auth";
+import { canAccessPayrollModule } from "../Utils/PayrollPermissions";
 
 export default function RequirePayrollAdmin({ children }) {
   const navigate = useNavigate();
   const authUser = getStoredAuthUser();
 
-  if (authUser?.can_manage_payroll === true) {
+  if (canAccessPayrollModule(authUser)) {
     return children;
   }
 

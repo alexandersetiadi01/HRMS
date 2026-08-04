@@ -91,6 +91,86 @@ function downloadBlobResponse(response, fallbackFilename) {
   window.URL.revokeObjectURL(url);
 }
 
+export async function getPayrollPermissions() {
+  const response = await http.get(
+    "/payroll/permissions",
+  );
+
+  return unwrapResponse(response, []);
+}
+
+export async function getPayrollPermissionRoles() {
+  const response = await http.get(
+    "/payroll/permission-roles",
+  );
+
+  return unwrapResponse(response, []);
+}
+
+export async function getPayrollPermissionRole(
+  roleKey,
+) {
+  const normalizedRoleKey = String(
+    roleKey || "",
+  ).trim();
+
+  if (!normalizedRoleKey) {
+    throw new Error("Role key is required.");
+  }
+
+  const response = await http.get(
+    `/payroll/permission-roles/${encodeURIComponent(
+      normalizedRoleKey,
+    )}`,
+  );
+
+  return unwrapResponse(response, {
+    role_key: normalizedRoleKey,
+    role_name: "",
+    is_protected: false,
+    permission_codes: [],
+    permissions: [],
+  });
+}
+
+export async function updatePayrollPermissionRole(
+  roleKey,
+  permissionCodes,
+) {
+  const normalizedRoleKey = String(
+    roleKey || "",
+  ).trim();
+
+  if (!normalizedRoleKey) {
+    throw new Error("Role key is required.");
+  }
+
+  const normalizedPermissionCodes = Array.from(
+    new Set(
+      (Array.isArray(permissionCodes)
+        ? permissionCodes
+        : []
+      )
+        .map((permissionCode) =>
+          String(permissionCode || "").trim(),
+        )
+        .filter(Boolean),
+    ),
+  );
+
+  const response = await http.put(
+    `/payroll/permission-roles/${encodeURIComponent(
+      normalizedRoleKey,
+    )}`,
+    {
+      permission_codes:
+        normalizedPermissionCodes,
+    },
+  );
+
+  return unwrapResponse(response, null);
+}
+
 export async function getPayrollRanges(params = {}) {
   const response = await http.get("/payroll-ranges", {
     params: buildParams({
@@ -1156,6 +1236,132 @@ export async function deleteInsuranceIdentity(
 ) {
   const response = await http.delete(
     `/insurance-identities/${insuranceIdentityId}`,
+  );
+
+  return unwrapResponse(response, {
+    deleted: false,
+    disabled: false,
+  });
+}
+
+export async function getTaxDeclarationUnits(
+  params = {},
+) {
+  const response = await http.get(
+    "/tax-declaration-units",
+    {
+      params: buildParams({
+        search: params.search,
+        status: params.status,
+      }),
+    },
+  );
+
+  return unwrapResponse(response, []);
+}
+
+export async function getTaxDeclarationUnit(
+  taxDeclarationUnitId,
+) {
+  const response = await http.get(
+    `/tax-declaration-units/${taxDeclarationUnitId}`,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function createTaxDeclarationUnit(
+  payload,
+) {
+  const response = await http.post(
+    "/tax-declaration-units",
+    payload,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function updateTaxDeclarationUnit(
+  taxDeclarationUnitId,
+  payload,
+) {
+  const response = await http.put(
+    `/tax-declaration-units/${taxDeclarationUnitId}`,
+    payload,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function deleteTaxDeclarationUnit(
+  taxDeclarationUnitId,
+) {
+  const response = await http.delete(
+    `/tax-declaration-units/${taxDeclarationUnitId}`,
+  );
+
+  return unwrapResponse(response, {
+    deleted: false,
+    disabled: false,
+  });
+}
+
+export async function getTaxParameters(
+  params = {},
+) {
+  const response = await http.get(
+    "/tax-parameters",
+    {
+      params: buildParams({
+        search: params.search,
+        status: params.status,
+        effective_year:
+          params.effective_year,
+      }),
+    },
+  );
+
+  return unwrapResponse(response, []);
+}
+
+export async function getTaxParameter(
+  taxParameterId,
+) {
+  const response = await http.get(
+    `/tax-parameters/${taxParameterId}`,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function createTaxParameter(
+  payload,
+) {
+  const response = await http.post(
+    "/tax-parameters",
+    payload,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function updateTaxParameter(
+  taxParameterId,
+  payload,
+) {
+  const response = await http.put(
+    `/tax-parameters/${taxParameterId}`,
+    payload,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function deleteTaxParameter(
+  taxParameterId,
+) {
+  const response = await http.delete(
+    `/tax-parameters/${taxParameterId}`,
   );
 
   return unwrapResponse(response, {
