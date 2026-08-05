@@ -39,6 +39,7 @@ import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import SearchIcon from "@mui/icons-material/Search";
+import TableRowsOutlinedIcon from "@mui/icons-material/TableRowsOutlined";
 
 import {
   createTaxParameter,
@@ -46,6 +47,8 @@ import {
   getTaxParameters,
   updateTaxParameter,
 } from "../../API/payroll";
+
+import TaxTableRowsManagementDialog from "./TaxTableRowsManagementDialog";
 
 const CURRENT_YEAR = new Date().getFullYear();
 
@@ -737,6 +740,7 @@ function TaxParameterFormDialog({
 
 function TaxParameterMobileCard({
   parameter,
+  onManageTaxTable,
   onEdit,
   onDelete,
 }) {
@@ -939,6 +943,7 @@ function TaxParameterMobileCard({
         sx={{
           display: "flex",
           justifyContent: "flex-end",
+          flexWrap: "wrap",
           gap: "6px",
           mt: "16px",
           pt: "12px",
@@ -946,6 +951,19 @@ function TaxParameterMobileCard({
             "1px solid #e5e7eb",
         }}
       >
+        <Button
+          type="button"
+          size="small"
+          startIcon={
+            <TableRowsOutlinedIcon />
+          }
+          onClick={() =>
+            onManageTaxTable(parameter)
+          }
+        >
+          管理所得稅額表
+        </Button>
+
         <Button
           type="button"
           size="small"
@@ -995,6 +1013,11 @@ export default function PayrollTaxParametersPage() {
 
   const [formDialog, setFormDialog] =
     useState(null);
+
+  const [
+    taxTableParameter,
+    setTaxTableParameter,
+  ] = useState(null);
 
   const [deleteTarget, setDeleteTarget] =
     useState(null);
@@ -1097,6 +1120,15 @@ export default function PayrollTaxParametersPage() {
     setFormDialog({
       parameter: null,
     });
+  }
+
+  function handleOpenTaxTable(
+    parameter,
+  ) {
+    setError("");
+    setSuccess("");
+
+    setTaxTableParameter(parameter);
   }
 
   function handleOpenEdit(parameter) {
@@ -1444,6 +1476,9 @@ export default function PayrollTaxParametersPage() {
                     parameter.tax_parameter_id
                   }
                   parameter={parameter}
+                  onManageTaxTable={
+                    handleOpenTaxTable
+                  }
                   onEdit={
                     handleOpenEdit
                   }
@@ -1639,6 +1674,28 @@ export default function PayrollTaxParametersPage() {
                             gap: "2px",
                           }}
                         >
+                                                    <Tooltip
+                            title="管理所得稅額表"
+                            arrow
+                          >
+                            <IconButton
+                              type="button"
+                              size="small"
+                              aria-label="管理所得稅額表"
+                              onClick={() =>
+                                handleOpenTaxTable(
+                                  parameter,
+                                )
+                              }
+                            >
+                              <TableRowsOutlinedIcon
+                                sx={{
+                                  fontSize:
+                                    "20px",
+                                }}
+                              />
+                            </IconButton>
+                          </Tooltip>
                           <Tooltip
                             title="編輯"
                             arrow
@@ -1695,6 +1752,17 @@ export default function PayrollTaxParametersPage() {
           </TableContainer>
         </>
       )}
+      <TaxTableRowsManagementDialog
+        open={Boolean(
+          taxTableParameter,
+        )}
+        taxParameter={
+          taxTableParameter
+        }
+        onClose={() =>
+          setTaxTableParameter(null)
+        }
+      />
 
       <TaxParameterFormDialog
         open={Boolean(formDialog)}

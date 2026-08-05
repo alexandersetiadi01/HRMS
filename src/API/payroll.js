@@ -1370,6 +1370,76 @@ export async function deleteTaxParameter(
   });
 }
 
+export async function getTaxTableRows(
+  taxParameterId,
+  params = {},
+) {
+  const response = await http.get(
+    `/tax-parameters/${taxParameterId}/tax-table-rows`,
+    {
+      params: buildParams({
+        dependent_count:
+          params.dependent_count,
+        status: params.status,
+      }),
+    },
+  );
+
+  return unwrapResponse(response, []);
+}
+
+export async function getTaxTableRow(
+  taxTableRowId,
+) {
+  const response = await http.get(
+    `/tax-table-rows/${taxTableRowId}`,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function createTaxTableRow(
+  taxParameterId,
+  payload,
+) {
+  const response = await http.post(
+    `/tax-parameters/${taxParameterId}/tax-table-rows`,
+    payload,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function updateTaxTableRow(
+  taxTableRowId,
+  payload,
+) {
+  const response = await http.put(
+    `/tax-table-rows/${taxTableRowId}`,
+    payload,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function deleteTaxTableRow(
+  taxTableRowId,
+) {
+  const response = await http.delete(
+    `/tax-table-rows/${taxTableRowId}`,
+  );
+
+  return unwrapResponse(response, {
+    deleted: false,
+    disabled: false,
+    already_disabled: false,
+    tax_table_row_id: null,
+    payroll_usage_count: 0,
+    message: "",
+    item: null,
+  });
+}
+
 export async function getPayrollTaxProfiles(
   params = {},
 ) {
