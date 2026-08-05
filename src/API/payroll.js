@@ -25,6 +25,56 @@ function buildParams(params = {}) {
   );
 }
 
+function normalizePositiveId(
+  value,
+  fieldLabel,
+) {
+  const normalizedValue = Number(value);
+
+  if (
+    !Number.isInteger(normalizedValue) ||
+    normalizedValue <= 0
+  ) {
+    throw new Error(
+      `${fieldLabel} is required.`,
+    );
+  }
+
+  return normalizedValue;
+}
+
+function getIncomeTaxDeclarationPath(
+  incomeTaxDeclarationId,
+  action = "",
+) {
+  const normalizedId =
+    normalizePositiveId(
+      incomeTaxDeclarationId,
+      "Income tax declaration ID",
+    );
+
+  const basePath =
+    `/payroll-income-tax-declarations/${normalizedId}`;
+
+  return action
+    ? `${basePath}/${action}`
+    : basePath;
+}
+
+async function runIncomeTaxDeclarationAction(
+  incomeTaxDeclarationId,
+  action,
+) {
+  const response = await http.post(
+    getIncomeTaxDeclarationPath(
+      incomeTaxDeclarationId,
+      action,
+    ),
+  );
+
+  return unwrapResponse(response, null);
+}
+
 function normalizePayslipDetail(detail, payrollResultId) {
   if (Array.isArray(detail)) {
     detail =
@@ -1304,6 +1354,123 @@ export async function deleteTaxDeclarationUnit(
     deleted: false,
     disabled: false,
   });
+}
+
+export async function getIncomeTaxDeclarations(
+  params = {},
+) {
+  const response = await http.get(
+    "/payroll-income-tax-declarations",
+    {
+      params: buildParams({
+        declaration_year:
+          params.declaration_year,
+
+        tax_declaration_unit_id:
+          params.tax_declaration_unit_id,
+
+        declaration_type:
+          params.declaration_type,
+
+        status:
+          params.status,
+
+        keyword:
+          params.keyword,
+
+        page:
+          params.page,
+
+        per_page:
+          params.per_page,
+      }),
+    },
+  );
+
+  return unwrapResponse(response, {
+    rows: [],
+    total: 0,
+    page: 1,
+    per_page: 20,
+    total_pages: 0,
+    summary: {
+      record_count_total: 0,
+      taxable_amount_total: 0,
+      withholding_tax_total: 0,
+    },
+  });
+}
+
+export async function getIncomeTaxDeclaration(
+  incomeTaxDeclarationId,
+) {
+  const response = await http.get(
+    getIncomeTaxDeclarationPath(
+      incomeTaxDeclarationId,
+    ),
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function previewIncomeTaxDeclaration(
+  payload,
+) {
+  const response = await http.post(
+    "/payroll-income-tax-declarations/preview",
+    payload,
+  );
+
+  return unwrapResponse(response, {
+    declaration_year: null,
+    declaration_type: "",
+    declaration_unit: null,
+    next_version_no: 1,
+    summary: {
+      record_count: 0,
+      taxable_amount_total: 0,
+      withholding_tax_total: 0,
+    },
+    rows: [],
+  });
+}
+
+export async function createIncomeTaxDeclaration(
+  payload,
+) {
+  const response = await http.post(
+    "/payroll-income-tax-declarations",
+    payload,
+  );
+
+  return unwrapResponse(response, null);
+}
+
+export async function confirmIncomeTaxDeclaration(
+  incomeTaxDeclarationId,
+) {
+  return runIncomeTaxDeclarationAction(
+    incomeTaxDeclarationId,
+    "confirm",
+  );
+}
+
+export async function submitIncomeTaxDeclaration(
+  incomeTaxDeclarationId,
+) {
+  return runIncomeTaxDeclarationAction(
+    incomeTaxDeclarationId,
+    "submit",
+  );
+}
+
+export async function cancelIncomeTaxDeclaration(
+  incomeTaxDeclarationId,
+) {
+  return runIncomeTaxDeclarationAction(
+    incomeTaxDeclarationId,
+    "cancel",
+  );
 }
 
 export async function getTaxParameters(

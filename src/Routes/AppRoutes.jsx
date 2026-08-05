@@ -51,6 +51,7 @@ import PayrollBulkAdjustmentPage from "../Pages/PayrollManagement/PayrollBulkAdj
 import PayrollAdjustmentHistoryPage from "../Pages/PayrollManagement/PayrollAdjustmentHistoryPage";
 import PayrollEmployeeDataPage from "../Pages/PayrollManagement/PayrollEmployeeDataPage";
 import PayrollWithholdingOperationsPage from "../Pages/PayrollManagement/PayrollWithholdingOperationsPage";
+import PayrollIncomeTaxDeclarationsPage from "../Pages/PayrollManagement/PayrollIncomeTaxDeclarationsPage";
 
 function PlaceholderPage({ title }) {
   return <div style={{ padding: "24px" }}>{title}</div>;
@@ -417,7 +418,18 @@ export default function AppRoutes() {
               </RequirePayrollPermission>
             }
           />
-
+          <Route
+            path="tax/declarations"
+            element={
+              <RequirePayrollPermission
+                permissions={[
+                  "payroll_tax_insurance_manage",
+                ]}
+              >
+                <PayrollIncomeTaxDeclarationsPage />
+              </RequirePayrollPermission>
+            }
+          />
           <Route
             path="*"
             element={

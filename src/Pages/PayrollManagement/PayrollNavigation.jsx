@@ -174,6 +174,7 @@ export const PAYROLL_NAVIGATION = [
         id: "declarations",
         label: "所得稅申報",
         path: "/attendance/admin/payroll/tax/declarations",
+        implemented: true,
       },
       {
         id: "supplementary-premium",
