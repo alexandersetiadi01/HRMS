@@ -359,16 +359,6 @@ function EmployeeReadinessRow({
         />
       </Box>
 
-      <Typography
-        sx={{
-          mt: "10px",
-          color: "#64748b",
-          fontSize: "12px",
-        }}
-      >
-        本薪：NT$ {formatNumber(employee.base_salary)}
-      </Typography>
-
       {blockingMessages.length > 0 ? (
         <Box
           sx={{

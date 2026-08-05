@@ -30,7 +30,8 @@ const EMPTY_FORM = {
   taxpayer_type: "本國人",
   certificate_type: "0",
   residency_status: "居民",
-  withholding_method: "依年度參數",
+  withholding_method:
+    "依照所得稅額表扣繳",
   withholding_rate: "",
   fixed_tax_amount: "",
   part_time_supplementary_enabled: false,
@@ -63,10 +64,26 @@ const CERTIFICATE_TYPE_OPTIONS = [
 ];
 
 const WITHHOLDING_METHOD_OPTIONS = [
-  "不扣繳",
-  "依年度參數",
-  "固定稅率",
-  "手動金額",
+  {
+    value: "依照所得稅額表扣繳",
+    label: "依照所得稅額表扣繳",
+  },
+  {
+    value: "不扣繳",
+    label: "不扣繳（舊版）",
+  },
+  {
+    value: "依年度參數",
+    label: "依年度參數（舊版固定稅率）",
+  },
+  {
+    value: "固定稅率",
+    label: "固定稅率（舊版）",
+  },
+  {
+    value: "手動金額",
+    label: "手動金額（舊版）",
+  },
 ];
 
 function getToday() {
@@ -147,7 +164,7 @@ function recordToForm(record) {
 
     withholding_method:
       record.withholding_method ||
-      "依年度參數",
+      "依照所得稅額表扣繳",
 
     withholding_rate:
       record.withholding_rate ===
@@ -873,17 +890,29 @@ export default function EmployeeTaxProfileFormDialog({
                 }
               >
                 {WITHHOLDING_METHOD_OPTIONS.map(
-                  (method) => (
+                  (option) => (
                     <MenuItem
-                      key={method}
-                      value={method}
+                      key={option.value}
+                      value={option.value}
                     >
-                      {method}
+                      {option.label}
                     </MenuItem>
                   ),
                 )}
               </Select>
             </FormControl>
+
+            {form.withholding_method ===
+              "依照所得稅額表扣繳" && (
+              <Alert
+                severity="info"
+                sx={{
+                  gridColumn: "1 / -1",
+                }}
+              >
+                系統會依計薪年度的所得稅參數、員工有效扶養親屬人數及應稅所得，自動查找適用的所得稅額表級距。
+              </Alert>
+            )}
 
             {form.withholding_method ===
               "固定稅率" && (

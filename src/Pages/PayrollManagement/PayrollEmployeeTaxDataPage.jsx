@@ -97,14 +97,34 @@ function getCertificateTypeLabel(value) {
 }
 
 function getWithholdingMethodLabel(value) {
-  if (value === "依年度參數") {
-    return "依年度參數（所得稅額表）";
-  }
+  const labels = {
+    依照所得稅額表扣繳:
+      "依照所得稅額表扣繳",
 
-  return value || "--";
+    不扣繳:
+      "不扣繳（舊版）",
+
+    依年度參數:
+      "依年度參數（舊版固定稅率）",
+
+    固定稅率:
+      "固定稅率（舊版）",
+
+    手動金額:
+      "手動金額（舊版）",
+  };
+
+  return labels[value] || value || "--";
 }
 
 function getWithholdingDetail(record) {
+  if (
+    record?.withholding_method ===
+    "依照所得稅額表扣繳"
+  ) {
+    return "依級距自動計算";
+  }
+
   if (record?.withholding_method === "固定稅率") {
     const rate = Number(record?.withholding_rate);
 

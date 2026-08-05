@@ -1440,6 +1440,51 @@ export async function deleteTaxTableRow(
   });
 }
 
+export async function getPayrollWithholdingResults(
+  params = {},
+) {
+  const response = await http.get(
+    "/payroll-withholding-results",
+    {
+      params: buildParams({
+        income_year: params.income_year,
+        income_month: params.income_month,
+        tax_declaration_unit_id:
+          params.tax_declaration_unit_id,
+        employee_id: params.employee_id,
+        payroll_run_id:
+          params.payroll_run_id,
+        status: params.status,
+        keyword: params.keyword,
+        page: params.page,
+        per_page: params.per_page,
+      }),
+    },
+  );
+
+  return unwrapResponse(response, {
+    rows: [],
+    total: 0,
+    page: 1,
+    per_page: 20,
+    total_pages: 0,
+    summary: {
+      taxable_amount_total: 0,
+      withholding_tax_total: 0,
+    },
+  });
+}
+
+export async function getPayrollWithholdingResult(
+  withholdingResultId,
+) {
+  const response = await http.get(
+    `/payroll-withholding-results/${withholdingResultId}`,
+  );
+
+  return unwrapResponse(response, null);
+}
+
 export async function getPayrollTaxProfiles(
   params = {},
 ) {

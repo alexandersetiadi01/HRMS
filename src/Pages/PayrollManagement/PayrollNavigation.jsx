@@ -168,6 +168,7 @@ export const PAYROLL_NAVIGATION = [
         id: "withholding",
         label: "扣繳作業",
         path: "/attendance/admin/payroll/tax/withholding",
+        implemented: true,
       },
       {
         id: "declarations",

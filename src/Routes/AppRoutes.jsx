@@ -50,6 +50,7 @@ import PayrollPermissionsPage from "../Pages/PayrollManagement/PayrollPermission
 import PayrollBulkAdjustmentPage from "../Pages/PayrollManagement/PayrollBulkAdjustmentPage";
 import PayrollAdjustmentHistoryPage from "../Pages/PayrollManagement/PayrollAdjustmentHistoryPage";
 import PayrollEmployeeDataPage from "../Pages/PayrollManagement/PayrollEmployeeDataPage";
+import PayrollWithholdingOperationsPage from "../Pages/PayrollManagement/PayrollWithholdingOperationsPage";
 
 function PlaceholderPage({ title }) {
   return <div style={{ padding: "24px" }}>{title}</div>;
@@ -404,7 +405,25 @@ export default function AppRoutes() {
             }
           />
 
-          <Route path="*" element={<PayrollUnavailableModule />} />
+          <Route
+            path="tax/withholding"
+            element={
+              <RequirePayrollPermission
+                permissions={[
+                  "payroll_tax_insurance_manage",
+                ]}
+              >
+                <PayrollWithholdingOperationsPage />
+              </RequirePayrollPermission>
+            }
+          />
+
+          <Route
+            path="*"
+            element={
+              <PayrollUnavailableModule />
+            }
+          />
         </Route>
         <Route
           path="/attendance/admin/module-setting"
