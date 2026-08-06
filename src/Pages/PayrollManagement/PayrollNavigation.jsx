@@ -189,8 +189,9 @@ export const PAYROLL_NAVIGATION = [
     items: [
       {
         id: "report-center",
-        label: "薪資報表中心",
+        label: "報表中心",
         path: "/attendance/admin/payroll/reports",
+        implemented: false,
       },
     ],
   },

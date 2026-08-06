@@ -1473,6 +1473,56 @@ export async function cancelIncomeTaxDeclaration(
   );
 }
 
+export async function getSalaryBonusPaymentRegister(
+  params = {},
+) {
+  const response = await http.get(
+    "/payroll-reports/salary-bonus-payment-register",
+    {
+      params: buildParams({
+        start_month:
+          params.start_month,
+
+        end_month:
+          params.end_month,
+      }),
+    },
+  );
+
+  return unwrapResponse(response, {
+    report_code:
+      "salary_bonus_payment_register",
+
+    report_name:
+      "薪資／獎金發放清冊",
+
+    start_month:
+      params.start_month || "",
+
+    end_month:
+      params.end_month || "",
+
+    summary: {
+      record_count:
+        0,
+
+      gross_pay_total:
+        0,
+
+      total_deduction_total:
+        0,
+
+      net_pay_total:
+        0,
+
+      bank_transfer_total:
+        0,
+    },
+
+    rows: [],
+  });
+}
+
 export async function getTaxParameters(
   params = {},
 ) {

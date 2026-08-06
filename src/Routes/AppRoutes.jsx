@@ -52,6 +52,7 @@ import PayrollAdjustmentHistoryPage from "../Pages/PayrollManagement/PayrollAdju
 import PayrollEmployeeDataPage from "../Pages/PayrollManagement/PayrollEmployeeDataPage";
 import PayrollWithholdingOperationsPage from "../Pages/PayrollManagement/PayrollWithholdingOperationsPage";
 import PayrollIncomeTaxDeclarationsPage from "../Pages/PayrollManagement/PayrollIncomeTaxDeclarationsPage";
+import PayrollReportsPage from "../Pages/PayrollManagement/PayrollReportsPage";
 
 function PlaceholderPage({ title }) {
   return <div style={{ padding: "24px" }}>{title}</div>;
@@ -430,6 +431,18 @@ export default function AppRoutes() {
               </RequirePayrollPermission>
             }
           />
+          <Route
+            path="reports"
+            element={
+              <RequirePayrollPermission
+                permissions={[
+                  "payroll_reports_view",
+                ]}
+              >
+                <PayrollReportsPage />
+              </RequirePayrollPermission>
+            }
+          />          
           <Route
             path="*"
             element={
