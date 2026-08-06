@@ -25,51 +25,30 @@ function buildParams(params = {}) {
   );
 }
 
-function normalizePositiveId(
-  value,
-  fieldLabel,
-) {
+function normalizePositiveId(value, fieldLabel) {
   const normalizedValue = Number(value);
 
-  if (
-    !Number.isInteger(normalizedValue) ||
-    normalizedValue <= 0
-  ) {
-    throw new Error(
-      `${fieldLabel} is required.`,
-    );
+  if (!Number.isInteger(normalizedValue) || normalizedValue <= 0) {
+    throw new Error(`${fieldLabel} is required.`);
   }
 
   return normalizedValue;
 }
 
-function getIncomeTaxDeclarationPath(
-  incomeTaxDeclarationId,
-  action = "",
-) {
-  const normalizedId =
-    normalizePositiveId(
-      incomeTaxDeclarationId,
-      "Income tax declaration ID",
-    );
+function getIncomeTaxDeclarationPath(incomeTaxDeclarationId, action = "") {
+  const normalizedId = normalizePositiveId(
+    incomeTaxDeclarationId,
+    "Income tax declaration ID",
+  );
 
-  const basePath =
-    `/payroll-income-tax-declarations/${normalizedId}`;
+  const basePath = `/payroll-income-tax-declarations/${normalizedId}`;
 
-  return action
-    ? `${basePath}/${action}`
-    : basePath;
+  return action ? `${basePath}/${action}` : basePath;
 }
 
-async function runIncomeTaxDeclarationAction(
-  incomeTaxDeclarationId,
-  action,
-) {
+async function runIncomeTaxDeclarationAction(incomeTaxDeclarationId, action) {
   const response = await http.post(
-    getIncomeTaxDeclarationPath(
-      incomeTaxDeclarationId,
-      action,
-    ),
+    getIncomeTaxDeclarationPath(incomeTaxDeclarationId, action),
   );
 
   return unwrapResponse(response, null);
@@ -79,7 +58,9 @@ function normalizePayslipDetail(detail, payrollResultId) {
   if (Array.isArray(detail)) {
     detail =
       detail.find(
-        (item) => String(item?.payroll_result_id || item?.id) === String(payrollResultId),
+        (item) =>
+          String(item?.payroll_result_id || item?.id) ===
+          String(payrollResultId),
       ) || null;
   }
 
@@ -87,7 +68,8 @@ function normalizePayslipDetail(detail, payrollResultId) {
     return null;
   }
 
-  const normalizedId = detail.payroll_result_id || detail.id || detail.result_id;
+  const normalizedId =
+    detail.payroll_result_id || detail.id || detail.result_id;
 
   if (!normalizedId) {
     return null;
@@ -142,36 +124,26 @@ function downloadBlobResponse(response, fallbackFilename) {
 }
 
 export async function getPayrollPermissions() {
-  const response = await http.get(
-    "/payroll/permissions",
-  );
+  const response = await http.get("/payroll/permissions");
 
   return unwrapResponse(response, []);
 }
 
 export async function getPayrollPermissionRoles() {
-  const response = await http.get(
-    "/payroll/permission-roles",
-  );
+  const response = await http.get("/payroll/permission-roles");
 
   return unwrapResponse(response, []);
 }
 
-export async function getPayrollPermissionRole(
-  roleKey,
-) {
-  const normalizedRoleKey = String(
-    roleKey || "",
-  ).trim();
+export async function getPayrollPermissionRole(roleKey) {
+  const normalizedRoleKey = String(roleKey || "").trim();
 
   if (!normalizedRoleKey) {
     throw new Error("Role key is required.");
   }
 
   const response = await http.get(
-    `/payroll/permission-roles/${encodeURIComponent(
-      normalizedRoleKey,
-    )}`,
+    `/payroll/permission-roles/${encodeURIComponent(normalizedRoleKey)}`,
   );
 
   return unwrapResponse(response, {
@@ -183,13 +155,8 @@ export async function getPayrollPermissionRole(
   });
 }
 
-export async function updatePayrollPermissionRole(
-  roleKey,
-  permissionCodes,
-) {
-  const normalizedRoleKey = String(
-    roleKey || "",
-  ).trim();
+export async function updatePayrollPermissionRole(roleKey, permissionCodes) {
+  const normalizedRoleKey = String(roleKey || "").trim();
 
   if (!normalizedRoleKey) {
     throw new Error("Role key is required.");
@@ -197,24 +164,16 @@ export async function updatePayrollPermissionRole(
 
   const normalizedPermissionCodes = Array.from(
     new Set(
-      (Array.isArray(permissionCodes)
-        ? permissionCodes
-        : []
-      )
-        .map((permissionCode) =>
-          String(permissionCode || "").trim(),
-        )
+      (Array.isArray(permissionCodes) ? permissionCodes : [])
+        .map((permissionCode) => String(permissionCode || "").trim())
         .filter(Boolean),
     ),
   );
 
   const response = await http.put(
-    `/payroll/permission-roles/${encodeURIComponent(
-      normalizedRoleKey,
-    )}`,
+    `/payroll/permission-roles/${encodeURIComponent(normalizedRoleKey)}`,
     {
-      permission_codes:
-        normalizedPermissionCodes,
+      permission_codes: normalizedPermissionCodes,
     },
   );
 
@@ -232,45 +191,28 @@ export async function getPayrollRanges(params = {}) {
 }
 
 export async function getPayrollRange(payrollRangeId) {
-  const response = await http.get(
-    `/payroll-ranges/${payrollRangeId}`,
-  );
+  const response = await http.get(`/payroll-ranges/${payrollRangeId}`);
 
   return unwrapResponse(response, null);
 }
 
 export async function createPayrollRange(payload) {
-  const response = await http.post(
-    "/payroll-ranges",
-    payload,
-  );
+  const response = await http.post("/payroll-ranges", payload);
 
   return unwrapResponse(response, null);
 }
 
-export async function updatePayrollRange(
-  payrollRangeId,
-  payload,
-) {
-  const response = await http.put(
-    `/payroll-ranges/${payrollRangeId}`,
-    payload,
-  );
+export async function updatePayrollRange(payrollRangeId, payload) {
+  const response = await http.put(`/payroll-ranges/${payrollRangeId}`, payload);
 
   return unwrapResponse(response, null);
 }
 
-export async function deletePayrollRange(
-  payrollRangeId,
-) {
-  const response = await http.delete(
-    `/payroll-ranges/${payrollRangeId}`,
-  );
+export async function deletePayrollRange(payrollRangeId) {
+  const response = await http.delete(`/payroll-ranges/${payrollRangeId}`);
 
   return unwrapResponse(response, null);
 }
-
-
 
 export async function getPayrollPeriods(params = {}) {
   const response = await http.get("/payroll-periods", {
@@ -289,17 +231,12 @@ export async function createPayrollPeriod(payload) {
 }
 
 export async function getPayrollPeriod(payrollPeriodId) {
-  const response = await http.get(
-    `/payroll-periods/${payrollPeriodId}`,
-  );
+  const response = await http.get(`/payroll-periods/${payrollPeriodId}`);
 
   return unwrapResponse(response, null);
 }
 
-export async function updatePayrollPeriod(
-  payrollPeriodId,
-  payload,
-) {
+export async function updatePayrollPeriod(payrollPeriodId, payload) {
   const response = await http.put(
     `/payroll-periods/${payrollPeriodId}`,
     payload,
@@ -308,12 +245,8 @@ export async function updatePayrollPeriod(
   return unwrapResponse(response, null);
 }
 
-export async function deletePayrollPeriod(
-  payrollPeriodId,
-) {
-  const response = await http.delete(
-    `/payroll-periods/${payrollPeriodId}`,
-  );
+export async function deletePayrollPeriod(payrollPeriodId) {
+  const response = await http.delete(`/payroll-periods/${payrollPeriodId}`);
 
   return unwrapResponse(response, null);
 }
@@ -335,12 +268,8 @@ export async function createPayrollRun(payload) {
   return unwrapResponse(response, null);
 }
 
-export async function getPayrollRunReadiness(
-  payrollRunId,
-) {
-  const response = await http.get(
-    `/payroll-runs/${payrollRunId}/readiness`,
-  );
+export async function getPayrollRunReadiness(payrollRunId) {
+  const response = await http.get(`/payroll-runs/${payrollRunId}/readiness`);
 
   return unwrapResponse(response, {
     summary: {},
@@ -348,12 +277,8 @@ export async function getPayrollRunReadiness(
   });
 }
 
-export async function getPayrollRunResults(
-  payrollRunId,
-) {
-  const response = await http.get(
-    `/payroll-runs/${payrollRunId}/results`,
-  );
+export async function getPayrollRunResults(payrollRunId) {
+  const response = await http.get(`/payroll-runs/${payrollRunId}/results`);
 
   return unwrapResponse(response, {
     summary: {},
@@ -362,38 +287,22 @@ export async function getPayrollRunResults(
   });
 }
 
-export async function approvePayrollRun(
-  payrollRunId,
-) {
-  const response = await http.post(
-    `/payroll-runs/${payrollRunId}/approve`,
-  );
+export async function approvePayrollRun(payrollRunId) {
+  const response = await http.post(`/payroll-runs/${payrollRunId}/approve`);
 
   return unwrapResponse(response, null);
 }
 
-export async function closePayrollRun(
-  payrollRunId,
-) {
-  const response = await http.post(
-    `/payroll-runs/${payrollRunId}/close`,
-  );
+export async function closePayrollRun(payrollRunId) {
+  const response = await http.post(`/payroll-runs/${payrollRunId}/close`);
 
   return unwrapResponse(response, null);
 }
 
-export async function calculatePayrollRun(
-  payrollRunId,
-  employeeIds,
-) {
-  const response = await http.post(
-    `/payroll-runs/${payrollRunId}/calculate`,
-    {
-      employee_ids: Array.isArray(employeeIds)
-        ? employeeIds.map(Number)
-        : [],
-    },
-  );
+export async function calculatePayrollRun(payrollRunId, employeeIds) {
+  const response = await http.post(`/payroll-runs/${payrollRunId}/calculate`, {
+    employee_ids: Array.isArray(employeeIds) ? employeeIds.map(Number) : [],
+  });
 
   return unwrapResponse(response, {
     payroll_run_id: payrollRunId,
@@ -430,40 +339,29 @@ export async function markPayrollResultPaid(payrollResultId) {
   return unwrapResponse(response, null);
 }
 
-export async function getPayrollResultLines(
-  payrollResultId,
-) {
-  const response = await http.get(
-    "/payroll-result-lines",
-    {
-      params: {
-        payroll_result_id: payrollResultId,
-      },
+export async function getPayrollResultLines(payrollResultId) {
+  const response = await http.get("/payroll-result-lines", {
+    params: {
+      payroll_result_id: payrollResultId,
     },
-  );
+  });
 
   return unwrapResponse(response, []);
 }
 
 export async function getPayrollExtraItems(params = {}) {
-  const response = await http.get(
-    "/payroll-extra-items",
-    {
-      params: buildParams({
-        payroll_run_id: params.payroll_run_id,
-        employee_id: params.employee_id,
-      }),
-    },
-  );
+  const response = await http.get("/payroll-extra-items", {
+    params: buildParams({
+      payroll_run_id: params.payroll_run_id,
+      employee_id: params.employee_id,
+    }),
+  });
 
   return unwrapResponse(response, []);
 }
 
 export async function createPayrollExtraItem(payload) {
-  const response = await http.post(
-    "/payroll-extra-items",
-    payload,
-  );
+  const response = await http.post("/payroll-extra-items", payload);
 
   return unwrapResponse(response, null);
 }
@@ -475,40 +373,25 @@ export async function getPayrollItems() {
 }
 
 export async function createPayrollItem(payload) {
-  const response = await http.post(
-    "/payroll-items",
-    payload,
-  );
+  const response = await http.post("/payroll-items", payload);
 
   return unwrapResponse(response, null);
 }
 
-export async function updatePayrollItem(
-  payrollItemId,
-  payload,
-) {
-  const response = await http.put(
-    `/payroll-items/${payrollItemId}`,
-    payload,
-  );
+export async function updatePayrollItem(payrollItemId, payload) {
+  const response = await http.put(`/payroll-items/${payrollItemId}`, payload);
 
   return unwrapResponse(response, null);
 }
 
-export async function deletePayrollItem(
-  payrollItemId,
-) {
-  const response = await http.delete(
-    `/payroll-items/${payrollItemId}`,
-  );
+export async function deletePayrollItem(payrollItemId) {
+  const response = await http.delete(`/payroll-items/${payrollItemId}`);
 
   return unwrapResponse(response, null);
 }
 
 export async function getPayrollOvertimeTaxSettings() {
-  const response = await http.get(
-    "/payroll-overtime-tax-settings",
-  );
+  const response = await http.get("/payroll-overtime-tax-settings");
 
   return unwrapResponse(response, {
     setting: null,
@@ -516,13 +399,8 @@ export async function getPayrollOvertimeTaxSettings() {
   });
 }
 
-export async function updatePayrollOvertimeTaxSettings(
-  payload,
-) {
-  const response = await http.put(
-    "/payroll-overtime-tax-settings",
-    payload,
-  );
+export async function updatePayrollOvertimeTaxSettings(payload) {
+  const response = await http.put("/payroll-overtime-tax-settings", payload);
 
   return unwrapResponse(response, {
     setting: null,
@@ -530,47 +408,30 @@ export async function updatePayrollOvertimeTaxSettings(
   });
 }
 
-export async function getInsuranceUnits(
-  params = {},
-) {
-  const response = await http.get(
-    "/insurance-units",
-    {
-      params: buildParams({
-        search: params.search,
-        status: params.status,
-      }),
-    },
-  );
+export async function getInsuranceUnits(params = {}) {
+  const response = await http.get("/insurance-units", {
+    params: buildParams({
+      search: params.search,
+      status: params.status,
+    }),
+  });
 
   return unwrapResponse(response, []);
 }
 
-export async function getInsuranceUnit(
-  insuranceUnitId,
-) {
-  const response = await http.get(
-    `/insurance-units/${insuranceUnitId}`,
-  );
+export async function getInsuranceUnit(insuranceUnitId) {
+  const response = await http.get(`/insurance-units/${insuranceUnitId}`);
 
   return unwrapResponse(response, null);
 }
 
-export async function createInsuranceUnit(
-  payload,
-) {
-  const response = await http.post(
-    "/insurance-units",
-    payload,
-  );
+export async function createInsuranceUnit(payload) {
+  const response = await http.post("/insurance-units", payload);
 
   return unwrapResponse(response, null);
 }
 
-export async function updateInsuranceUnit(
-  insuranceUnitId,
-  payload,
-) {
+export async function updateInsuranceUnit(insuranceUnitId, payload) {
   const response = await http.put(
     `/insurance-units/${insuranceUnitId}`,
     payload,
@@ -579,12 +440,8 @@ export async function updateInsuranceUnit(
   return unwrapResponse(response, null);
 }
 
-export async function deleteInsuranceUnit(
-  insuranceUnitId,
-) {
-  const response = await http.delete(
-    `/insurance-units/${insuranceUnitId}`,
-  );
+export async function deleteInsuranceUnit(insuranceUnitId) {
+  const response = await http.delete(`/insurance-units/${insuranceUnitId}`);
 
   return unwrapResponse(response, {
     deleted: false,
@@ -618,25 +475,18 @@ export async function deleteInsuranceUnitAccidentRate(
   });
 }
 
-export async function getInsuranceGradeVersions(
-  params = {},
-) {
-  const response = await http.get(
-    "/insurance-grade-versions",
-    {
-      params: buildParams({
-        search: params.search,
-        status: params.status,
-      }),
-    },
-  );
+export async function getInsuranceGradeVersions(params = {}) {
+  const response = await http.get("/insurance-grade-versions", {
+    params: buildParams({
+      search: params.search,
+      status: params.status,
+    }),
+  });
 
   return unwrapResponse(response, []);
 }
 
-export async function getInsuranceGradeVersion(
-  insuranceGradeVersionId,
-) {
+export async function getInsuranceGradeVersion(insuranceGradeVersionId) {
   const response = await http.get(
     `/insurance-grade-versions/${insuranceGradeVersionId}`,
   );
@@ -644,13 +494,8 @@ export async function getInsuranceGradeVersion(
   return unwrapResponse(response, null);
 }
 
-export async function createInsuranceGradeVersion(
-  payload,
-) {
-  const response = await http.post(
-    "/insurance-grade-versions",
-    payload,
-  );
+export async function createInsuranceGradeVersion(payload) {
+  const response = await http.post("/insurance-grade-versions", payload);
 
   return unwrapResponse(response, null);
 }
@@ -667,9 +512,7 @@ export async function updateInsuranceGradeVersion(
   return unwrapResponse(response, null);
 }
 
-export async function publishInsuranceGradeVersion(
-  insuranceGradeVersionId,
-) {
+export async function publishInsuranceGradeVersion(insuranceGradeVersionId) {
   const response = await http.post(
     `/insurance-grade-versions/${insuranceGradeVersionId}/publish`,
   );
@@ -677,57 +520,39 @@ export async function publishInsuranceGradeVersion(
   return unwrapResponse(response, null);
 }
 
-export async function getEffectiveInsuranceGradeVersion(
-  date,
-) {
-  const response = await http.get(
-    "/insurance-grade-versions/effective",
-    {
-      params: buildParams({
-        date,
-      }),
-    },
-  );
+export async function getEffectiveInsuranceGradeVersion(date) {
+  const response = await http.get("/insurance-grade-versions/effective", {
+    params: buildParams({
+      date,
+    }),
+  });
 
   return unwrapResponse(response, null);
 }
 
-export async function getPayrollCalculationRules(
-  params = {},
-) {
-  const response = await http.get(
-    "/payroll-calculation-rules",
-    {
-      params: buildParams({
-        rule_category: params.rule_category,
-        source_type: params.source_type,
-        status: params.status,
-      }),
-    },
-  );
+export async function getPayrollCalculationRules(params = {}) {
+  const response = await http.get("/payroll-calculation-rules", {
+    params: buildParams({
+      rule_category: params.rule_category,
+      source_type: params.source_type,
+      status: params.status,
+    }),
+  });
 
   return unwrapResponse(response, []);
 }
 
-export async function getPayrollCalculationRuleOptions(
-  params = {},
-) {
-  const response = await http.get(
-    "/payroll-calculation-rule-options",
-    {
-      params: buildParams({
-        status: params.status,
-      }),
-    },
-  );
+export async function getPayrollCalculationRuleOptions(params = {}) {
+  const response = await http.get("/payroll-calculation-rule-options", {
+    params: buildParams({
+      status: params.status,
+    }),
+  });
 
   return unwrapResponse(response, []);
 }
 
-export async function updatePayrollCalculationRule(
-  calculationRuleId,
-  payload,
-) {
+export async function updatePayrollCalculationRule(calculationRuleId, payload) {
   const response = await http.put(
     `/payroll-calculation-rules/${calculationRuleId}`,
     payload,
@@ -736,37 +561,24 @@ export async function updatePayrollCalculationRule(
   return unwrapResponse(response, null);
 }
 
-export async function getPayrollSalaryBanks(
-  params = {},
-) {
-  const response = await http.get(
-    "/payroll-salary-banks",
-    {
-      params: buildParams({
-        search: params.search,
-        status: params.status,
-      }),
-    },
-  );
+export async function getPayrollSalaryBanks(params = {}) {
+  const response = await http.get("/payroll-salary-banks", {
+    params: buildParams({
+      search: params.search,
+      status: params.status,
+    }),
+  });
 
   return unwrapResponse(response, []);
 }
 
-export async function createPayrollSalaryBank(
-  payload,
-) {
-  const response = await http.post(
-    "/payroll-salary-banks",
-    payload,
-  );
+export async function createPayrollSalaryBank(payload) {
+  const response = await http.post("/payroll-salary-banks", payload);
 
   return unwrapResponse(response, null);
 }
 
-export async function updatePayrollSalaryBank(
-  salaryBankId,
-  payload,
-) {
+export async function updatePayrollSalaryBank(salaryBankId, payload) {
   const response = await http.put(
     `/payroll-salary-banks/${salaryBankId}`,
     payload,
@@ -775,19 +587,13 @@ export async function updatePayrollSalaryBank(
   return unwrapResponse(response, null);
 }
 
-export async function deletePayrollSalaryBank(
-  salaryBankId,
-) {
-  const response = await http.delete(
-    `/payroll-salary-banks/${salaryBankId}`,
-  );
+export async function deletePayrollSalaryBank(salaryBankId) {
+  const response = await http.delete(`/payroll-salary-banks/${salaryBankId}`);
 
   return unwrapResponse(response, null);
 }
 
-export async function getPayrollEmployees(
-  params = {},
-) {
+export async function getPayrollEmployees(params = {}) {
   const response = await http.get("/employees", {
     params: buildParams({
       page: params.page || 1,
@@ -800,21 +606,16 @@ export async function getPayrollEmployees(
   return unwrapResponse(response, []);
 }
 
-export async function getPayrollEmployeeSalaryData(
-  params = {},
-) {
-  const response = await http.get(
-    "/payroll/employee-salary-data",
-    {
-      params: buildParams({
-        page: params.page || 1,
-        per_page: params.per_page || 20,
-        search: params.search,
-        employee_status: params.employee_status,
-        salary_data_status: params.salary_data_status,
-      }),
-    },
-  );
+export async function getPayrollEmployeeSalaryData(params = {}) {
+  const response = await http.get("/payroll/employee-salary-data", {
+    params: buildParams({
+      page: params.page || 1,
+      per_page: params.per_page || 20,
+      search: params.search,
+      employee_status: params.employee_status,
+      salary_data_status: params.salary_data_status,
+    }),
+  });
 
   return unwrapResponse(response, {
     rows: [],
@@ -827,9 +628,7 @@ export async function getPayrollEmployeeSalaryData(
   });
 }
 
-export async function getEmployeeSalaryRecords(
-  employeeId = null,
-) {
+export async function getEmployeeSalaryRecords(employeeId = null) {
   const response = await http.get("/salary-records", {
     params: buildParams({
       employee_id: employeeId,
@@ -839,42 +638,25 @@ export async function getEmployeeSalaryRecords(
   return unwrapResponse(response, []);
 }
 
-export async function createEmployeeSalaryRecord(
-  payload,
-) {
-  const response = await http.post(
-    "/salary-records",
-    payload,
-  );
+export async function createEmployeeSalaryRecord(payload) {
+  const response = await http.post("/salary-records", payload);
 
   return unwrapResponse(response, null);
 }
 
-export async function updateEmployeeSalaryRecord(
-  salaryRecordId,
-  payload,
-) {
-  const response = await http.put(
-    `/salary-records/${salaryRecordId}`,
-    payload,
-  );
+export async function updateEmployeeSalaryRecord(salaryRecordId, payload) {
+  const response = await http.put(`/salary-records/${salaryRecordId}`, payload);
 
   return unwrapResponse(response, null);
 }
 
-export async function deleteEmployeeSalaryRecord(
-  salaryRecordId,
-) {
-  const response = await http.delete(
-    `/salary-records/${salaryRecordId}`,
-  );
+export async function deleteEmployeeSalaryRecord(salaryRecordId) {
+  const response = await http.delete(`/salary-records/${salaryRecordId}`);
 
   return unwrapResponse(response, null);
 }
 
-export async function getSalaryRecordItems(
-  salaryRecordId = null,
-) {
+export async function getSalaryRecordItems(salaryRecordId = null) {
   const response = await http.get("/salary-items", {
     params: buildParams({
       salary_record_id: salaryRecordId,
@@ -885,32 +667,19 @@ export async function getSalaryRecordItems(
 }
 
 export async function createSalaryRecordItem(payload) {
-  const response = await http.post(
-    "/salary-items",
-    payload,
-  );
+  const response = await http.post("/salary-items", payload);
 
   return unwrapResponse(response, null);
 }
 
-export async function updateSalaryRecordItem(
-  salaryItemId,
-  payload,
-) {
-  const response = await http.put(
-    `/salary-items/${salaryItemId}`,
-    payload,
-  );
+export async function updateSalaryRecordItem(salaryItemId, payload) {
+  const response = await http.put(`/salary-items/${salaryItemId}`, payload);
 
   return unwrapResponse(response, null);
 }
 
-export async function deleteSalaryRecordItem(
-  salaryItemId,
-) {
-  const response = await http.delete(
-    `/salary-items/${salaryItemId}`,
-  );
+export async function deleteSalaryRecordItem(salaryItemId) {
+  const response = await http.delete(`/salary-items/${salaryItemId}`);
 
   return unwrapResponse(response, null);
 }
@@ -921,27 +690,20 @@ function createSalaryMasterPayload(values) {
     effective_from: values.effective_from,
     effective_to: values.effective_to,
     salary_type: values.salary_type,
-    welfare_fee_deduct_type:
-      values.welfare_fee_deduct_type,
+    welfare_fee_deduct_type: values.welfare_fee_deduct_type,
     salary_bank_id: values.salary_bank_id,
     bank_branch_code: values.bank_branch_code,
     bank_account_no: values.bank_account_no,
-    print_payslip_enabled:
-      values.print_payslip_enabled,
+    print_payslip_enabled: values.print_payslip_enabled,
     status: values.status,
     remarks: values.remarks,
   };
 }
 
-function createSalaryItemPayload(
-  salaryRecordId,
-  item,
-) {
+function createSalaryItemPayload(salaryRecordId, item) {
   return {
     salary_record_id: Number(salaryRecordId),
-    payroll_item_id: Number(
-      item.payroll_item_id,
-    ),
+    payroll_item_id: Number(item.payroll_item_id),
     amount: Number(item.amount),
   };
 }
@@ -952,77 +714,50 @@ export async function saveEmployeeSalaryRecord({
   originalItems = [],
   values,
 }) {
-  const editing = Boolean(
-    record?.salary_record_id,
-  );
+  const editing = Boolean(record?.salary_record_id);
 
-  const masterPayload =
-    createSalaryMasterPayload(values);
+  const masterPayload = createSalaryMasterPayload(values);
 
-  let salaryRecordId = editing
-    ? Number(record.salary_record_id)
-    : null;
+  let salaryRecordId = editing ? Number(record.salary_record_id) : null;
 
   if (editing) {
-    await updateEmployeeSalaryRecord(
-      salaryRecordId,
-      masterPayload,
-    );
+    await updateEmployeeSalaryRecord(salaryRecordId, masterPayload);
   } else {
-    const createResult =
-      await createEmployeeSalaryRecord({
-        ...masterPayload,
-        employee_ids: [Number(employeeId)],
-      });
+    const createResult = await createEmployeeSalaryRecord({
+      ...masterPayload,
+      employee_ids: [Number(employeeId)],
+    });
 
-    salaryRecordId = Number(
-      createResult?.salary_record_ids?.[0] || 0,
-    );
+    salaryRecordId = Number(createResult?.salary_record_ids?.[0] || 0);
 
     if (!salaryRecordId) {
       const createError = new Error(
         "薪資主檔已送出，但系統未回傳薪資資料 ID。",
       );
 
-      createError.code =
-        "salary_record_id_missing";
+      createError.code = "salary_record_id_missing";
 
       throw createError;
     }
   }
 
-  const submittedItems = Array.isArray(
-    values.salary_items,
-  )
+  const submittedItems = Array.isArray(values.salary_items)
     ? values.salary_items
     : [];
 
-  const existingItems = Array.isArray(
-    originalItems,
-  )
-    ? originalItems
-    : [];
+  const existingItems = Array.isArray(originalItems) ? originalItems : [];
 
   const submittedExistingIds = new Set(
     submittedItems
-      .map((item) =>
-        Number(item.salary_item_id || 0),
-      )
+      .map((item) => Number(item.salary_item_id || 0))
       .filter((itemId) => itemId > 0),
   );
 
-  const removedItems = existingItems.filter(
-    (item) => {
-      const salaryItemId = Number(
-        item.salary_item_id || 0,
-      );
+  const removedItems = existingItems.filter((item) => {
+    const salaryItemId = Number(item.salary_item_id || 0);
 
-      return (
-        salaryItemId > 0 &&
-        !submittedExistingIds.has(salaryItemId)
-      );
-    },
-  );
+    return salaryItemId > 0 && !submittedExistingIds.has(salaryItemId);
+  });
 
   try {
     /*
@@ -1031,28 +766,17 @@ export async function saveEmployeeSalaryRecord({
      * early deletion if an upsert fails.
      */
     for (const item of submittedItems) {
-      const itemPayload =
-        createSalaryItemPayload(
-          salaryRecordId,
-          item,
-        );
+      const itemPayload = createSalaryItemPayload(salaryRecordId, item);
 
       if (item.salary_item_id) {
-        await updateSalaryRecordItem(
-          Number(item.salary_item_id),
-          itemPayload,
-        );
+        await updateSalaryRecordItem(Number(item.salary_item_id), itemPayload);
       } else {
-        await createSalaryRecordItem(
-          itemPayload,
-        );
+        await createSalaryRecordItem(itemPayload);
       }
     }
 
     for (const removedItem of removedItems) {
-      await deleteSalaryRecordItem(
-        Number(removedItem.salary_item_id),
-      );
+      await deleteSalaryRecordItem(Number(removedItem.salary_item_id));
     }
   } catch (requestError) {
     /*
@@ -1061,18 +785,14 @@ export async function saveEmployeeSalaryRecord({
      */
     if (!editing && salaryRecordId) {
       try {
-        await deleteEmployeeSalaryRecord(
-          salaryRecordId,
-        );
+        await deleteEmployeeSalaryRecord(salaryRecordId);
       } catch {
-        requestError.salaryRecordId =
-          salaryRecordId;
+        requestError.salaryRecordId = salaryRecordId;
 
         requestError.partialSave = true;
       }
     } else {
-      requestError.salaryRecordId =
-        salaryRecordId;
+      requestError.salaryRecordId = salaryRecordId;
 
       requestError.partialSave = true;
     }
@@ -1087,45 +807,30 @@ export async function saveEmployeeSalaryRecord({
   };
 }
 
-export async function previewSalaryAdjustments(
-  payload,
-) {
-  const response = await http.post(
-    "/salary-adjustments/preview",
-    payload,
-  );
+export async function previewSalaryAdjustments(payload) {
+  const response = await http.post("/salary-adjustments/preview", payload);
 
   return unwrapResponse(response, null);
 }
 
-export async function applySalaryAdjustments(
-  payload,
-) {
-  const response = await http.post(
-    "/salary-adjustments/apply",
-    payload,
-  );
+export async function applySalaryAdjustments(payload) {
+  const response = await http.post("/salary-adjustments/apply", payload);
 
   return unwrapResponse(response, null);
 }
 
-export async function getSalaryAdjustmentHistory(
-  params = {},
-) {
-  const response = await http.get(
-    "/salary-adjustments/history",
-    {
-      params: buildParams({
-        page: params.page || 1,
-        per_page: params.per_page || 20,
-        search: params.search,
-        status: params.status,
-        employee_id: params.employee_id,
-        date_from: params.date_from,
-        date_to: params.date_to,
-      }),
-    },
-  );
+export async function getSalaryAdjustmentHistory(params = {}) {
+  const response = await http.get("/salary-adjustments/history", {
+    params: buildParams({
+      page: params.page || 1,
+      per_page: params.per_page || 20,
+      search: params.search,
+      status: params.status,
+      employee_id: params.employee_id,
+      date_from: params.date_from,
+      date_to: params.date_to,
+    }),
+  });
 
   return unwrapResponse(response, {
     rows: [],
@@ -1138,35 +843,24 @@ export async function getSalaryAdjustmentHistory(
   });
 }
 
-export async function getSalaryAdjustmentHistoryDetail(
-  batchId,
-) {
-  const response = await http.get(
-    `/salary-adjustments/history/${batchId}`,
-  );
+export async function getSalaryAdjustmentHistoryDetail(batchId) {
+  const response = await http.get(`/salary-adjustments/history/${batchId}`);
 
   return unwrapResponse(response, null);
 }
 
-export async function getInsuranceRateVersions(
-  params = {},
-) {
-  const response = await http.get(
-    "/insurance-rate-versions",
-    {
-      params: buildParams({
-        search: params.search,
-        status: params.status,
-      }),
-    },
-  );
+export async function getInsuranceRateVersions(params = {}) {
+  const response = await http.get("/insurance-rate-versions", {
+    params: buildParams({
+      search: params.search,
+      status: params.status,
+    }),
+  });
 
   return unwrapResponse(response, []);
 }
 
-export async function getInsuranceRateVersion(
-  insuranceRateVersionId,
-) {
+export async function getInsuranceRateVersion(insuranceRateVersionId) {
   const response = await http.get(
     `/insurance-rate-versions/${insuranceRateVersionId}`,
   );
@@ -1174,28 +868,18 @@ export async function getInsuranceRateVersion(
   return unwrapResponse(response, null);
 }
 
-export async function getEffectiveInsuranceRateVersion(
-  date,
-) {
-  const response = await http.get(
-    "/insurance-rate-versions/effective",
-    {
-      params: buildParams({
-        date,
-      }),
-    },
-  );
+export async function getEffectiveInsuranceRateVersion(date) {
+  const response = await http.get("/insurance-rate-versions/effective", {
+    params: buildParams({
+      date,
+    }),
+  });
 
   return unwrapResponse(response, null);
 }
 
-export async function createInsuranceRateVersion(
-  payload,
-) {
-  const response = await http.post(
-    "/insurance-rate-versions",
-    payload,
-  );
+export async function createInsuranceRateVersion(payload) {
+  const response = await http.post("/insurance-rate-versions", payload);
 
   return unwrapResponse(response, null);
 }
@@ -1212,9 +896,7 @@ export async function updateInsuranceRateVersion(
   return unwrapResponse(response, null);
 }
 
-export async function deleteInsuranceRateVersion(
-  insuranceRateVersionId,
-) {
+export async function deleteInsuranceRateVersion(insuranceRateVersionId) {
   const response = await http.delete(
     `/insurance-rate-versions/${insuranceRateVersionId}`,
   );
@@ -1222,9 +904,7 @@ export async function deleteInsuranceRateVersion(
   return unwrapResponse(response, null);
 }
 
-export async function publishInsuranceRateVersion(
-  insuranceRateVersionId,
-) {
+export async function publishInsuranceRateVersion(insuranceRateVersionId) {
   const response = await http.post(
     `/insurance-rate-versions/${insuranceRateVersionId}/publish`,
   );
@@ -1232,25 +912,18 @@ export async function publishInsuranceRateVersion(
   return unwrapResponse(response, null);
 }
 
-export async function getInsuranceIdentities(
-  params = {},
-) {
-  const response = await http.get(
-    "/insurance-identities",
-    {
-      params: buildParams({
-        search: params.search,
-        status: params.status,
-      }),
-    },
-  );
+export async function getInsuranceIdentities(params = {}) {
+  const response = await http.get("/insurance-identities", {
+    params: buildParams({
+      search: params.search,
+      status: params.status,
+    }),
+  });
 
   return unwrapResponse(response, []);
 }
 
-export async function getInsuranceIdentity(
-  insuranceIdentityId,
-) {
+export async function getInsuranceIdentity(insuranceIdentityId) {
   const response = await http.get(
     `/insurance-identities/${insuranceIdentityId}`,
   );
@@ -1258,21 +931,13 @@ export async function getInsuranceIdentity(
   return unwrapResponse(response, null);
 }
 
-export async function createInsuranceIdentity(
-  payload,
-) {
-  const response = await http.post(
-    "/insurance-identities",
-    payload,
-  );
+export async function createInsuranceIdentity(payload) {
+  const response = await http.post("/insurance-identities", payload);
 
   return unwrapResponse(response, null);
 }
 
-export async function updateInsuranceIdentity(
-  insuranceIdentityId,
-  payload,
-) {
+export async function updateInsuranceIdentity(insuranceIdentityId, payload) {
   const response = await http.put(
     `/insurance-identities/${insuranceIdentityId}`,
     payload,
@@ -1281,9 +946,7 @@ export async function updateInsuranceIdentity(
   return unwrapResponse(response, null);
 }
 
-export async function deleteInsuranceIdentity(
-  insuranceIdentityId,
-) {
+export async function deleteInsuranceIdentity(insuranceIdentityId) {
   const response = await http.delete(
     `/insurance-identities/${insuranceIdentityId}`,
   );
@@ -1294,25 +957,18 @@ export async function deleteInsuranceIdentity(
   });
 }
 
-export async function getTaxDeclarationUnits(
-  params = {},
-) {
-  const response = await http.get(
-    "/tax-declaration-units",
-    {
-      params: buildParams({
-        search: params.search,
-        status: params.status,
-      }),
-    },
-  );
+export async function getTaxDeclarationUnits(params = {}) {
+  const response = await http.get("/tax-declaration-units", {
+    params: buildParams({
+      search: params.search,
+      status: params.status,
+    }),
+  });
 
   return unwrapResponse(response, []);
 }
 
-export async function getTaxDeclarationUnit(
-  taxDeclarationUnitId,
-) {
+export async function getTaxDeclarationUnit(taxDeclarationUnitId) {
   const response = await http.get(
     `/tax-declaration-units/${taxDeclarationUnitId}`,
   );
@@ -1320,21 +976,13 @@ export async function getTaxDeclarationUnit(
   return unwrapResponse(response, null);
 }
 
-export async function createTaxDeclarationUnit(
-  payload,
-) {
-  const response = await http.post(
-    "/tax-declaration-units",
-    payload,
-  );
+export async function createTaxDeclarationUnit(payload) {
+  const response = await http.post("/tax-declaration-units", payload);
 
   return unwrapResponse(response, null);
 }
 
-export async function updateTaxDeclarationUnit(
-  taxDeclarationUnitId,
-  payload,
-) {
+export async function updateTaxDeclarationUnit(taxDeclarationUnitId, payload) {
   const response = await http.put(
     `/tax-declaration-units/${taxDeclarationUnitId}`,
     payload,
@@ -1343,9 +991,7 @@ export async function updateTaxDeclarationUnit(
   return unwrapResponse(response, null);
 }
 
-export async function deleteTaxDeclarationUnit(
-  taxDeclarationUnitId,
-) {
+export async function deleteTaxDeclarationUnit(taxDeclarationUnitId) {
   const response = await http.delete(
     `/tax-declaration-units/${taxDeclarationUnitId}`,
   );
@@ -1356,36 +1002,24 @@ export async function deleteTaxDeclarationUnit(
   });
 }
 
-export async function getIncomeTaxDeclarations(
-  params = {},
-) {
-  const response = await http.get(
-    "/payroll-income-tax-declarations",
-    {
-      params: buildParams({
-        declaration_year:
-          params.declaration_year,
+export async function getIncomeTaxDeclarations(params = {}) {
+  const response = await http.get("/payroll-income-tax-declarations", {
+    params: buildParams({
+      declaration_year: params.declaration_year,
 
-        tax_declaration_unit_id:
-          params.tax_declaration_unit_id,
+      tax_declaration_unit_id: params.tax_declaration_unit_id,
 
-        declaration_type:
-          params.declaration_type,
+      declaration_type: params.declaration_type,
 
-        status:
-          params.status,
+      status: params.status,
 
-        keyword:
-          params.keyword,
+      keyword: params.keyword,
 
-        page:
-          params.page,
+      page: params.page,
 
-        per_page:
-          params.per_page,
-      }),
-    },
-  );
+      per_page: params.per_page,
+    }),
+  });
 
   return unwrapResponse(response, {
     rows: [],
@@ -1401,21 +1035,15 @@ export async function getIncomeTaxDeclarations(
   });
 }
 
-export async function getIncomeTaxDeclaration(
-  incomeTaxDeclarationId,
-) {
+export async function getIncomeTaxDeclaration(incomeTaxDeclarationId) {
   const response = await http.get(
-    getIncomeTaxDeclarationPath(
-      incomeTaxDeclarationId,
-    ),
+    getIncomeTaxDeclarationPath(incomeTaxDeclarationId),
   );
 
   return unwrapResponse(response, null);
 }
 
-export async function previewIncomeTaxDeclaration(
-  payload,
-) {
+export async function previewIncomeTaxDeclaration(payload) {
   const response = await http.post(
     "/payroll-income-tax-declarations/preview",
     payload,
@@ -1435,151 +1063,205 @@ export async function previewIncomeTaxDeclaration(
   });
 }
 
-export async function createIncomeTaxDeclaration(
-  payload,
-) {
-  const response = await http.post(
-    "/payroll-income-tax-declarations",
-    payload,
-  );
+export async function createIncomeTaxDeclaration(payload) {
+  const response = await http.post("/payroll-income-tax-declarations", payload);
 
   return unwrapResponse(response, null);
 }
 
-export async function confirmIncomeTaxDeclaration(
-  incomeTaxDeclarationId,
-) {
-  return runIncomeTaxDeclarationAction(
-    incomeTaxDeclarationId,
-    "confirm",
-  );
+export async function confirmIncomeTaxDeclaration(incomeTaxDeclarationId) {
+  return runIncomeTaxDeclarationAction(incomeTaxDeclarationId, "confirm");
 }
 
-export async function submitIncomeTaxDeclaration(
-  incomeTaxDeclarationId,
-) {
-  return runIncomeTaxDeclarationAction(
-    incomeTaxDeclarationId,
-    "submit",
-  );
+export async function submitIncomeTaxDeclaration(incomeTaxDeclarationId) {
+  return runIncomeTaxDeclarationAction(incomeTaxDeclarationId, "submit");
 }
 
-export async function cancelIncomeTaxDeclaration(
-  incomeTaxDeclarationId,
-) {
-  return runIncomeTaxDeclarationAction(
-    incomeTaxDeclarationId,
-    "cancel",
-  );
+export async function cancelIncomeTaxDeclaration(incomeTaxDeclarationId) {
+  return runIncomeTaxDeclarationAction(incomeTaxDeclarationId, "cancel");
 }
 
-export async function getSalaryBonusPaymentRegister(
-  params = {},
-) {
+export async function getSalaryBonusPaymentRegister(params = {}) {
   const response = await http.get(
     "/payroll-reports/salary-bonus-payment-register",
     {
       params: buildParams({
-        start_month:
-          params.start_month,
+        start_month: params.start_month,
 
-        end_month:
-          params.end_month,
+        end_month: params.end_month,
       }),
     },
   );
 
   return unwrapResponse(response, {
-    report_code:
-      "salary_bonus_payment_register",
+    report_code: "salary_bonus_payment_register",
 
-    report_name:
-      "薪資／獎金發放清冊",
+    report_name: "薪資／獎金發放清冊",
 
-    start_month:
-      params.start_month || "",
+    start_month: params.start_month || "",
 
-    end_month:
-      params.end_month || "",
+    end_month: params.end_month || "",
 
     summary: {
-      record_count:
-        0,
+      record_count: 0,
 
-      gross_pay_total:
-        0,
+      gross_pay_total: 0,
 
-      total_deduction_total:
-        0,
+      total_deduction_total: 0,
 
-      net_pay_total:
-        0,
+      net_pay_total: 0,
 
-      bank_transfer_total:
-        0,
+      bank_transfer_total: 0,
     },
 
     rows: [],
   });
 }
 
-export async function getTaxParameters(
+export async function getMonthlyInsuranceStatusReport(params = {}) {
+  const response = await http.get("/payroll-reports/monthly-insurance-status", {
+    params: buildParams({
+      year: params.year,
+
+      month: params.month,
+    }),
+  });
+
+  return unwrapResponse(response, {
+    report_code: "monthly_insurance_status",
+
+    report_name: "每月各式保險投保狀況",
+
+    year: Number(params.year || 0),
+
+    month: Number(params.month || 0),
+
+    report_month: "",
+
+    report_date: "",
+
+    summary: {
+      employee_count: 0,
+
+      labor_insured_count: 0,
+
+      occupational_insured_count: 0,
+
+      health_insured_count: 0,
+
+      pension_contributing_count: 0,
+    },
+
+    rows: [],
+  });
+}
+
+export async function getMonthlyWithholdingTaxReport(
   params = {},
 ) {
   const response = await http.get(
-    "/tax-parameters",
+    "/payroll-reports/monthly-withholding-tax",
     {
       params: buildParams({
-        search: params.search,
-        status: params.status,
-        effective_year:
-          params.effective_year,
+        year:
+          params.year,
+
+        month:
+          params.month,
+
+        tax_declaration_unit_id:
+          params.tax_declaration_unit_id,
       }),
     },
   );
 
+  return unwrapResponse(response, {
+    report_code:
+      "monthly_withholding_tax",
+
+    report_name:
+      "每月薪資所得扣繳稅額",
+
+    year:
+      Number(
+        params.year || 0,
+      ),
+
+    month:
+      Number(
+        params.month || 0,
+      ),
+
+    report_month:
+      "",
+
+    tax_declaration_unit: {
+      tax_declaration_unit_id:
+        Number(
+          params.tax_declaration_unit_id || 0,
+        ),
+
+      declaration_unit_name:
+        "",
+
+      business_registration_no:
+        "",
+
+      withholding_tax_unit_no:
+        "",
+    },
+
+    summary: {
+      record_count:
+        0,
+
+      employee_count:
+        0,
+
+      taxable_amount_total:
+        0,
+
+      withholding_tax_total:
+        0,
+    },
+
+    rows:
+      [],
+  });
+}
+
+export async function getTaxParameters(params = {}) {
+  const response = await http.get("/tax-parameters", {
+    params: buildParams({
+      search: params.search,
+      status: params.status,
+      effective_year: params.effective_year,
+    }),
+  });
+
   return unwrapResponse(response, []);
 }
 
-export async function getTaxParameter(
-  taxParameterId,
-) {
-  const response = await http.get(
-    `/tax-parameters/${taxParameterId}`,
-  );
+export async function getTaxParameter(taxParameterId) {
+  const response = await http.get(`/tax-parameters/${taxParameterId}`);
 
   return unwrapResponse(response, null);
 }
 
-export async function createTaxParameter(
-  payload,
-) {
-  const response = await http.post(
-    "/tax-parameters",
-    payload,
-  );
+export async function createTaxParameter(payload) {
+  const response = await http.post("/tax-parameters", payload);
 
   return unwrapResponse(response, null);
 }
 
-export async function updateTaxParameter(
-  taxParameterId,
-  payload,
-) {
-  const response = await http.put(
-    `/tax-parameters/${taxParameterId}`,
-    payload,
-  );
+export async function updateTaxParameter(taxParameterId, payload) {
+  const response = await http.put(`/tax-parameters/${taxParameterId}`, payload);
 
   return unwrapResponse(response, null);
 }
 
-export async function deleteTaxParameter(
-  taxParameterId,
-) {
-  const response = await http.delete(
-    `/tax-parameters/${taxParameterId}`,
-  );
+export async function deleteTaxParameter(taxParameterId) {
+  const response = await http.delete(`/tax-parameters/${taxParameterId}`);
 
   return unwrapResponse(response, {
     deleted: false,
@@ -1587,16 +1269,12 @@ export async function deleteTaxParameter(
   });
 }
 
-export async function getTaxTableRows(
-  taxParameterId,
-  params = {},
-) {
+export async function getTaxTableRows(taxParameterId, params = {}) {
   const response = await http.get(
     `/tax-parameters/${taxParameterId}/tax-table-rows`,
     {
       params: buildParams({
-        dependent_count:
-          params.dependent_count,
+        dependent_count: params.dependent_count,
         status: params.status,
       }),
     },
@@ -1605,20 +1283,13 @@ export async function getTaxTableRows(
   return unwrapResponse(response, []);
 }
 
-export async function getTaxTableRow(
-  taxTableRowId,
-) {
-  const response = await http.get(
-    `/tax-table-rows/${taxTableRowId}`,
-  );
+export async function getTaxTableRow(taxTableRowId) {
+  const response = await http.get(`/tax-table-rows/${taxTableRowId}`);
 
   return unwrapResponse(response, null);
 }
 
-export async function createTaxTableRow(
-  taxParameterId,
-  payload,
-) {
+export async function createTaxTableRow(taxParameterId, payload) {
   const response = await http.post(
     `/tax-parameters/${taxParameterId}/tax-table-rows`,
     payload,
@@ -1627,24 +1298,14 @@ export async function createTaxTableRow(
   return unwrapResponse(response, null);
 }
 
-export async function updateTaxTableRow(
-  taxTableRowId,
-  payload,
-) {
-  const response = await http.put(
-    `/tax-table-rows/${taxTableRowId}`,
-    payload,
-  );
+export async function updateTaxTableRow(taxTableRowId, payload) {
+  const response = await http.put(`/tax-table-rows/${taxTableRowId}`, payload);
 
   return unwrapResponse(response, null);
 }
 
-export async function deleteTaxTableRow(
-  taxTableRowId,
-) {
-  const response = await http.delete(
-    `/tax-table-rows/${taxTableRowId}`,
-  );
+export async function deleteTaxTableRow(taxTableRowId) {
+  const response = await http.delete(`/tax-table-rows/${taxTableRowId}`);
 
   return unwrapResponse(response, {
     deleted: false,
@@ -1657,27 +1318,20 @@ export async function deleteTaxTableRow(
   });
 }
 
-export async function getPayrollWithholdingResults(
-  params = {},
-) {
-  const response = await http.get(
-    "/payroll-withholding-results",
-    {
-      params: buildParams({
-        income_year: params.income_year,
-        income_month: params.income_month,
-        tax_declaration_unit_id:
-          params.tax_declaration_unit_id,
-        employee_id: params.employee_id,
-        payroll_run_id:
-          params.payroll_run_id,
-        status: params.status,
-        keyword: params.keyword,
-        page: params.page,
-        per_page: params.per_page,
-      }),
-    },
-  );
+export async function getPayrollWithholdingResults(params = {}) {
+  const response = await http.get("/payroll-withholding-results", {
+    params: buildParams({
+      income_year: params.income_year,
+      income_month: params.income_month,
+      tax_declaration_unit_id: params.tax_declaration_unit_id,
+      employee_id: params.employee_id,
+      payroll_run_id: params.payroll_run_id,
+      status: params.status,
+      keyword: params.keyword,
+      page: params.page,
+      per_page: params.per_page,
+    }),
+  });
 
   return unwrapResponse(response, {
     rows: [],
@@ -1692,9 +1346,7 @@ export async function getPayrollWithholdingResults(
   });
 }
 
-export async function getPayrollWithholdingResult(
-  withholdingResultId,
-) {
+export async function getPayrollWithholdingResult(withholdingResultId) {
   const response = await http.get(
     `/payroll-withholding-results/${withholdingResultId}`,
   );
@@ -1702,36 +1354,23 @@ export async function getPayrollWithholdingResult(
   return unwrapResponse(response, null);
 }
 
-export async function getPayrollTaxProfiles(
-  params = {},
-) {
-  const response = await http.get(
-    "/payroll-tax-profiles",
-    {
-      params: buildParams({
-        employee_id: params.employee_id,
-      }),
-    },
-  );
+export async function getPayrollTaxProfiles(params = {}) {
+  const response = await http.get("/payroll-tax-profiles", {
+    params: buildParams({
+      employee_id: params.employee_id,
+    }),
+  });
 
   return unwrapResponse(response, []);
 }
 
-export async function createPayrollTaxProfile(
-  payload,
-) {
-  const response = await http.post(
-    "/payroll-tax-profiles",
-    payload,
-  );
+export async function createPayrollTaxProfile(payload) {
+  const response = await http.post("/payroll-tax-profiles", payload);
 
   return unwrapResponse(response, null);
 }
 
-export async function updatePayrollTaxProfile(
-  taxProfileId,
-  payload,
-) {
+export async function updatePayrollTaxProfile(taxProfileId, payload) {
   const response = await http.put(
     `/payroll-tax-profiles/${taxProfileId}`,
     payload,
@@ -1740,12 +1379,8 @@ export async function updatePayrollTaxProfile(
   return unwrapResponse(response, null);
 }
 
-export async function deletePayrollTaxProfile(
-  taxProfileId,
-) {
-  const response = await http.delete(
-    `/payroll-tax-profiles/${taxProfileId}`,
-  );
+export async function deletePayrollTaxProfile(taxProfileId) {
+  const response = await http.delete(`/payroll-tax-profiles/${taxProfileId}`);
 
   return unwrapResponse(response, {
     deleted: false,
@@ -1760,39 +1395,25 @@ export async function deletePayrollTaxProfile(
   });
 }
 
-export async function getPayrollTaxDependents(
-  params = {},
-) {
-  const response = await http.get(
-    "/payroll-tax-dependents",
-    {
-      params: buildParams({
-        employee_id: params.employee_id,
-        tax_profile_id:
-          params.tax_profile_id,
-        status: params.status,
-      }),
-    },
-  );
+export async function getPayrollTaxDependents(params = {}) {
+  const response = await http.get("/payroll-tax-dependents", {
+    params: buildParams({
+      employee_id: params.employee_id,
+      tax_profile_id: params.tax_profile_id,
+      status: params.status,
+    }),
+  });
 
   return unwrapResponse(response, []);
 }
 
-export async function createPayrollTaxDependent(
-  payload,
-) {
-  const response = await http.post(
-    "/payroll-tax-dependents",
-    payload,
-  );
+export async function createPayrollTaxDependent(payload) {
+  const response = await http.post("/payroll-tax-dependents", payload);
 
   return unwrapResponse(response, null);
 }
 
-export async function updatePayrollTaxDependent(
-  taxDependentId,
-  payload,
-) {
+export async function updatePayrollTaxDependent(taxDependentId, payload) {
   const response = await http.put(
     `/payroll-tax-dependents/${taxDependentId}`,
     payload,
@@ -1801,9 +1422,7 @@ export async function updatePayrollTaxDependent(
   return unwrapResponse(response, null);
 }
 
-export async function deletePayrollTaxDependent(
-  taxDependentId,
-) {
+export async function deletePayrollTaxDependent(taxDependentId) {
   const response = await http.delete(
     `/payroll-tax-dependents/${taxDependentId}`,
   );
@@ -1814,19 +1433,14 @@ export async function deletePayrollTaxDependent(
   });
 }
 
-async function getEmployeeInsuranceRecords(
-  endpoint,
-  params = {},
-) {
+async function getEmployeeInsuranceRecords(endpoint, params = {}) {
   const response = await http.get(endpoint, {
     params: buildParams({
       page: params.page || 1,
       per_page: params.per_page || 100,
       employee_id: params.employee_id,
       action_type: params.action_type,
-      include_deleted: params.include_deleted
-        ? 1
-        : undefined,
+      include_deleted: params.include_deleted ? 1 : undefined,
       date_from: params.date_from,
       date_to: params.date_to,
     }),
@@ -1835,49 +1449,26 @@ async function getEmployeeInsuranceRecords(
   return unwrapResponse(response, []);
 }
 
-async function getEmployeeInsuranceRecord(
-  endpoint,
-  recordId,
-) {
-  const response = await http.get(
-    `${endpoint}/${recordId}`,
-  );
+async function getEmployeeInsuranceRecord(endpoint, recordId) {
+  const response = await http.get(`${endpoint}/${recordId}`);
 
   return unwrapResponse(response, null);
 }
 
-async function createEmployeeInsuranceRecord(
-  endpoint,
-  payload,
-) {
-  const response = await http.post(
-    endpoint,
-    payload,
-  );
+async function createEmployeeInsuranceRecord(endpoint, payload) {
+  const response = await http.post(endpoint, payload);
 
   return unwrapResponse(response, null);
 }
 
-async function updateEmployeeInsuranceRecord(
-  endpoint,
-  recordId,
-  payload,
-) {
-  const response = await http.put(
-    `${endpoint}/${recordId}`,
-    payload,
-  );
+async function updateEmployeeInsuranceRecord(endpoint, recordId, payload) {
+  const response = await http.put(`${endpoint}/${recordId}`, payload);
 
   return unwrapResponse(response, null);
 }
 
-async function deleteEmployeeInsuranceRecord(
-  endpoint,
-  recordId,
-) {
-  const response = await http.delete(
-    `${endpoint}/${recordId}`,
-  );
+async function deleteEmployeeInsuranceRecord(endpoint, recordId) {
+  const response = await http.delete(`${endpoint}/${recordId}`);
 
   return unwrapResponse(response, {
     deleted: false,
@@ -1885,14 +1476,8 @@ async function deleteEmployeeInsuranceRecord(
   });
 }
 
-async function transferEmployeeInsuranceRecord(
-  endpoint,
-  payload,
-) {
-  const response = await http.post(
-    `${endpoint}/transfer`,
-    payload,
-  );
+async function transferEmployeeInsuranceRecord(endpoint, payload) {
+  const response = await http.post(`${endpoint}/transfer`, payload);
 
   return unwrapResponse(response, {
     transferred: false,
@@ -1901,9 +1486,7 @@ async function transferEmployeeInsuranceRecord(
   });
 }
 
-
-const LABOR_INSURANCE_RECORDS_ENDPOINT =
-  "/employee-labor-insurance-records";
+const LABOR_INSURANCE_RECORDS_ENDPOINT = "/employee-labor-insurance-records";
 
 const OCCUPATIONAL_INSURANCE_RECORDS_ENDPOINT =
   "/employee-occupational-insurance-records";
@@ -1911,37 +1494,22 @@ const OCCUPATIONAL_INSURANCE_RECORDS_ENDPOINT =
 const PENSION_INSURANCE_RECORDS_ENDPOINT =
   "/employee-pension-insurance-records";
 
-export async function getEmployeeLaborInsuranceRecords(
-  params = {},
-) {
-  return getEmployeeInsuranceRecords(
-    LABOR_INSURANCE_RECORDS_ENDPOINT,
-    params,
-  );
+export async function getEmployeeLaborInsuranceRecords(params = {}) {
+  return getEmployeeInsuranceRecords(LABOR_INSURANCE_RECORDS_ENDPOINT, params);
 }
 
-export async function getEmployeeLaborInsuranceRecord(
-  recordId,
-) {
-  return getEmployeeInsuranceRecord(
-    LABOR_INSURANCE_RECORDS_ENDPOINT,
-    recordId,
-  );
+export async function getEmployeeLaborInsuranceRecord(recordId) {
+  return getEmployeeInsuranceRecord(LABOR_INSURANCE_RECORDS_ENDPOINT, recordId);
 }
 
-export async function createEmployeeLaborInsuranceRecord(
-  payload,
-) {
+export async function createEmployeeLaborInsuranceRecord(payload) {
   return createEmployeeInsuranceRecord(
     LABOR_INSURANCE_RECORDS_ENDPOINT,
     payload,
   );
 }
 
-export async function updateEmployeeLaborInsuranceRecord(
-  recordId,
-  payload,
-) {
+export async function updateEmployeeLaborInsuranceRecord(recordId, payload) {
   return updateEmployeeInsuranceRecord(
     LABOR_INSURANCE_RECORDS_ENDPOINT,
     recordId,
@@ -1949,46 +1517,35 @@ export async function updateEmployeeLaborInsuranceRecord(
   );
 }
 
-export async function deleteEmployeeLaborInsuranceRecord(
-  recordId,
-) {
+export async function deleteEmployeeLaborInsuranceRecord(recordId) {
   return deleteEmployeeInsuranceRecord(
     LABOR_INSURANCE_RECORDS_ENDPOINT,
     recordId,
   );
 }
 
-export async function transferEmployeeLaborInsurance(
-  payload,
-) {
+export async function transferEmployeeLaborInsurance(payload) {
   return transferEmployeeInsuranceRecord(
     LABOR_INSURANCE_RECORDS_ENDPOINT,
     payload,
   );
 }
 
-
-export async function getEmployeeOccupationalInsuranceRecords(
-  params = {},
-) {
+export async function getEmployeeOccupationalInsuranceRecords(params = {}) {
   return getEmployeeInsuranceRecords(
     OCCUPATIONAL_INSURANCE_RECORDS_ENDPOINT,
     params,
   );
 }
 
-export async function getEmployeeOccupationalInsuranceRecord(
-  recordId,
-) {
+export async function getEmployeeOccupationalInsuranceRecord(recordId) {
   return getEmployeeInsuranceRecord(
     OCCUPATIONAL_INSURANCE_RECORDS_ENDPOINT,
     recordId,
   );
 }
 
-export async function createEmployeeOccupationalInsuranceRecord(
-  payload,
-) {
+export async function createEmployeeOccupationalInsuranceRecord(payload) {
   return createEmployeeInsuranceRecord(
     OCCUPATIONAL_INSURANCE_RECORDS_ENDPOINT,
     payload,
@@ -2006,55 +1563,42 @@ export async function updateEmployeeOccupationalInsuranceRecord(
   );
 }
 
-export async function deleteEmployeeOccupationalInsuranceRecord(
-  recordId,
-) {
+export async function deleteEmployeeOccupationalInsuranceRecord(recordId) {
   return deleteEmployeeInsuranceRecord(
     OCCUPATIONAL_INSURANCE_RECORDS_ENDPOINT,
     recordId,
   );
 }
 
-export async function transferEmployeeOccupationalInsurance(
-  payload,
-) {
+export async function transferEmployeeOccupationalInsurance(payload) {
   return transferEmployeeInsuranceRecord(
     OCCUPATIONAL_INSURANCE_RECORDS_ENDPOINT,
     payload,
   );
 }
 
-export async function getEmployeePensionInsuranceRecords(
-  params = {},
-) {
+export async function getEmployeePensionInsuranceRecords(params = {}) {
   return getEmployeeInsuranceRecords(
     PENSION_INSURANCE_RECORDS_ENDPOINT,
     params,
   );
 }
 
-export async function getEmployeePensionInsuranceRecord(
-  recordId,
-) {
+export async function getEmployeePensionInsuranceRecord(recordId) {
   return getEmployeeInsuranceRecord(
     PENSION_INSURANCE_RECORDS_ENDPOINT,
     recordId,
   );
 }
 
-export async function createEmployeePensionInsuranceRecord(
-  payload,
-) {
+export async function createEmployeePensionInsuranceRecord(payload) {
   return createEmployeeInsuranceRecord(
     PENSION_INSURANCE_RECORDS_ENDPOINT,
     payload,
   );
 }
 
-export async function updateEmployeePensionInsuranceRecord(
-  recordId,
-  payload,
-) {
+export async function updateEmployeePensionInsuranceRecord(recordId, payload) {
   return updateEmployeeInsuranceRecord(
     PENSION_INSURANCE_RECORDS_ENDPOINT,
     recordId,
@@ -2062,24 +1606,19 @@ export async function updateEmployeePensionInsuranceRecord(
   );
 }
 
-export async function deleteEmployeePensionInsuranceRecord(
-  recordId,
-) {
+export async function deleteEmployeePensionInsuranceRecord(recordId) {
   return deleteEmployeeInsuranceRecord(
     PENSION_INSURANCE_RECORDS_ENDPOINT,
     recordId,
   );
 }
 
-export async function transferEmployeePensionInsurance(
-  payload,
-) {
+export async function transferEmployeePensionInsurance(payload) {
   return transferEmployeeInsuranceRecord(
     PENSION_INSURANCE_RECORDS_ENDPOINT,
     payload,
   );
 }
-
 
 export async function verifyPayrollPassword(password) {
   const response = await http.post("/payroll/verify-password", {

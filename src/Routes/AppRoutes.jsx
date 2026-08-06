@@ -52,7 +52,7 @@ import PayrollAdjustmentHistoryPage from "../Pages/PayrollManagement/PayrollAdju
 import PayrollEmployeeDataPage from "../Pages/PayrollManagement/PayrollEmployeeDataPage";
 import PayrollWithholdingOperationsPage from "../Pages/PayrollManagement/PayrollWithholdingOperationsPage";
 import PayrollIncomeTaxDeclarationsPage from "../Pages/PayrollManagement/PayrollIncomeTaxDeclarationsPage";
-import PayrollReportsPage from "../Pages/PayrollManagement/PayrollReportsPage";
+import PayrollReportsPage from "../Pages/PayrollManagement/PayrollReports/PayrollReportsPage";
 
 function PlaceholderPage({ title }) {
   return <div style={{ padding: "24px" }}>{title}</div>;
