@@ -1230,6 +1230,36 @@ export async function getMonthlyWithholdingTaxReport(
   });
 }
 
+export async function getTaxDependentDetailsReport(params = {}) {
+  const response = await http.get(
+    "/payroll-reports/tax-dependent-details",
+    {
+      params: buildParams({
+        effective_date: params.effective_date,
+        employee_id: params.employee_id,
+        status: params.status,
+      }),
+    },
+  );
+
+  return unwrapResponse(response, {
+    report_code: "tax_dependent_details",
+    report_name: "所得稅扶養親屬明細",
+    effective_date: params.effective_date || "",
+    filters: {
+      employee_id: Number(params.employee_id || 0),
+      status: params.status || "",
+    },
+    summary: {
+      record_count: 0,
+      employee_count: 0,
+      active_count: 0,
+      inactive_count: 0,
+    },
+    rows: [],
+  });
+}
+
 export async function getTaxParameters(params = {}) {
   const response = await http.get("/tax-parameters", {
     params: buildParams({

@@ -702,3 +702,156 @@ export function exportMonthlyWithholdingTaxReport({ report }) {
     ],
   });
 }
+
+export function exportTaxDependentDetailsReport({ report }) {
+  const rows = Array.isArray(report?.rows) ? report.rows : [];
+
+  const summary = report?.summary || {};
+  const filters = report?.filters || {};
+  const effectiveDate = String(report?.effective_date || "").trim();
+
+  exportPayrollReportExcel({
+    reportName: "所得稅扶養親屬明細",
+
+    fileName: `所得稅扶養親屬明細_${effectiveDate || "未指定日期"}`,
+
+    sheetName: "所得稅扶養親屬明細",
+
+    metadata: [
+      {
+        label: "生效基準日",
+        value: effectiveDate,
+      },
+      {
+        label: "員工篩選",
+        value: Number(filters.employee_id || 0)
+          ? `員工 ID ${Number(filters.employee_id)}`
+          : "全部員工",
+      },
+      {
+        label: "資料狀態",
+        value: filters.status || "全部狀態",
+      },
+      {
+        label: "扶養親屬筆數",
+        value: Number(summary.record_count || 0),
+      },
+      {
+        label: "員工人數",
+        value: Number(summary.employee_count || 0),
+      },
+      {
+        label: "生效中筆數",
+        value: Number(summary.active_count || 0),
+      },
+      {
+        label: "未生效筆數",
+        value: Number(summary.inactive_count || 0),
+      },
+    ],
+
+    columns: [
+      {
+        label: "員工編號",
+        field: "employee_no",
+        width: 14,
+      },
+      {
+        label: "員工姓名",
+        field: "employee_name",
+        width: 16,
+      },
+      {
+        label: "扶養親屬姓名",
+        field: "dependent_name",
+        width: 16,
+      },
+      {
+        label: "關係",
+        field: "relationship_type",
+        width: 12,
+      },
+      {
+        label: "身分證號／居留證號",
+        field: "identity_number",
+        width: 22,
+      },
+      {
+        label: "出生日期",
+        field: "birth_date",
+        width: 14,
+        value: (row) => formatDate(row.birth_date),
+      },
+      {
+        label: "證號別",
+        field: "certificate_type",
+        width: 32,
+        value: (row) => {
+          const value = String(row.certificate_type ?? "").trim();
+
+          const labels = {
+            0: "0｜本國個人",
+            3: "3｜境內住滿 183 天之外僑或大陸居民",
+            5: "5｜境內未住滿 183 天之大陸地區人民",
+            7: "7｜境內未住滿 183 天之外僑",
+          };
+
+          return labels[value] || value;
+        },
+      },
+      {
+        label: "國籍類型",
+        field: "nationality_type",
+        width: 16,
+      },
+      {
+        label: "生效開始日",
+        field: "effective_from",
+        width: 14,
+        value: (row) => formatDate(row.effective_from),
+      },
+      {
+        label: "生效結束日",
+        field: "effective_to",
+        width: 14,
+        value: (row) => (row.effective_to ? formatDate(row.effective_to) : ""),
+      },
+      {
+        label: "生效狀態",
+        field: "effective_status",
+        width: 12,
+      },
+      {
+        label: "資料狀態",
+        field: "status",
+        width: 12,
+      },
+      {
+        label: "備註",
+        field: "remarks",
+        width: 30,
+      },
+    ],
+
+    rows,
+
+    summary: [
+      {
+        label: "扶養親屬筆數",
+        value: Number(summary.record_count || 0),
+      },
+      {
+        label: "員工人數",
+        value: Number(summary.employee_count || 0),
+      },
+      {
+        label: "生效中筆數",
+        value: Number(summary.active_count || 0),
+      },
+      {
+        label: "未生效筆數",
+        value: Number(summary.inactive_count || 0),
+      },
+    ],
+  });
+}

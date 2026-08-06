@@ -10,6 +10,7 @@ import AssessmentOutlinedIcon from "@mui/icons-material/AssessmentOutlined";
 import MonthlyInsuranceStatusReport from "./MonthlyInsuranceStatusReport";
 import MonthlyWithholdingTaxReport from "./MonthlyWithholdingTaxReport";
 import SalaryBonusPaymentRegisterReport from "./SalaryBonusPaymentRegisterReport";
+import TaxDependentDetailsReport from "./TaxDependentDetailsReport";
 
 import ReportCatalog from "./Components/ReportCatalog";
 
@@ -200,6 +201,12 @@ export default function PayrollReportsPage() {
             === REPORT_IDS
               .MONTHLY_WITHHOLDING_TAX ? (
             <MonthlyWithholdingTaxReport />
+          ) : null}
+
+          {selectedReportId
+            === REPORT_IDS
+              .TAX_DEPENDENT_DETAILS ? (
+            <TaxDependentDetailsReport />
           ) : null}
         </Box>
       </Box>

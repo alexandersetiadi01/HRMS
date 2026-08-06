@@ -29,11 +29,14 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import {
+  deletePayrollTaxDependent,
   deletePayrollTaxProfile,
   getPayrollEmployees,
+  getPayrollTaxDependents,
   getPayrollTaxProfiles,
 } from "../../API/payroll";
 
+import EmployeeTaxDependentFormDialog from "./EmployeeTaxDependentFormDialog";
 import EmployeeTaxProfileFormDialog from "./EmployeeTaxProfileFormDialog";
 
 function getErrorMessage(error, fallback) {
@@ -220,6 +223,23 @@ function findCurrentTaxProfile(records) {
   );
 }
 
+function sortTaxDependents(records) {
+  return [...records].sort((left, right) => {
+    const dateComparison = normalizeDate(right?.effective_from).localeCompare(
+      normalizeDate(left?.effective_from),
+    );
+
+    if (dateComparison !== 0) {
+      return dateComparison;
+    }
+
+    return (
+      Number(right?.tax_dependent_id || 0) -
+      Number(left?.tax_dependent_id || 0)
+    );
+  });
+}
+
 export default function PayrollEmployeeTaxDataPage() {
   const [employees, setEmployees] = useState([]);
 
@@ -227,9 +247,13 @@ export default function PayrollEmployeeTaxDataPage() {
 
   const [taxProfiles, setTaxProfiles] = useState([]);
 
+  const [taxDependents, setTaxDependents] = useState([]);
+
   const [loadingEmployees, setLoadingEmployees] = useState(true);
 
   const [loadingProfiles, setLoadingProfiles] = useState(false);
+
+  const [loadingDependents, setLoadingDependents] = useState(false);
 
   const [error, setError] = useState("");
 
@@ -238,6 +262,15 @@ export default function PayrollEmployeeTaxDataPage() {
   const [editingRecord, setEditingRecord] = useState(null);
 
   const [viewingRecord, setViewingRecord] = useState(null);
+
+  const [dependentDialogOpen, setDependentDialogOpen] = useState(false);
+
+  const [editingDependent, setEditingDependent] = useState(null);
+
+  const [deletingDependent, setDeletingDependent] = useState(null);
+
+  const [deletingDependentLoading, setDeletingDependentLoading] =
+    useState(false);
 
   const [retiringRecord, setRetiringRecord] = useState(null);
 
@@ -327,6 +360,38 @@ export default function PayrollEmployeeTaxDataPage() {
     loadProfiles();
   }, [loadProfiles]);
 
+  const loadDependents = useCallback(async () => {
+    const employeeId = Number(selectedEmployee?.employee_id || 0);
+
+    if (!employeeId) {
+      setTaxDependents([]);
+      return;
+    }
+
+    setLoadingDependents(true);
+    setError("");
+
+    try {
+      const result = await getPayrollTaxDependents({
+        employee_id: employeeId,
+      });
+
+      setTaxDependents(
+        sortTaxDependents(Array.isArray(result) ? result : []),
+      );
+    } catch (requestError) {
+      setTaxDependents([]);
+
+      setError(getErrorMessage(requestError, "無法載入扶養親屬資料。"));
+    } finally {
+      setLoadingDependents(false);
+    }
+  }, [selectedEmployee]);
+
+  useEffect(() => {
+    loadDependents();
+  }, [loadDependents]);
+
   const currentTaxProfile = useMemo(
     () => findCurrentTaxProfile(taxProfiles),
     [taxProfiles],
@@ -408,6 +473,91 @@ export default function PayrollEmployeeTaxDataPage() {
       setRetiring(false);
     }
   }
+
+  function handleOpenCreateDependent() {
+    if (!selectedEmployee) {
+      setError("請先選擇員工。");
+      return;
+    }
+
+    if (!currentTaxProfile) {
+      setError("此員工尚未建立目前有效的所得稅主檔。");
+      return;
+    }
+
+    setEditingDependent(null);
+    setDependentDialogOpen(true);
+    setError("");
+    setSuccessMessage("");
+  }
+
+  function handleOpenEditDependent(record) {
+    setEditingDependent(record);
+    setDependentDialogOpen(true);
+    setError("");
+    setSuccessMessage("");
+  }
+
+  function handleCloseDependentDialog() {
+    setDependentDialogOpen(false);
+    setEditingDependent(null);
+  }
+
+  async function handleDependentSaved(_result, context = {}) {
+    handleCloseDependentDialog();
+
+    setSuccessMessage(
+      context.isEditing
+        ? "扶養親屬資料已更新。"
+        : "扶養親屬資料已新增。",
+    );
+
+    await loadDependents();
+  }
+
+  function handleOpenDeleteDependent(record) {
+    setDeletingDependent(record);
+    setError("");
+    setSuccessMessage("");
+  }
+
+  function handleCloseDeleteDependent() {
+    if (deletingDependentLoading) {
+      return;
+    }
+
+    setDeletingDependent(null);
+  }
+
+  async function handleConfirmDeleteDependent() {
+    const taxDependentId = Number(
+      deletingDependent?.tax_dependent_id || 0,
+    );
+
+    if (!taxDependentId) {
+      setError("扶養親屬資料 ID 不正確。");
+      setDeletingDependent(null);
+      return;
+    }
+
+    setDeletingDependentLoading(true);
+    setError("");
+    setSuccessMessage("");
+
+    try {
+      await deletePayrollTaxDependent(taxDependentId);
+
+      setSuccessMessage("扶養親屬資料已刪除。");
+      setDeletingDependent(null);
+
+      await loadDependents();
+    } catch (requestError) {
+      setError(getErrorMessage(requestError, "刪除扶養親屬資料失敗。"));
+    } finally {
+      setDeletingDependentLoading(false);
+    }
+  }
+
   return (
     <Box
       sx={{
@@ -513,6 +663,9 @@ export default function PayrollEmployeeTaxDataPage() {
             setError("");
             setSuccessMessage("");
             setRetiringRecord(null);
+            setEditingDependent(null);
+            setDeletingDependent(null);
+            setDependentDialogOpen(false);
           }}
           renderInput={(params) => (
             <TextField
@@ -1038,6 +1191,305 @@ export default function PayrollEmployeeTaxDataPage() {
                   </TableContainer>
                 )}
               </Paper>
+
+              <Paper
+                variant="outlined"
+                sx={{
+                  mt: "18px",
+                  borderColor: "#dfe4e8",
+                  borderRadius: "5px",
+                  boxShadow: "none",
+                  overflow: "hidden",
+                }}
+              >
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: {
+                      xs: "stretch",
+                      sm: "center",
+                    },
+                    justifyContent: "space-between",
+                    flexDirection: {
+                      xs: "column",
+                      sm: "row",
+                    },
+                    gap: "12px",
+                    p: {
+                      xs: "14px",
+                      sm: "16px 18px",
+                    },
+                    borderBottom: "1px solid #e5e7eb",
+                  }}
+                >
+                  <Box>
+                    <Typography
+                      sx={{
+                        color: "#1f2937",
+                        fontSize: "15px",
+                        fontWeight: 700,
+                      }}
+                    >
+                      扶養親屬資料
+                    </Typography>
+
+                    <Typography
+                      sx={{
+                        mt: "3px",
+                        color: "#64748b",
+                        fontSize: "12px",
+                      }}
+                    >
+                      管理此員工所得稅扶養親屬及其生效期間。
+                    </Typography>
+                  </Box>
+
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                    }}
+                  >
+                    <Chip
+                      label={`${taxDependents.length} 筆`}
+                      size="small"
+                      variant="outlined"
+                    />
+
+                    <Button
+                      type="button"
+                      variant="contained"
+                      size="small"
+                      startIcon={<AddIcon />}
+                      disabled={
+                        loadingDependents ||
+                        !currentTaxProfile
+                      }
+                      onClick={handleOpenCreateDependent}
+                      sx={{
+                        whiteSpace: "nowrap",
+                        fontWeight: 700,
+                      }}
+                    >
+                      新增扶養親屬
+                    </Button>
+                  </Box>
+                </Box>
+
+                {loadingDependents ? (
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "10px",
+                      minHeight: "150px",
+                    }}
+                  >
+                    <CircularProgress size={22} />
+
+                    <Typography
+                      sx={{
+                        color: "#64748b",
+                        fontSize: "13px",
+                      }}
+                    >
+                      載入扶養親屬資料中...
+                    </Typography>
+                  </Box>
+                ) : taxDependents.length === 0 ? (
+                  <Alert
+                    severity="info"
+                    sx={{
+                      m: "16px",
+                    }}
+                  >
+                    此員工尚未建立扶養親屬資料。
+                  </Alert>
+                ) : (
+                  <TableContainer
+                    component={Paper}
+                    variant="outlined"
+                    sx={{
+                      borderColor: "#dfe4e8",
+                    }}
+                  >
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow
+                          sx={{
+                            bgcolor: "#f8fafc",
+                          }}
+                        >
+                          {[
+                            "扶養親屬",
+                            "關係",
+                            "證號別",
+                            "生效期間",
+                            "狀態",
+                            "操作",
+                          ].map((label) => (
+                            <TableCell
+                              key={label}
+                              align={
+                                label === "狀態" || label === "操作"
+                                  ? "center"
+                                  : "left"
+                              }
+                              sx={{
+                                fontWeight: 700,
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {label}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      </TableHead>
+
+                      <TableBody>
+                        {taxDependents.map((record) => {
+                          const dependentId = Number(
+                            record?.tax_dependent_id || 0,
+                          );
+
+                          return (
+                            <TableRow key={dependentId} hover>
+                              <TableCell>
+                                <Typography
+                                  sx={{
+                                    color: "#1f2937",
+                                    fontSize: "14px",
+                                    fontWeight: 700,
+                                  }}
+                                >
+                                  {record?.dependent_name || "--"}
+                                </Typography>
+
+                                <Typography
+                                  sx={{
+                                    mt: "2px",
+                                    color: "#64748b",
+                                    fontSize: "12px",
+                                    overflowWrap: "anywhere",
+                                  }}
+                                >
+                                  {record?.identity_number || "--"}
+                                </Typography>
+                              </TableCell>
+
+                              <TableCell>
+                                {record?.relationship_type || "--"}
+                              </TableCell>
+
+                              <TableCell>
+                                {getCertificateTypeLabel(
+                                  record?.certificate_type,
+                                )}
+                              </TableCell>
+
+                              <TableCell
+                                sx={{
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {formatEffectivePeriod(record)}
+                              </TableCell>
+
+                              <TableCell align="center">
+                                <Chip
+                                  size="small"
+                                  label={record?.status || "--"}
+                                  color={
+                                    record?.status === "啟用"
+                                      ? "success"
+                                      : "default"
+                                  }
+                                  variant={
+                                    record?.status === "啟用"
+                                      ? "filled"
+                                      : "outlined"
+                                  }
+                                  sx={{
+                                    fontWeight: 700,
+                                  }}
+                                />
+                              </TableCell>
+
+                              <TableCell
+                                align="center"
+                                sx={{
+                                  width: "116px",
+                                  minWidth: "116px",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    gap: "8px",
+                                  }}
+                                >
+                                  <Tooltip title="編輯" arrow>
+                                    <IconButton
+                                      type="button"
+                                      aria-label="編輯扶養親屬"
+                                      onClick={() =>
+                                        handleOpenEditDependent(record)
+                                      }
+                                      sx={{
+                                        width: "40px",
+                                        height: "40px",
+                                        color: "#1976d2",
+                                        bgcolor: "#eff6ff",
+                                        border: "1px solid #93c5fd",
+                                        borderRadius: "6px",
+
+                                        "&:hover": {
+                                          bgcolor: "#dbeafe",
+                                        },
+                                      }}
+                                    >
+                                      <EditOutlinedIcon fontSize="small" />
+                                    </IconButton>
+                                  </Tooltip>
+
+                                  <Tooltip title="刪除" arrow>
+                                    <IconButton
+                                      type="button"
+                                      aria-label="刪除扶養親屬"
+                                      onClick={() =>
+                                        handleOpenDeleteDependent(record)
+                                      }
+                                      sx={{
+                                        width: "40px",
+                                        height: "40px",
+                                        color: "#dc2626",
+                                        bgcolor: "#fef2f2",
+                                        border: "1px solid #fca5a5",
+                                        borderRadius: "6px",
+
+                                        "&:hover": {
+                                          bgcolor: "#fee2e2",
+                                        },
+                                      }}
+                                    >
+                                      <DeleteOutlineIcon fontSize="small" />
+                                    </IconButton>
+                                  </Tooltip>
+                                </Box>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                )}
+              </Paper>
             </>
           )}
         </>
@@ -1373,6 +1825,121 @@ export default function PayrollEmployeeTaxDataPage() {
           </Button>
         </DialogActions>
       </Dialog>
+      <Dialog
+        open={Boolean(deletingDependent)}
+        onClose={
+          deletingDependentLoading
+            ? undefined
+            : handleCloseDeleteDependent
+        }
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle
+          sx={{
+            fontWeight: 700,
+          }}
+        >
+          刪除扶養親屬資料
+        </DialogTitle>
+
+        <DialogContent>
+          <DialogContentText>
+            確定要永久刪除這筆扶養親屬資料嗎？
+          </DialogContentText>
+
+          <Alert
+            severity="warning"
+            sx={{
+              mt: "16px",
+            }}
+          >
+            刪除後將無法復原。若只是不再適用，請取消刪除並將狀態編輯為停用。
+          </Alert>
+
+          <Box
+            sx={{
+              mt: "16px",
+              p: "14px",
+              borderRadius: "5px",
+              bgcolor: "#f8fafc",
+            }}
+          >
+            <Typography
+              sx={{
+                fontSize: "13px",
+                fontWeight: 700,
+              }}
+            >
+              扶養親屬
+            </Typography>
+
+            <Typography
+              sx={{
+                mt: "4px",
+                color: "#64748b",
+                fontSize: "13px",
+              }}
+            >
+              {deletingDependent?.dependent_name || "--"}
+            </Typography>
+
+            <Typography
+              sx={{
+                mt: "12px",
+                fontSize: "13px",
+                fontWeight: 700,
+              }}
+            >
+              生效期間
+            </Typography>
+
+            <Typography
+              sx={{
+                mt: "4px",
+                color: "#64748b",
+                fontSize: "13px",
+              }}
+            >
+              {deletingDependent
+                ? formatEffectivePeriod(deletingDependent)
+                : "--"}
+            </Typography>
+          </Box>
+        </DialogContent>
+
+        <DialogActions
+          sx={{
+            px: "24px",
+            py: "14px",
+          }}
+        >
+          <Button
+            type="button"
+            disabled={deletingDependentLoading}
+            onClick={handleCloseDeleteDependent}
+          >
+            取消
+          </Button>
+
+          <Button
+            type="button"
+            color="error"
+            variant="contained"
+            disabled={deletingDependentLoading}
+            startIcon={
+              deletingDependentLoading ? (
+                <CircularProgress size={16} color="inherit" />
+              ) : (
+                <DeleteOutlineIcon />
+              )
+            }
+            onClick={handleConfirmDeleteDependent}
+          >
+            {deletingDependentLoading ? "刪除中..." : "確認刪除"}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <EmployeeTaxProfileFormDialog
         open={formDialogOpen}
@@ -1380,6 +1947,15 @@ export default function PayrollEmployeeTaxDataPage() {
         record={editingRecord}
         onClose={handleCloseDialog}
         onSaved={handleSaved}
+      />
+
+      <EmployeeTaxDependentFormDialog
+        open={dependentDialogOpen}
+        employee={selectedEmployee}
+        taxProfile={currentTaxProfile}
+        editingRecord={editingDependent}
+        onClose={handleCloseDependentDialog}
+        onSaved={handleDependentSaved}
       />
     </Box>
   );

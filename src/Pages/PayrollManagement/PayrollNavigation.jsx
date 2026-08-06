@@ -191,7 +191,7 @@ export const PAYROLL_NAVIGATION = [
         id: "report-center",
         label: "報表中心",
         path: "/attendance/admin/payroll/reports",
-        implemented: false,
+        implemented: true,
       },
     ],
   },
