@@ -1,4 +1,5 @@
-import { Box, Typography } from "@mui/material";
+import { useEffect, useMemo, useState } from "react";
+import { Box, Pagination, Typography } from "@mui/material";
 
 export default function ResponsiveAttendanceTable({
   columns = [],
@@ -9,10 +10,35 @@ export default function ResponsiveAttendanceTable({
   mobileCardTitleKey = "",
   renderValue,
   headerBg = "#d4d4d4",
+  pagination = false,
+  rowsPerPage = 10,
 }) {
+  const [page, setPage] = useState(1);
+
   const desktopGridTemplate = columns
     .map((column) => column.width || "1fr")
     .join(" ");
+
+  const pageCount = Math.max(1, Math.ceil(rows.length / rowsPerPage));
+
+  useEffect(() => {
+    setPage(1);
+  }, [rows, rowsPerPage]);
+
+  useEffect(() => {
+    if (page > pageCount) {
+      setPage(pageCount);
+    }
+  }, [page, pageCount]);
+
+  const visibleRows = useMemo(() => {
+    if (!pagination) {
+      return rows;
+    }
+
+    const start = (page - 1) * rowsPerPage;
+    return rows.slice(start, start + rowsPerPage);
+  }, [pagination, page, rows, rowsPerPage]);
 
   return (
     <Box>
@@ -45,7 +71,7 @@ export default function ResponsiveAttendanceTable({
               ))}
             </Box>
 
-            {rows.length === 0 ? (
+            {visibleRows.length === 0 ? (
               <Box
                 sx={{
                   minHeight: "40px",
@@ -60,7 +86,7 @@ export default function ResponsiveAttendanceTable({
                 </Typography>
               </Box>
             ) : (
-              rows.map((row, index) => (
+              visibleRows.map((row, index) => (
                 <Box
                   key={getRowKey ? getRowKey(row, index) : index}
                   sx={{
@@ -100,7 +126,7 @@ export default function ResponsiveAttendanceTable({
 
       {/* Mobile */}
       <Box sx={{ display: { xs: "block", md: "none" } }}>
-        {rows.length === 0 ? (
+        {visibleRows.length === 0 ? (
           <Box
             sx={{
               border: "1px solid #d1d5db",
@@ -116,7 +142,7 @@ export default function ResponsiveAttendanceTable({
           </Box>
         ) : (
           <Box sx={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            {rows.map((row, index) => {
+            {visibleRows.map((row, index) => {
               const cardTitle =
                 mobileCardTitleKey && row[mobileCardTitleKey]
                   ? row[mobileCardTitleKey]
@@ -207,6 +233,24 @@ export default function ResponsiveAttendanceTable({
           </Box>
         )}
       </Box>
+
+      {pagination && rows.length > rowsPerPage ? (
+        <Box
+          sx={{
+            mt: "16px",
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
+          <Pagination
+            page={page}
+            count={pageCount}
+            onChange={(_, value) => setPage(value)}
+            shape="rounded"
+            size="small"
+          />
+        </Box>
+      ) : null}
     </Box>
   );
 }

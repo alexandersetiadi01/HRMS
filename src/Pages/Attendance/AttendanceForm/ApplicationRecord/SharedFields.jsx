@@ -29,6 +29,8 @@ export function SelectField({
   onChange,
   options = [],
   minWidth = "186px",
+  fullWidth = false,
+  height,
   displayEmpty = false,
   menuProps = COMMON_SELECT_MENU_PROPS,
   disabled = false,
@@ -37,28 +39,30 @@ export function SelectField({
     <Box
       sx={{
         display: "flex",
-        flexDirection: { xs: "column", sm: "row" },
-        alignItems: { xs: "stretch", sm: "center" },
-        gap: { xs: "8px", sm: "10px" },
-        width: { xs: "100%", sm: "auto" },
-        minWidth: { xs: "100%", sm: "auto" },
+        flexDirection: "column",
+        alignItems: "stretch",
+        gap: label ? "6px" : 0,
+        width: fullWidth ? "100%" : { xs: "100%", sm: "auto" },
+        minWidth: fullWidth ? 0 : { xs: "100%", sm: "auto" },
       }}
     >
-      <Typography
-        sx={{
-          fontSize: "15px",
-          color: "#111827",
-          fontWeight: 500,
-          whiteSpace: "nowrap",
-        }}
-      >
-        {required ? (
-          <Box component="span" sx={{ color: "#ef4444", mr: "2px" }}>
-            *
-          </Box>
-        ) : null}
-        {label}
-      </Typography>
+      {label ? (
+        <Typography
+          sx={{
+            fontSize: "15px",
+            color: "#111827",
+            fontWeight: 500,
+            whiteSpace: "nowrap",
+          }}
+        >
+          {required ? (
+            <Box component="span" sx={{ color: "#ef4444", mr: "2px" }}>
+              *
+            </Box>
+          ) : null}
+          {label}
+        </Typography>
+      ) : null}
 
       <Select
         size="small"
@@ -68,9 +72,10 @@ export function SelectField({
         MenuProps={menuProps}
         disabled={disabled}
         sx={{
-          minWidth: { xs: "100%", sm: minWidth },
-          width: { xs: "100%", sm: "auto" },
+          minWidth: fullWidth ? 0 : { xs: "100%", sm: minWidth },
+          width: fullWidth ? "100%" : { xs: "100%", sm: "auto" },
           ...COMMON_SELECT_SX,
+          ...(height ? { height } : {}),
         }}
       >
         {options.map((item) => {

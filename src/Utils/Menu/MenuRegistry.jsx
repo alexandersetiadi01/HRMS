@@ -293,7 +293,6 @@ export const MENU_ITEMS = [
     label: "打卡紀錄維護",
     to: "/attendance/admin/record-maintenance",
     iconKey: "attendance-record-maintenance",
-    disable: true,
     groups: ["attendance"],
     sectionKey: "manager",
     adminOnly: true,

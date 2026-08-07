@@ -300,6 +300,294 @@ export async function apiTodayStatus(params = {}) {
 
 /**
  * =========================
+ * Attendance Administration
+ * =========================
+ */
+
+export async function apiAttendancePunches(params = {}) {
+  const {
+    employee_id,
+    date_from,
+    date_to,
+    punch_type,
+    location,
+    method,
+  } = params;
+
+  const res = await http.get("/attendance/punches", {
+    params: {
+      employee_id: employee_id || undefined,
+      date_from: date_from || undefined,
+      date_to: date_to || undefined,
+      punch_type: punch_type || undefined,
+      location: location || undefined,
+      method: method || undefined,
+    },
+  });
+
+  return res.data;
+}
+
+export async function apiCreateAttendancePunch(payload = {}) {
+  const res = await http.post("/attendance/punches", {
+    employee_id: payload.employee_id,
+    punch_time: payload.punch_time,
+    punch_type: payload.punch_type,
+    method: payload.method || "手動",
+    latitude: payload.latitude ?? null,
+    longitude: payload.longitude ?? null,
+    ip_address: payload.ip_address || "",
+    location_label: payload.location_label || "",
+    maintenance_reason: payload.maintenance_reason || "",
+  });
+
+  return res.data;
+}
+
+export async function apiUpdateAttendancePunch(punchId, payload = {}) {
+  const res = await http.patch(`/attendance/punches/${punchId}`, {
+    ...payload,
+    maintenance_reason: payload.maintenance_reason || "",
+  });
+
+  return res.data;
+}
+
+export async function apiDeleteAttendancePunch(
+  punchId,
+  maintenanceReason,
+) {
+  const res = await http.delete(
+    `/attendance/punches/${punchId}`,
+    {
+      params: {
+        maintenance_reason: maintenanceReason || "",
+      },
+    },
+  );
+
+  return res.data;
+}
+
+export async function apiAttendancePunchMaintenanceLogs(
+  params = {},
+) {
+  const {
+    employee_id,
+    punch_id,
+    action_type,
+    operator_user_id,
+    date_from,
+    date_to,
+  } = params;
+
+  const res = await http.get(
+    "/attendance/punches/maintenance-logs",
+    {
+      params: {
+        employee_id: employee_id || undefined,
+        punch_id: punch_id || undefined,
+        action_type: action_type || undefined,
+        operator_user_id:
+          operator_user_id || undefined,
+        date_from: date_from || undefined,
+        date_to: date_to || undefined,
+      },
+    },
+  );
+
+  return res.data;
+}
+
+export async function apiAttendancePunchBulkPreview(
+  payload = {},
+) {
+  const res = await http.post(
+    "/attendance/punches/bulk-preview",
+    payload,
+  );
+
+  return res.data;
+}
+
+export async function apiAttendancePunchBulkCreate(
+  payload = {},
+) {
+  const res = await http.post(
+    "/attendance/punches/bulk-create",
+    payload,
+  );
+
+  return res.data;
+}
+
+export async function apiAttendanceAnomalies(params = {}) {
+  const {
+    employee_id,
+    anomaly_type,
+    status,
+    date_from,
+    date_to,
+  } = params;
+
+  const res = await http.get("/attendance/anomalies", {
+    params: {
+      employee_id: employee_id || undefined,
+      anomaly_type: anomaly_type || undefined,
+      status: status || undefined,
+      date_from: date_from || undefined,
+      date_to: date_to || undefined,
+    },
+  });
+
+  return res.data;
+}
+
+export async function apiAttendanceAbsences(params = {}) {
+  const { employee_id, status, date_from, date_to } = params;
+
+  const res = await http.get("/attendance/absences", {
+    params: {
+      employee_id: employee_id || undefined,
+      status: status || undefined,
+      date_from: date_from || undefined,
+      date_to: date_to || undefined,
+    },
+  });
+
+  return res.data;
+}
+
+export async function apiCreateAttendanceAbsence(payload = {}) {
+  const res = await http.post("/attendance/absences", payload);
+  return res.data;
+}
+
+export async function apiUpdateAttendanceAbsence(absenceId, payload = {}) {
+  const res = await http.patch(`/attendance/absences/${absenceId}`, payload);
+  return res.data;
+}
+
+export async function apiRevokeAttendanceAbsence(absenceId, revokedReason) {
+  const res = await http.post(`/attendance/absences/${absenceId}/revoke`, {
+    revoked_reason: revokedReason || "",
+  });
+
+  return res.data;
+}
+
+export async function apiConvertAttendanceAnomalyToAbsence(anomalyId, payload = {}) {
+  const res = await http.post(
+    `/attendance/anomalies/${anomalyId}/convert-to-absence`,
+    payload,
+  );
+
+  return res.data;
+}
+
+export async function apiAttendanceAdminMeta() {
+  const [employeeRes, unitRes, jobRecordRes] = await Promise.all([
+    http.get("/employees", {
+      params: {
+        page: 1,
+        per_page: 100,
+      },
+    }),
+    http.get("/org-units"),
+    http.get("/employee-job-records"),
+  ]);
+
+  const employees = unwrapData(employeeRes, []) || [];
+  const units = unwrapData(unitRes, []) || [];
+  const jobRecords = unwrapData(jobRecordRes, []) || [];
+
+  const unitMap = new Map(
+    units.map((unit) => [
+      Number(unit?.unit_id || 0),
+      {
+        unit_id: Number(unit?.unit_id || 0),
+        unit_code: String(unit?.unit_code || "").trim(),
+        unit_name: String(unit?.unit_name || "").trim(),
+      },
+    ]),
+  );
+
+  const latestJobRecordMap = new Map();
+
+  [...jobRecords]
+    .sort((a, b) => {
+      const aDate = String(a?.effective_date || "");
+      const bDate = String(b?.effective_date || "");
+
+      if (aDate !== bDate) {
+        return bDate.localeCompare(aDate);
+      }
+
+      return Number(b?.job_record_id || 0) - Number(a?.job_record_id || 0);
+    })
+    .forEach((record) => {
+      const employeeId = Number(record?.employee_id || 0);
+
+      if (!employeeId || latestJobRecordMap.has(employeeId)) {
+        return;
+      }
+
+      latestJobRecordMap.set(employeeId, record);
+    });
+
+  const unitOptions = units
+    .map((unit) => {
+      const unitId = Number(unit?.unit_id || 0);
+      const unitCode = String(unit?.unit_code || "").trim();
+      const unitName = String(unit?.unit_name || "").trim();
+
+      return {
+        value: String(unitId),
+        label:
+          unitCode && unitName
+            ? `${unitCode}/${unitName}`
+            : unitName || unitCode,
+      };
+    })
+    .filter((unit) => unit.value !== "0")
+    .sort((a, b) => a.label.localeCompare(b.label, "zh-Hant"));
+
+  const employeeOptions = employees
+    .map((employee) => {
+      const employeeId = Number(employee?.employee_id || 0);
+      const employeeNo = String(employee?.employee_no || "").trim();
+      const displayName = String(employee?.display_name || "").trim();
+      const jobRecord = latestJobRecordMap.get(employeeId);
+      const unitId = Number(jobRecord?.unit_id || 0);
+      const unit = unitMap.get(unitId);
+
+      return {
+        value: String(employeeId),
+        employee_id: employeeId,
+        employee_no: employeeNo,
+        display_name: displayName,
+        label:
+          employeeNo && displayName
+            ? `${employeeNo}/${displayName}`
+            : employeeNo || displayName,
+        unit_id: unitId,
+        unit_label:
+          unit?.unit_code && unit?.unit_name
+            ? `${unit.unit_code}/${unit.unit_name}`
+            : unit?.unit_name || unit?.unit_code || "",
+      };
+    })
+    .filter((employee) => employee.employee_id > 0)
+    .sort((a, b) => a.label.localeCompare(b.label, "zh-Hant"));
+
+  return {
+    unitOptions,
+    employeeOptions,
+  };
+}
+
+/**
+ * =========================
  * Attendance Record (Frontend)
  * =========================
  */

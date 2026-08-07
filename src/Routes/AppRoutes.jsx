@@ -12,6 +12,7 @@ import AttendanceLeave from "../Pages/Attendance/Leave/AttendanceLeave";
 import AttendanceOvertime from "../Pages/Attendance/Overtime/AttendanceOverTime";
 import AttendanceLeaveBalance from "../Pages/Attendance/AttendanceLeaveBalance";
 import AttendancePendingApproval from "../Pages/Attendance/PendingApproval/AttendancePendingApproval";
+import AttendanceRecordMaintenance from "../Pages/Attendance/Admin/RecordMaintenance/AttendanceRecordMaintenance";
 import Absent from "../Pages/Attendance/Absent";
 import AttendanceBusinessTrip from "../Pages/Attendance/AttendanceBusinessTrip";
 import AccountLayout from "../Layouts/AccountLayout";
@@ -147,7 +148,7 @@ export default function AppRoutes() {
         />
         <Route
           path="/attendance/admin/record-maintenance"
-          element={<PlaceholderPage title="打卡紀錄維護" />}
+          element={<AttendanceRecordMaintenance />}
         />
         <Route
           path="/attendance/admin/form-management"
