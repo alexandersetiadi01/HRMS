@@ -404,6 +404,8 @@ function getDetailStatusLabel(dayData) {
     dayData?.indicator?.status || "",
   ).toLowerCase();
   const missedPunchSuffix = getMissedPunchDetailSuffix(dayData);
+  const confirmedAbsenceHours = Number(dayData?.confirmed_absence_hours || 0);
+  const unresolvedAbsenceHours = Number(dayData?.unresolved_absent_hours || 0);
 
   let baseLabel = "";
 
@@ -413,6 +415,10 @@ function getDetailStatusLabel(dayData) {
     baseLabel = "休假";
   } else if (dayData?.day_type === "unscheduled") {
     baseLabel = "未排班";
+  } else if (confirmedAbsenceHours > 0 && unresolvedAbsenceHours > 0) {
+    baseLabel = "部分曠職 / 尚有出勤異常";
+  } else if (confirmedAbsenceHours > 0) {
+    baseLabel = dayData?.worked_hours > 0 ? "部分曠職" : "曠職";
   } else if (
     indicatorStatus === "overtime" ||
     dayData?.is_overtime_day ||
@@ -690,6 +696,18 @@ function AttendanceDetailDialog({
             <DetailField
               label="工時"
               value={formatHoursText(dayData?.worked_hours)}
+            />
+            <DetailField
+              label="系統缺勤時數"
+              value={formatHoursText(dayData?.system_absent_hours)}
+            />
+            <DetailField
+              label="曠職時數"
+              value={formatHoursText(dayData?.confirmed_absence_hours)}
+            />
+            <DetailField
+              label="尚未處理缺勤"
+              value={formatHoursText(dayData?.unresolved_absent_hours)}
             />
             <DetailField
               label="加班時數"

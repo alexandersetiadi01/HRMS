@@ -40,7 +40,7 @@ const ANOMALY_TYPE_OPTIONS = [
   { value: "missing_clock_in", label: "缺上班卡" },
   { value: "missing_clock_out", label: "缺下班卡" },
   { value: "late_early_leave", label: "遲到且早退" },
-  { value: "absent", label: "曠職" },
+  { value: "absent", label: "未處理缺勤" },
   { value: "overtime", label: "加班" },
   { value: "leave", label: "請假" },
   { value: "other", label: "其他" },
@@ -89,7 +89,7 @@ function formatAnomalyType(value) {
     missing_clock_in: "缺上班卡",
     missing_clock_out: "缺下班卡",
     late_early_leave: "遲到且早退",
-    absent: "曠職",
+    absent: "未處理缺勤",
     overtime: "加班",
     leave: "請假",
     other: "其他",
@@ -282,11 +282,15 @@ export default function AttendanceAnomaliesTab() {
   };
 
   const handleOpenConvert = (row) => {
+    const unresolvedHours = Number(row.unresolved_absent_hours || 0);
+
     setConvertRow(row);
     setConvertHours(
-      Number(row.minutes_value || 0) > 0
-        ? String(Number(row.minutes_value) / 60)
-        : "",
+      unresolvedHours > 0
+        ? String(unresolvedHours)
+        : Number(row.minutes_value || 0) > 0
+          ? String(Number(row.minutes_value) / 60)
+          : "",
     );
     setConvertReason("");
     setConvertError("");
@@ -311,6 +315,13 @@ export default function AttendanceAnomaliesTab() {
       return;
     }
 
+    const unresolvedHours = Number(convertRow?.unresolved_absent_hours || 0);
+
+    if (unresolvedHours > 0 && hours > unresolvedHours) {
+      setConvertError(`曠職時數不可超過目前尚未處理的缺勤時數 ${unresolvedHours} 小時。`);
+      return;
+    }
+
     if (!convertReason.trim()) {
       setConvertError("請輸入曠職原因。");
       return;
@@ -331,7 +342,7 @@ export default function AttendanceAnomaliesTab() {
       setSuccessDialog({
         open: true,
         title: "轉曠職成功",
-        message: "出勤異常已成功轉為曠職紀錄。",
+        message: "曠職紀錄已成功建立，若仍有未處理缺勤將繼續保留於出勤異常。",
       });
 
       await loadRows(appliedFilters);
@@ -377,7 +388,7 @@ export default function AttendanceAnomaliesTab() {
             </IconButton>
           </Tooltip>
 
-          {row.status === "open" ? (
+          {row.status === "open" && row.anomaly_type === "absent" ? (
             <Tooltip title="轉曠職">
               <IconButton size="small" onClick={() => handleOpenConvert(row)}>
                 <PersonOffOutlinedIcon fontSize="small" />
@@ -621,6 +632,33 @@ export default function AttendanceAnomaliesTab() {
               </Typography>
             </Box>
 
+            <Box>
+              <Typography sx={{ fontSize: "13px", color: "#6b7280" }}>
+                系統缺勤時數
+              </Typography>
+              <Typography sx={{ fontSize: "15px", fontWeight: 600 }}>
+                {Number(detailRow.system_absent_hours || 0)} 小時
+              </Typography>
+            </Box>
+
+            <Box>
+              <Typography sx={{ fontSize: "13px", color: "#6b7280" }}>
+                已確認曠職時數
+              </Typography>
+              <Typography sx={{ fontSize: "15px", fontWeight: 600 }}>
+                {Number(detailRow.confirmed_absence_hours || 0)} 小時
+              </Typography>
+            </Box>
+
+            <Box>
+              <Typography sx={{ fontSize: "13px", color: "#6b7280" }}>
+                尚未處理缺勤
+              </Typography>
+              <Typography sx={{ fontSize: "15px", fontWeight: 600 }}>
+                {Number(detailRow.unresolved_absent_hours || 0)} 小時
+              </Typography>
+            </Box>
+
             <Box sx={{ gridColumn: { sm: "1 / -1" } }}>
               <Typography sx={{ fontSize: "13px", color: "#6b7280" }}>
                 備註
@@ -652,6 +690,18 @@ export default function AttendanceAnomaliesTab() {
             <Typography sx={{ mt: "4px", fontSize: "14px", color: "#6b7280" }}>
               {formatDate(convertRow.work_date)}　
               {formatAnomalyType(convertRow.anomaly_type)}
+            </Typography>
+
+            <Typography sx={{ mt: "4px", fontSize: "14px", color: "#6b7280" }}>
+              系統缺勤：{Number(convertRow.system_absent_hours || 0)} 小時
+            </Typography>
+
+            <Typography sx={{ mt: "2px", fontSize: "14px", color: "#6b7280" }}>
+              已確認曠職：{Number(convertRow.confirmed_absence_hours || 0)} 小時
+            </Typography>
+
+            <Typography sx={{ mt: "2px", fontSize: "14px", color: "#6b7280" }}>
+              尚未處理：{Number(convertRow.unresolved_absent_hours || 0)} 小時
             </Typography>
           </Box>
         ) : null}

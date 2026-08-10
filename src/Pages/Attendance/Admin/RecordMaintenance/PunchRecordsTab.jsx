@@ -875,6 +875,8 @@ export default function PunchRecordsTab() {
         emptyText={loading ? "讀取中..." : "查無打卡紀錄"}
         desktopMinWidth="850px"
         renderValue={renderTableValue}
+        pagination
+        rowsPerPage={10}
       />
       <FormDialog
         open={formOpen}

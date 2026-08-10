@@ -252,10 +252,10 @@ export const MENU_ITEMS = [
     label: "人員出勤",
     to: "/attendance/admin/staff-attendance",
     iconKey: "attendance-staff-attendance",
-    disable: true,
+    disable: false,
     groups: ["attendance"],
     sectionKey: "supervisor",
-    adminOnly: true,
+    accessKey: "staff-attendance",
   },
   {
     id: "shift-approval",

@@ -13,6 +13,7 @@ import AttendanceOvertime from "../Pages/Attendance/Overtime/AttendanceOverTime"
 import AttendanceLeaveBalance from "../Pages/Attendance/AttendanceLeaveBalance";
 import AttendancePendingApproval from "../Pages/Attendance/PendingApproval/AttendancePendingApproval";
 import AttendanceRecordMaintenance from "../Pages/Attendance/Admin/RecordMaintenance/AttendanceRecordMaintenance";
+import StaffAttendancePage from "../Pages/Attendance/Supervisor/StaffAttendancePage";
 import Absent from "../Pages/Attendance/Absent";
 import AttendanceBusinessTrip from "../Pages/Attendance/AttendanceBusinessTrip";
 import AccountLayout from "../Layouts/AccountLayout";
@@ -36,6 +37,7 @@ import StickyNotes from "../Pages/StickyNote/StickyNotes";
 import Settings from "../Pages/Settings/Settings";
 import MenuShortcuts from "../Pages/Settings/MenuShortcut";
 import RequireAuth from "./RequireAuth";
+import RequireStaffAttendanceAccess from "./RequireStaffAttendanceAccess";
 import RequirePayrollAdmin from "./RequirePayrollAdmin";
 import RequirePayrollPermission, {
   PayrollDefaultRedirect,
@@ -132,7 +134,11 @@ export default function AppRoutes() {
 
         <Route
           path="/attendance/admin/staff-attendance"
-          element={<PlaceholderPage title="人員出勤" />}
+          element={
+            <RequireStaffAttendanceAccess>
+              <StaffAttendancePage />
+            </RequireStaffAttendanceAccess>
+          }
         />
         <Route
           path="/attendance/admin/shift-approval"
@@ -175,12 +181,7 @@ export default function AppRoutes() {
             </RequirePayrollAdmin>
           }
         >
-          <Route
-            index
-            element={
-              <PayrollDefaultRedirect />
-            }
-          />
+          <Route index element={<PayrollDefaultRedirect />} />
 
           <Route
             path="operations/salary"
@@ -203,9 +204,7 @@ export default function AppRoutes() {
             path="settings/ranges"
             element={
               <RequirePayrollPermission
-                permissions={[
-                  "payroll_settings_manage",
-                ]}
+                permissions={["payroll_settings_manage"]}
               >
                 <PayrollRangesPage />
               </RequirePayrollPermission>
@@ -216,9 +215,7 @@ export default function AppRoutes() {
             path="settings/periods"
             element={
               <RequirePayrollPermission
-                permissions={[
-                  "payroll_settings_manage",
-                ]}
+                permissions={["payroll_settings_manage"]}
               >
                 <PayrollPeriodsPage />
               </RequirePayrollPermission>
@@ -229,9 +226,7 @@ export default function AppRoutes() {
             path="settings/items"
             element={
               <RequirePayrollPermission
-                permissions={[
-                  "payroll_settings_manage",
-                ]}
+                permissions={["payroll_settings_manage"]}
               >
                 <PayrollItemsPage />
               </RequirePayrollPermission>
@@ -242,9 +237,7 @@ export default function AppRoutes() {
             path="settings/overtime-tax"
             element={
               <RequirePayrollPermission
-                permissions={[
-                  "payroll_settings_manage",
-                ]}
+                permissions={["payroll_settings_manage"]}
               >
                 <PayrollOvertimeTaxPage />
               </RequirePayrollPermission>
@@ -255,9 +248,7 @@ export default function AppRoutes() {
             path="settings/hourly-formula"
             element={
               <RequirePayrollPermission
-                permissions={[
-                  "payroll_settings_manage",
-                ]}
+                permissions={["payroll_settings_manage"]}
               >
                 <PayrollHourlyFormulaPage />
               </RequirePayrollPermission>
@@ -268,9 +259,7 @@ export default function AppRoutes() {
             path="settings/banks"
             element={
               <RequirePayrollPermission
-                permissions={[
-                  "payroll_settings_manage",
-                ]}
+                permissions={["payroll_settings_manage"]}
               >
                 <PayrollSalaryBanksPage />
               </RequirePayrollPermission>
@@ -281,9 +270,7 @@ export default function AppRoutes() {
             path="settings/insurance-units"
             element={
               <RequirePayrollPermission
-                permissions={[
-                  "payroll_tax_insurance_manage",
-                ]}
+                permissions={["payroll_tax_insurance_manage"]}
               >
                 <PayrollInsuranceUnitsPage />
               </RequirePayrollPermission>
@@ -294,9 +281,7 @@ export default function AppRoutes() {
             path="settings/insurance-grades"
             element={
               <RequirePayrollPermission
-                permissions={[
-                  "payroll_tax_insurance_manage",
-                ]}
+                permissions={["payroll_tax_insurance_manage"]}
               >
                 <PayrollInsuranceGradesPage />
               </RequirePayrollPermission>
@@ -307,9 +292,7 @@ export default function AppRoutes() {
             path="settings/insurance-rates"
             element={
               <RequirePayrollPermission
-                permissions={[
-                  "payroll_tax_insurance_manage",
-                ]}
+                permissions={["payroll_tax_insurance_manage"]}
               >
                 <PayrollInsuranceRatesPage />
               </RequirePayrollPermission>
@@ -320,9 +303,7 @@ export default function AppRoutes() {
             path="settings/insurance-identities"
             element={
               <RequirePayrollPermission
-                permissions={[
-                  "payroll_tax_insurance_manage",
-                ]}
+                permissions={["payroll_tax_insurance_manage"]}
               >
                 <PayrollInsuranceIdentitiesPage />
               </RequirePayrollPermission>
@@ -333,9 +314,7 @@ export default function AppRoutes() {
             path="settings/tax-units"
             element={
               <RequirePayrollPermission
-                permissions={[
-                  "payroll_tax_insurance_manage",
-                ]}
+                permissions={["payroll_tax_insurance_manage"]}
               >
                 <PayrollTaxDeclarationUnitsPage />
               </RequirePayrollPermission>
@@ -346,9 +325,7 @@ export default function AppRoutes() {
             path="settings/tax-parameters"
             element={
               <RequirePayrollPermission
-                permissions={[
-                  "payroll_tax_insurance_manage",
-                ]}
+                permissions={["payroll_tax_insurance_manage"]}
               >
                 <PayrollTaxParametersPage />
               </RequirePayrollPermission>
@@ -359,9 +336,7 @@ export default function AppRoutes() {
             path="settings/permissions"
             element={
               <RequirePayrollPermission
-                permissions={[
-                  "payroll_permissions_manage",
-                ]}
+                permissions={["payroll_permissions_manage"]}
               >
                 <PayrollPermissionsPage />
               </RequirePayrollPermission>
@@ -386,9 +361,7 @@ export default function AppRoutes() {
             path="employee-data/bulk-adjustment"
             element={
               <RequirePayrollPermission
-                permissions={[
-                  "payroll_settings_manage",
-                ]}
+                permissions={["payroll_settings_manage"]}
               >
                 <PayrollBulkAdjustmentPage />
               </RequirePayrollPermission>
@@ -399,9 +372,7 @@ export default function AppRoutes() {
             path="employee-data/adjustment-history"
             element={
               <RequirePayrollPermission
-                permissions={[
-                  "payroll_settings_manage",
-                ]}
+                permissions={["payroll_settings_manage"]}
               >
                 <PayrollAdjustmentHistoryPage />
               </RequirePayrollPermission>
@@ -412,9 +383,7 @@ export default function AppRoutes() {
             path="tax/withholding"
             element={
               <RequirePayrollPermission
-                permissions={[
-                  "payroll_tax_insurance_manage",
-                ]}
+                permissions={["payroll_tax_insurance_manage"]}
               >
                 <PayrollWithholdingOperationsPage />
               </RequirePayrollPermission>
@@ -424,9 +393,7 @@ export default function AppRoutes() {
             path="tax/declarations"
             element={
               <RequirePayrollPermission
-                permissions={[
-                  "payroll_tax_insurance_manage",
-                ]}
+                permissions={["payroll_tax_insurance_manage"]}
               >
                 <PayrollIncomeTaxDeclarationsPage />
               </RequirePayrollPermission>
@@ -435,21 +402,12 @@ export default function AppRoutes() {
           <Route
             path="reports"
             element={
-              <RequirePayrollPermission
-                permissions={[
-                  "payroll_reports_view",
-                ]}
-              >
+              <RequirePayrollPermission permissions={["payroll_reports_view"]}>
                 <PayrollReportsPage />
               </RequirePayrollPermission>
             }
-          />          
-          <Route
-            path="*"
-            element={
-              <PayrollUnavailableModule />
-            }
           />
+          <Route path="*" element={<PayrollUnavailableModule />} />
         </Route>
         <Route
           path="/attendance/admin/module-setting"

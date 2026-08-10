@@ -1217,7 +1217,9 @@ export default function AttendanceRecord() {
               <DetailRow label="工時" value={detail?.worked_hours} />
               <DetailRow label="請假時數" value={detail?.leave_hours} />
               <DetailRow label="加班時數" value={detail?.overtime_hours} />
-              <DetailRow label="曠職時數" value={detail?.absent_hours} />
+              <DetailRow label="系統缺勤時數" value={detail?.system_absent_hours} />
+              <DetailRow label="曠職時數" value={detail?.confirmed_absence_hours} />
+              <DetailRow label="尚未處理缺勤" value={detail?.unresolved_absent_hours} />
               <DetailRow label="計薪時數" value={detail?.payable_hours} />
               <DetailRow label="遲到分鐘" value={detail?.late_minutes} />
               <DetailRow label="早退分鐘" value={detail?.early_leave_minutes} />

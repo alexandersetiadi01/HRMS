@@ -592,6 +592,20 @@ export async function apiAttendanceAdminMeta() {
  * =========================
  */
 
+export async function apiAttendanceAdminRecords(params = {}) {
+  const { employee_id, date_from, date_to } = params;
+
+  const res = await http.get("/attendance-records", {
+    params: {
+      employee_id: employee_id || undefined,
+      date_from: date_from || undefined,
+      date_to: date_to || undefined,
+    },
+  });
+
+  return res.data;
+}
+
 export async function apiAttendanceRecords(params = {}) {
   const { date_from, date_to, record_type, location, method, employee_id } =
     params;

@@ -206,14 +206,24 @@ export function FilterActions({ children }) {
   );
 }
 
-export function ActionButtons({ onClear, onSearch }) {
+export function ActionButtons({ onClear, onSearch, disabled = false }) {
   return (
     <FilterActions>
-      <Button variant="outlined" onClick={onSearch} sx={ACTION_BUTTON_SX}>
+      <Button
+        variant="outlined"
+        onClick={onSearch}
+        disabled={disabled}
+        sx={ACTION_BUTTON_SX}
+      >
         搜尋
       </Button>
 
-      <Button variant="outlined" onClick={onClear} sx={ACTION_BUTTON_SX}>
+      <Button
+        variant="outlined"
+        onClick={onClear}
+        disabled={disabled}
+        sx={ACTION_BUTTON_SX}
+      >
         清空
       </Button>
     </FilterActions>
