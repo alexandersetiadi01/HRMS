@@ -12,6 +12,7 @@ import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 
 import Breadcrumb from "../../../../Utils/Breadcrumb";
 import AttendanceRulesTab from "./AttendanceRulesTab";
+import CalendarTab from "./CalendarTab";
 import LeaveTypesTab from "./LeaveTypesTab";
 import ShiftsTab from "./ShiftsTab";
 import {
@@ -236,15 +237,7 @@ export default function ModuleSettingPage() {
               {activeTab === "form-parameters" ? (
                 <>
                   {activeParameter === "calendar" ? (
-                    <>
-                      <Typography sx={{ fontSize: "20px", fontWeight: 700, color: "#111827" }}>
-                        行事曆管理
-                      </Typography>
-
-                      <Typography sx={{ mt: "4px", fontSize: "14px", color: "#6b7280" }}>
-                        建立及管理行事曆與特殊班表事件
-                      </Typography>
-                    </>
+                    <CalendarTab />
                   ) : null}
 
                   {activeParameter === "shift" ? (

@@ -57,3 +57,34 @@ export const SHIFT_COLOR_OPTIONS = [
 export function getShiftColorOption(value) {
   return SHIFT_COLOR_OPTIONS.find((item) => item.value === value) || null;
 }
+
+export const CALENDAR_STATUS_OPTIONS = [
+  { value: "draft", label: "草稿" },
+  { value: "published", label: "已發布" },
+  { value: "inactive", label: "停用" },
+];
+
+export const CALENDAR_STATUS_FILTER_OPTIONS = [
+  { value: "", label: "全部狀態" },
+  ...CALENDAR_STATUS_OPTIONS,
+];
+
+export function getCalendarStatusLabel(value) {
+  return CALENDAR_STATUS_OPTIONS.find((item) => item.value === value)?.label || value || "-";
+}
+
+export function createCalendarYearOptions(startYear, endYear) {
+  const start = Number(startYear || 0);
+  const end = Number(endYear || 0);
+
+  if (!start || !end || end < start) return [];
+
+  return Array.from({ length: end - start + 1 }, (_, index) => {
+    const year = end - index;
+
+    return {
+      value: String(year),
+      label: `${year} 年`,
+    };
+  });
+}

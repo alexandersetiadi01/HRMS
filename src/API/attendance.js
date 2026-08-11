@@ -485,6 +485,32 @@ export async function apiConvertAttendanceAnomalyToAbsence(anomalyId, payload = 
   return res.data;
 }
 
+export async function apiAttendanceCalendars(params = {}) {
+  const res = await http.get("/attendance/calendars", {
+    params: {
+      year: params.year || undefined,
+      status: params.status || undefined,
+    },
+  });
+
+  return res.data;
+}
+
+export async function apiAttendanceCalendar(calendarId) {
+  const res = await http.get(`/attendance/calendars/${calendarId}`);
+  return res.data;
+}
+
+export async function apiCreateAttendanceCalendar(payload) {
+  const res = await http.post("/attendance/calendars", payload);
+  return res.data;
+}
+
+export async function apiUpdateAttendanceCalendar(calendarId, payload) {
+  const res = await http.put(`/attendance/calendars/${calendarId}`, payload);
+  return res.data;
+}
+
 export async function apiAttendanceShifts(params = {}) {
   const res = await http.get("/attendance/shifts", {
     params: {
