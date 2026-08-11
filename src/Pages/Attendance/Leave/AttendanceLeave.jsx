@@ -112,6 +112,7 @@ export default function AttendanceLeave() {
           apiLeaveRequestFormMeta(),
           apiLeaveEntitlementInstances({
             employee_id: employeeId,
+            status: "啟用",
           }),
         ]);
 
@@ -162,8 +163,8 @@ export default function AttendanceLeave() {
   }, [employeeId, formMeta]);
 
   const disabledDateSet = useMemo(() => {
-    return new Set([...holidayDateSet, ...approvedLeaveDateSet]);
-  }, [approvedLeaveDateSet, holidayDateSet]);
+    return new Set([...holidayDateSet]);
+  }, [holidayDateSet]);
 
   const usableEntitlementInstances = useMemo(() => {
     return entitlementInstances.filter((instance) => {
@@ -580,7 +581,12 @@ export default function AttendanceLeave() {
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <Box sx={{ width: "100%" }}>
-        <Breadcrumb rootLabel="個人專區" rootTo="/attendance" currentLabel="請假" mb="14px" />
+        <Breadcrumb
+          rootLabel="個人專區"
+          rootTo="/attendance"
+          currentLabel="請假"
+          mb="14px"
+        />
 
         <Typography
           sx={{

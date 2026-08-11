@@ -312,7 +312,7 @@ export const MENU_ITEMS = [
     label: "假別時數管理",
     to: "/attendance/admin/leave-hours-management",
     iconKey: "attendance-leave-hours-management",
-    disable: true,
+    disable: false,
     groups: ["attendance"],
     sectionKey: "manager",
     adminOnly: true,

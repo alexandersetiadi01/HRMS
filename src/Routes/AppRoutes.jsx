@@ -13,6 +13,7 @@ import AttendanceOvertime from "../Pages/Attendance/Overtime/AttendanceOverTime"
 import AttendanceLeaveBalance from "../Pages/Attendance/AttendanceLeaveBalance";
 import AttendancePendingApproval from "../Pages/Attendance/PendingApproval/AttendancePendingApproval";
 import AttendanceRecordMaintenance from "../Pages/Attendance/Admin/RecordMaintenance/AttendanceRecordMaintenance";
+import LeaveHoursManagement from "../Pages/Attendance/Admin/LeaveHoursManagement/LeaveHoursManagement";
 import StaffAttendancePage from "../Pages/Attendance/Supervisor/StaffAttendancePage";
 import Absent from "../Pages/Attendance/Absent";
 import AttendanceBusinessTrip from "../Pages/Attendance/AttendanceBusinessTrip";
@@ -162,7 +163,7 @@ export default function AppRoutes() {
         />
         <Route
           path="/attendance/admin/leave-hours-management"
-          element={<PlaceholderPage title="假別時數管理" />}
+          element={<LeaveHoursManagement />}
         />
         <Route
           path="/attendance/admin/payroll-work"

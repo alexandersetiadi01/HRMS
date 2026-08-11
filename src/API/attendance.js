@@ -809,8 +809,10 @@ export async function apiRejectLeaveRequest(requestId, payload = {}) {
 }
 
 export async function apiLeaveBalances(params = {}) {
-  const { employee_id, leave_type_id } = params;
-  const employeeId = Number(employee_id || getCurrentEmployeeId() || 0);
+  const { employee_id, leave_type_id, use_current_employee = true } = params;
+  const employeeId = use_current_employee
+    ? Number(employee_id || getCurrentEmployeeId() || 0)
+    : Number(employee_id || 0);
 
   const res = await http.get("/leave/balances", {
     params: {
@@ -867,6 +869,16 @@ export async function apiLeaveEntitlementRequests(params = {}) {
     },
   });
 
+  return res.data;
+}
+
+export async function apiApproveLeaveEntitlementRequest(entitlementRequestId) {
+  const res = await http.post(`/leave-entitlement-requests/${entitlementRequestId}/approve`);
+  return res.data;
+}
+
+export async function apiRejectLeaveEntitlementRequest(entitlementRequestId) {
+  const res = await http.post(`/leave-entitlement-requests/${entitlementRequestId}/reject`);
   return res.data;
 }
 

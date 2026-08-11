@@ -1,4 +1,5 @@
 import { Box, Button, MenuItem, Select, Typography } from "@mui/material";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import {
   ACTION_BUTTON_SX,
   COMMON_SELECT_MENU_PROPS,
@@ -209,23 +210,19 @@ export function FilterActions({ children }) {
 export function ActionButtons({ onClear, onSearch, disabled = false }) {
   return (
     <FilterActions>
-      <Button
-        variant="outlined"
-        onClick={onSearch}
-        disabled={disabled}
-        sx={ACTION_BUTTON_SX}
-      >
+      <Button variant="outlined" onClick={onSearch} disabled={disabled} sx={ACTION_BUTTON_SX}>
         搜尋
       </Button>
 
-      <Button
-        variant="outlined"
-        onClick={onClear}
-        disabled={disabled}
-        sx={ACTION_BUTTON_SX}
-      >
+      <Button variant="outlined" onClick={onClear} disabled={disabled} sx={ACTION_BUTTON_SX}>
         清空
       </Button>
+
+      {onSearch ? (
+        <Button variant="outlined" startIcon={<RefreshIcon />} onClick={onSearch} disabled={disabled} sx={ACTION_BUTTON_SX}>
+          重新
+        </Button>
+      ) : null}
     </FilterActions>
   );
 }
