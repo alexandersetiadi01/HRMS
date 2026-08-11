@@ -485,6 +485,56 @@ export async function apiConvertAttendanceAnomalyToAbsence(anomalyId, payload = 
   return res.data;
 }
 
+export async function apiAttendanceShifts(params = {}) {
+  const res = await http.get("/attendance/shifts", {
+    params: {
+      status: params.status || undefined,
+    },
+  });
+
+  return res.data;
+}
+
+export async function apiCreateAttendanceShift(payload) {
+  const res = await http.post("/attendance/shifts", payload);
+  return res.data;
+}
+
+export async function apiUpdateAttendanceShift(shiftId, payload) {
+  const res = await http.put(`/attendance/shifts/${shiftId}`, payload);
+  return res.data;
+}
+
+export async function apiUpdateAttendanceShiftStatus(shiftId, status) {
+  const res = await http.patch(
+    `/attendance/shifts/${shiftId}/status`,
+    { status },
+  );
+
+  return res.data;
+}
+
+export async function apiDeleteAttendanceShift(shiftId) {
+  const res = await http.delete(
+    `/attendance/shifts/${shiftId}`,
+  );
+
+  return res.data;
+}
+
+export async function apiAttendanceShiftDays(shiftId) {
+  const res = await http.get(`/attendance/shifts/${shiftId}/days`);
+  return res.data;
+}
+
+export async function apiSaveAttendanceShiftDays(shiftId, days) {
+  const res = await http.put(`/attendance/shifts/${shiftId}/days`, {
+    days,
+  });
+
+  return res.data;
+}
+
 export async function apiAttendanceAdminMeta() {
   const [employeeRes, unitRes, jobRecordRes] = await Promise.all([
     http.get("/employees", {

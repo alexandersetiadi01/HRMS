@@ -22,6 +22,16 @@ function getStatusBackground(value) {
 
   if (
     [
+      "停用",
+      "inactive",
+      "disabled",
+    ].some((item) => status === item.toLowerCase())
+  ) {
+    return "#6b7280";
+  }
+
+  if (
+    [
       "已核准",
       "核准",
       "正常",
@@ -31,6 +41,7 @@ function getStatusBackground(value) {
       "生效",
       "有效",
       "成功",
+      "啟用",
       "approved",
       "active",
       "completed",
@@ -141,11 +152,23 @@ export default function ResponsiveAttendanceTable({
   pagination = false,
   rowsPerPage = 10,
   mergeColumns = [],
+  fitToContainer = false,
 }) {
   const [page, setPage] = useState(1);
 
   const desktopGridTemplate = columns
-    .map((column) => column.width || "1fr")
+    .map((column) => {
+      const width = String(column.width || "1fr");
+
+      if (
+        fitToContainer &&
+        /^(\d*\.?\d+)fr$/.test(width)
+      ) {
+        return `minmax(0, ${width})`;
+      }
+
+      return width;
+    })
     .join(" ");
 
   const pageCount = Math.max(1, Math.ceil(rows.length / rowsPerPage));
@@ -205,8 +228,19 @@ export default function ResponsiveAttendanceTable({
     <Box>
       {/* Desktop / Tablet */}
       <Box sx={{ display: { xs: "none", md: "block" } }}>
-        <Box sx={{ overflowX: "auto" }}>
-          <Box sx={{ minWidth: desktopMinWidth }}>
+        <Box
+          sx={{
+            width: "100%",
+            minWidth: 0,
+            overflowX: fitToContainer ? "hidden" : "auto",
+          }}
+        >
+          <Box
+            sx={{
+              width: "100%",
+              minWidth: fitToContainer ? 0 : desktopMinWidth,
+            }}
+          >
             <Box
               sx={{
                 display: "grid",
@@ -221,10 +255,13 @@ export default function ResponsiveAttendanceTable({
                 <Typography
                   key={column.key}
                   sx={{
+                    minWidth: 0,
                     fontSize: "15px",
                     fontWeight: 700,
                     color: "#111827",
-                    whiteSpace: "nowrap",
+                    whiteSpace: fitToContainer ? "normal" : "nowrap",
+                    overflowWrap: fitToContainer ? "anywhere" : "normal",
+                    lineHeight: 1.4,
                     textAlign:
                       isActionColumn(column) || isStatusColumn(column)
                         ? "center"
@@ -284,6 +321,7 @@ export default function ResponsiveAttendanceTable({
                         key={`${getRowKey ? getRowKey(row, rowIndex) : rowIndex}-${column.key}`}
                         sx={{
                           minWidth: 0,
+                          maxWidth: "100%",
                           gridColumn: columnIndex + 1,
                           gridRow:
                             mergeSpan > 1
@@ -298,6 +336,8 @@ export default function ResponsiveAttendanceTable({
                           py: "14px",
                           borderBottom: "1px solid #d1d5db",
                           bgcolor: "#ffffff",
+                          overflow: fitToContainer ? "hidden" : "visible",
+                          overflowWrap: fitToContainer ? "anywhere" : "normal",
                           fontSize: "15px",
                           fontWeight: 400,
                           color: "#111827",
@@ -352,12 +392,15 @@ export default function ResponsiveAttendanceTable({
                         key={column.key}
                         sx={{
                           minWidth: 0,
+                          maxWidth: "100%",
                           display: "flex",
                           alignItems: "center",
                           justifyContent:
                             actionColumn || statusColumn
                               ? "center"
                               : "flex-start",
+                          overflow: fitToContainer ? "hidden" : "visible",
+                          overflowWrap: fitToContainer ? "anywhere" : "normal",
                           fontSize: "15px",
                           color: "#111827",
                           whiteSpace: column.desktopWhiteSpace || "normal",

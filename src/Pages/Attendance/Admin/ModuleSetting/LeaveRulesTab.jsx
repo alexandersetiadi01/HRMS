@@ -840,8 +840,8 @@ export default function LeaveRulesTab() {
           getRowKey={(row) => row.leave_rule_id}
           mobileCardTitleKey="leave_name"
           emptyText="查無假別規則資料"
-          desktopMinWidth="820px"
           renderValue={renderTableValue}
+          fitToContainer
           pagination
           rowsPerPage={10}
         />
@@ -1321,7 +1321,7 @@ export default function LeaveRulesTab() {
             getRowKey={(row) => row.condition_id}
             mobileCardTitleKey="condition_value"
             emptyText="目前沒有條件規則"
-            desktopMinWidth="560px"
+            fitToContainer
             renderValue={(row, column) => {
               if (column.key === "actions") {
                 return (

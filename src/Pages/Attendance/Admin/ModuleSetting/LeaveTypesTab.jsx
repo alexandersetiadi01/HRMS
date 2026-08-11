@@ -5,6 +5,7 @@ import {
   Button,
   CircularProgress,
   IconButton,
+  Switch,
   TextField,
   Tooltip,
   Typography,
@@ -12,8 +13,6 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import ToggleOffOutlinedIcon from "@mui/icons-material/ToggleOffOutlined";
-import ToggleOnOutlinedIcon from "@mui/icons-material/ToggleOnOutlined";
 
 import {
   apiCreateLeaveType,
@@ -30,6 +29,7 @@ import {
   ActionButtons,
   SelectField,
 } from "../../AttendanceForm/ApplicationRecord/SharedFields";
+import { ENABLE_STATUS_FILTER_OPTIONS } from "./moduleSettingOptions";
 
 const INITIAL_FILTERS = {
   keyword: "",
@@ -43,18 +43,13 @@ const INITIAL_FORM = {
   leave_category: "一般",
   paid_type: "不支薪",
   is_unlimited_balance: "0",
+  status: "啟用",
 };
 
 const CATEGORY_OPTIONS = [
   { value: "", label: "全部分類" },
   { value: "一般", label: "一般" },
   { value: "特殊", label: "特殊" },
-];
-
-const STATUS_OPTIONS = [
-  { value: "", label: "全部狀態" },
-  { value: "啟用", label: "啟用" },
-  { value: "停用", label: "停用" },
 ];
 
 const PAID_TYPE_OPTIONS = [
@@ -76,7 +71,7 @@ const TABLE_COLUMNS = [
   { key: "paid_type", label: "支薪方式", width: "1fr" },
   { key: "unlimited_balance", label: "無餘額限制", width: "1fr" },
   { key: "status", label: "狀態", width: "1fr" },
-  { key: "actions", label: "操作", width: "120px" },
+  { key: "actions", label: "操作", width: "90px" },
 ];
 
 function getItems(response) {
@@ -252,6 +247,7 @@ export default function LeaveTypesTab() {
       paid_type: row.paid_type || "不支薪",
       is_unlimited_balance:
         Number(row.is_unlimited_balance || 0) === 1 ? "1" : "0",
+      status: row.status === "停用" ? "停用" : "啟用",
     });
     setFormErrorText("");
     setFormOpen(true);
@@ -301,6 +297,10 @@ export default function LeaveTypesTab() {
     try {
       if (editingRow) {
         await apiUpdateLeaveType(editingRow.leave_type_id, payload);
+
+        if (form.status !== editingRow.status) {
+          await apiUpdateLeaveTypeStatus(editingRow.leave_type_id, form.status);
+        }
       } else {
         await apiCreateLeaveType(payload);
       }
@@ -315,9 +315,7 @@ export default function LeaveTypesTab() {
       setSuccessDialog({
         open: true,
         title: editing ? "更新成功" : "新增成功",
-        message: editing
-          ? "假別資料已成功更新。"
-          : "假別資料已成功新增。",
+        message: editing ? "假別資料已成功更新。" : "假別資料已成功新增。",
       });
     } catch (error) {
       console.error(error);
@@ -345,7 +343,7 @@ export default function LeaveTypesTab() {
   const handleActionSubmit = async () => {
     const leaveTypeId = Number(actionRow?.leave_type_id || 0);
 
-    if (leaveTypeId <= 0 || !actionType) {
+    if (leaveTypeId <= 0 || actionType !== "delete") {
       return;
     }
 
@@ -353,15 +351,7 @@ export default function LeaveTypesTab() {
     setErrorText("");
 
     try {
-      if (actionType === "enable") {
-        await apiUpdateLeaveTypeStatus(leaveTypeId, "啟用");
-      } else if (actionType === "disable") {
-        await apiUpdateLeaveTypeStatus(leaveTypeId, "停用");
-      } else if (actionType === "delete") {
-        await apiDeleteLeaveType(leaveTypeId);
-      }
-
-      const completedAction = actionType;
+      await apiDeleteLeaveType(leaveTypeId);
 
       setActionRow(null);
       setActionType("");
@@ -369,27 +359,12 @@ export default function LeaveTypesTab() {
 
       setSuccessDialog({
         open: true,
-        title:
-          completedAction === "enable"
-            ? "啟用成功"
-            : completedAction === "disable"
-              ? "停用成功"
-              : "刪除成功",
-        message:
-          completedAction === "enable"
-            ? "假別已成功啟用。"
-            : completedAction === "disable"
-              ? "假別已成功停用。"
-              : "假別已成功刪除。",
+        title: "刪除成功",
+        message: "假別已成功刪除。",
       });
     } catch (error) {
       console.error(error);
-      setErrorText(
-        error?.response?.data?.message ||
-          (actionType === "delete"
-            ? "刪除假別失敗。"
-            : "更新假別狀態失敗。"),
-      );
+      setErrorText(error?.response?.data?.message || "刪除假別失敗。");
     } finally {
       setSubmitting(false);
     }
@@ -397,8 +372,6 @@ export default function LeaveTypesTab() {
 
   const renderTableValue = (row, column) => {
     if (column.key === "actions") {
-      const enabled = row.status === "啟用";
-
       return (
         <Box
           sx={{
@@ -413,26 +386,6 @@ export default function LeaveTypesTab() {
               <EditOutlinedIcon fontSize="small" />
             </IconButton>
           </Tooltip>
-
-          {enabled ? (
-            <Tooltip title="停用">
-              <IconButton
-                size="small"
-                onClick={() => openActionDialog(row, "disable")}
-              >
-                <ToggleOffOutlinedIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          ) : (
-            <Tooltip title="啟用">
-              <IconButton
-                size="small"
-                onClick={() => openActionDialog(row, "enable")}
-              >
-                <ToggleOnOutlinedIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          )}
 
           <Tooltip title="刪除">
             <IconButton
@@ -520,9 +473,7 @@ export default function LeaveTypesTab() {
 
             <SelectField
               value={filters.leave_category}
-              onChange={(value) =>
-                handleFilterChange("leave_category", value)
-              }
+              onChange={(value) => handleFilterChange("leave_category", value)}
               options={CATEGORY_OPTIONS}
               displayEmpty
               fullWidth
@@ -539,7 +490,7 @@ export default function LeaveTypesTab() {
             <SelectField
               value={filters.status}
               onChange={(value) => handleFilterChange("status", value)}
-              options={STATUS_OPTIONS}
+              options={ENABLE_STATUS_FILTER_OPTIONS}
               displayEmpty
               fullWidth
               height="38px"
@@ -587,8 +538,8 @@ export default function LeaveTypesTab() {
           getRowKey={(row) => row.leave_type_id}
           mobileCardTitleKey="leave_name"
           emptyText="查無假別資料"
-          desktopMinWidth="840px"
           renderValue={renderTableValue}
+          fitToContainer
           pagination
           rowsPerPage={10}
         />
@@ -602,11 +553,7 @@ export default function LeaveTypesTab() {
         onClose={handleCloseForm}
         onSubmit={handleSubmit}
       >
-        {formErrorText ? (
-          <Alert severity="error">
-            {formErrorText}
-          </Alert>
-        ) : null}
+        {formErrorText ? <Alert severity="error">{formErrorText}</Alert> : null}
 
         <Box>
           <Typography sx={{ mb: "6px", fontSize: "15px", fontWeight: 500 }}>
@@ -649,9 +596,7 @@ export default function LeaveTypesTab() {
 
           <SelectField
             value={form.leave_category}
-            onChange={(value) =>
-              handleFormChange("leave_category", value)
-            }
+            onChange={(value) => handleFormChange("leave_category", value)}
             options={CATEGORY_OPTIONS.filter((item) => item.value)}
             fullWidth
             height="38px"
@@ -694,24 +639,49 @@ export default function LeaveTypesTab() {
             設定為「是」時，此假別不需要設定請假餘額，也不會扣除剩餘時數。
           </Typography>
         </Box>
+        {editingRow ? (
+          <Box>
+            <Typography sx={{ mb: "6px", fontSize: "15px", fontWeight: 500 }}>
+              狀態
+            </Typography>
+
+            <Box
+              sx={{
+                minHeight: "38px",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+              }}
+            >
+              <Switch
+                checked={form.status === "啟用"}
+                onChange={(event) =>
+                  handleFormChange(
+                    "status",
+                    event.target.checked ? "啟用" : "停用",
+                  )
+                }
+                disabled={submitting}
+              />
+
+              <Typography
+                sx={{
+                  fontSize: "15px",
+                  fontWeight: 600,
+                  color: form.status === "啟用" ? "#16a34a" : "#6b7280",
+                }}
+              >
+                {form.status}
+              </Typography>
+            </Box>
+          </Box>
+        ) : null}
       </FormDialog>
 
       <FormDialog
         open={Boolean(actionRow)}
-        title={
-          actionType === "enable"
-            ? "確認啟用"
-            : actionType === "disable"
-              ? "確認停用"
-              : "確認刪除"
-        }
-        submitLabel={
-          actionType === "enable"
-            ? "啟用"
-            : actionType === "disable"
-              ? "停用"
-              : "刪除"
-        }
+        title="確認刪除"
+        submitLabel="刪除"
         cancelLabel="取消"
         maxWidth="xs"
         submitting={submitting}
@@ -721,11 +691,7 @@ export default function LeaveTypesTab() {
         <Typography
           sx={{ fontSize: "15px", color: "#374151", lineHeight: 1.7 }}
         >
-          {actionType === "enable"
-            ? `確認啟用「${actionRow?.leave_name || ""}」？`
-            : actionType === "disable"
-              ? `確認停用「${actionRow?.leave_name || ""}」？停用後將不再提供新的請假申請使用。`
-              : `確認刪除「${actionRow?.leave_name || ""}」？已有規則、額度或申請紀錄的假別無法刪除。`}
+          {`確認刪除「${actionRow?.leave_name || ""}」？已有規則、額度或申請紀錄的假別無法刪除。`}
         </Typography>
       </FormDialog>
 

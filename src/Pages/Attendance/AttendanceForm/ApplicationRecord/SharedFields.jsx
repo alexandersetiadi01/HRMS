@@ -35,6 +35,8 @@ export function SelectField({
   displayEmpty = false,
   menuProps = COMMON_SELECT_MENU_PROPS,
   disabled = false,
+  renderOption,
+  renderValue,
 }) {
   return (
     <Box
@@ -70,6 +72,20 @@ export function SelectField({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         displayEmpty={displayEmpty}
+        renderValue={
+          renderValue
+            ? (selectedValue) => {
+                const selectedOption =
+                  options.find(
+                    (item) =>
+                      String(item?.value ?? "") ===
+                      String(selectedValue ?? ""),
+                  ) || null;
+
+                return renderValue(selectedOption, selectedValue);
+              }
+            : undefined
+        }
         MenuProps={menuProps}
         disabled={disabled}
         sx={{
@@ -98,7 +114,9 @@ export function SelectField({
                   : undefined
               }
             >
-              {optionLabel}
+              {renderOption
+                ? renderOption(item)
+                : optionLabel}
             </MenuItem>
           );
         })}
