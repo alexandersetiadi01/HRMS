@@ -332,7 +332,7 @@ export const MENU_ITEMS = [
     label: "模組設定",
     to: "/attendance/admin/module-setting",
     iconKey: "attendance-module-setting",
-    disable: true,
+    disable: false,
     groups: ["attendance"],
     sectionKey: "manager",
     adminOnly: true,

@@ -666,6 +666,89 @@ export async function apiLeaveTypes(params = {}) {
   return res.data;
 }
 
+export async function apiCreateLeaveType(payload) {
+  const res = await http.post("/leave/types", payload);
+  return res.data;
+}
+
+export async function apiUpdateLeaveType(leaveTypeId, payload) {
+  const res = await http.put(`/leave/types/${leaveTypeId}`, payload);
+  return res.data;
+}
+
+export async function apiUpdateLeaveTypeStatus(leaveTypeId, status) {
+  const res = await http.patch(`/leave/types/${leaveTypeId}/status`, { status });
+  return res.data;
+}
+
+export async function apiDeleteLeaveType(leaveTypeId) {
+  const res = await http.delete(`/leave/types/${leaveTypeId}`);
+  return res.data;
+}
+
+export async function apiLeaveRules() {
+  const res = await http.get("/leave/rules");
+  return res.data;
+}
+
+export async function apiCreateLeaveRule(payload) {
+  const res = await http.post("/leave/rules", payload);
+  return res.data;
+}
+
+export async function apiUpdateLeaveRule(leaveRuleId, payload) {
+  const res = await http.put(`/leave/rules/${leaveRuleId}`, payload);
+  return res.data;
+}
+
+export async function apiDeleteLeaveRule(leaveRuleId) {
+  const res = await http.delete(`/leave/rules/${leaveRuleId}`);
+  return res.data;
+}
+
+export async function apiLeaveRuleSettings(leaveTypeId) {
+  const res = await http.get("/leave/rule-settings", {
+    params: {
+      leave_type_id: leaveTypeId,
+    },
+  });
+
+  return res.data;
+}
+
+export async function apiSaveLeaveRuleSettings(leaveTypeId, settings) {
+  const res = await http.put(`/leave/rule-settings/${leaveTypeId}`, {
+    settings,
+  });
+
+  return res.data;
+}
+
+export async function apiLeaveRuleConditions(params = {}) {
+  const res = await http.get("/leave/rule-conditions", {
+    params: {
+      leave_type_id: params.leave_type_id || undefined,
+    },
+  });
+
+  return res.data;
+}
+
+export async function apiCreateLeaveRuleCondition(payload) {
+  const res = await http.post("/leave/rule-conditions", payload);
+  return res.data;
+}
+
+export async function apiUpdateLeaveRuleCondition(conditionId, payload) {
+  const res = await http.put(`/leave/rule-conditions/${conditionId}`, payload);
+  return res.data;
+}
+
+export async function apiDeleteLeaveRuleCondition(conditionId) {
+  const res = await http.delete(`/leave/rule-conditions/${conditionId}`);
+  return res.data;
+}
+
 export async function apiSpecialLeaveOptions() {
   const res = await http.get("/leave/special-options");
 

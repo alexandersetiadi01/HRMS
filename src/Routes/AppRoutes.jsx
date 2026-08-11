@@ -14,6 +14,7 @@ import AttendanceLeaveBalance from "../Pages/Attendance/AttendanceLeaveBalance";
 import AttendancePendingApproval from "../Pages/Attendance/PendingApproval/AttendancePendingApproval";
 import AttendanceRecordMaintenance from "../Pages/Attendance/Admin/RecordMaintenance/AttendanceRecordMaintenance";
 import LeaveHoursManagement from "../Pages/Attendance/Admin/LeaveHoursManagement/LeaveHoursManagement";
+import ModuleSettingPage from "../Pages/Attendance/Admin/ModuleSetting/ModuleSettingPage";
 import StaffAttendancePage from "../Pages/Attendance/Supervisor/StaffAttendancePage";
 import Absent from "../Pages/Attendance/Absent";
 import AttendanceBusinessTrip from "../Pages/Attendance/AttendanceBusinessTrip";
@@ -412,7 +413,7 @@ export default function AppRoutes() {
         </Route>
         <Route
           path="/attendance/admin/module-setting"
-          element={<PlaceholderPage title="模組設定" />}
+          element={<ModuleSettingPage />}
         />
         <Route
           path="/attendance/admin/personnel-basic"
