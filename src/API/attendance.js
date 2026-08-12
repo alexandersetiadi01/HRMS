@@ -541,6 +541,41 @@ export async function apiUpdateAttendanceCalendar(calendarId, payload) {
   return res.data;
 }
 
+export async function apiAttendanceShiftGroups(params = {}) {
+  const res = await http.get("/attendance/shift-groups", {
+    params: {
+      status: params.status || undefined,
+    },
+  });
+
+  return res.data;
+}
+
+export async function apiAttendanceShiftGroup(shiftGroupId) {
+  const res = await http.get(`/attendance/shift-groups/${shiftGroupId}`);
+  return res.data;
+}
+
+export async function apiCreateAttendanceShiftGroup(payload) {
+  const res = await http.post("/attendance/shift-groups", payload);
+  return res.data;
+}
+
+export async function apiUpdateAttendanceShiftGroup(shiftGroupId, payload) {
+  const res = await http.put(`/attendance/shift-groups/${shiftGroupId}`, payload);
+  return res.data;
+}
+
+export async function apiAttendanceShiftGroupShifts(shiftGroupId) {
+  const res = await http.get(`/attendance/shift-groups/${shiftGroupId}/shifts`);
+  return res.data;
+}
+
+export async function apiSaveAttendanceShiftGroupShifts(shiftGroupId, payload) {
+  const res = await http.put(`/attendance/shift-groups/${shiftGroupId}/shifts`, payload);
+  return res.data;
+}
+
 export async function apiAttendanceShifts(params = {}) {
   const res = await http.get("/attendance/shifts", {
     params: {

@@ -104,3 +104,13 @@ export const CALENDAR_OVERRIDE_TYPE_OPTIONS = CALENDAR_DATE_TYPE_OPTIONS.filter(
 export function getCalendarDateTypeOption(value) {
   return CALENDAR_DATE_TYPE_OPTIONS.find((item) => item.value === value) || null;
 }
+
+export const SHIFT_GROUP_STATUS_OPTIONS = [
+  { value: "active", label: "啟用" },
+  { value: "inactive", label: "停用" },
+];
+
+export const SHIFT_GROUP_STATUS_FILTER_OPTIONS = [
+  { value: "", label: "全部狀態" },
+  ...SHIFT_GROUP_STATUS_OPTIONS,
+];

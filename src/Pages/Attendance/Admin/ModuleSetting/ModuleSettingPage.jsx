@@ -14,6 +14,7 @@ import Breadcrumb from "../../../../Utils/Breadcrumb";
 import AttendanceRulesTab from "./AttendanceRulesTab";
 import CalendarTab from "./CalendarTab";
 import LeaveTypesTab from "./LeaveTypesTab";
+import ShiftGroupsTab from "./ShiftGroupsTab";
 import ShiftsTab from "./ShiftsTab";
 import {
   ATTENDANCE_RULE_ITEMS,
@@ -245,15 +246,7 @@ export default function ModuleSettingPage() {
                   ) : null}
 
                   {activeParameter === "shift-group" ? (
-                    <>
-                      <Typography sx={{ fontSize: "20px", fontWeight: 700, color: "#111827" }}>
-                        班別
-                      </Typography>
-
-                      <Typography sx={{ mt: "4px", fontSize: "14px", color: "#6b7280" }}>
-                        班別與班次組合設定
-                      </Typography>
-                    </>
+                    <ShiftGroupsTab />
                   ) : null}
 
                   {activeParameter === "leave-types" ? (

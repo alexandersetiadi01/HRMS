@@ -40,6 +40,7 @@ function getStatusBackground(value) {
       "有效",
       "成功",
       "啟用",
+      "已發布",
       "approved",
       "active",
       "completed",
