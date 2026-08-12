@@ -485,6 +485,57 @@ export async function apiConvertAttendanceAnomalyToAbsence(anomalyId, payload = 
   return res.data;
 }
 
+export async function apiAttendanceCalendarMasters() {
+  const res = await http.get("/attendance/calendar-masters");
+  return res.data;
+}
+
+export async function apiAttendanceCalendarMaster(calendarId) {
+  const res = await http.get(`/attendance/calendar-masters/${calendarId}`);
+  return res.data;
+}
+
+export async function apiCreateAttendanceCalendarMaster(payload) {
+  const res = await http.post("/attendance/calendar-masters", payload);
+  return res.data;
+}
+
+export async function apiUpdateAttendanceCalendarMaster(calendarId, payload) {
+  const res = await http.put(`/attendance/calendar-masters/${calendarId}`, payload);
+  return res.data;
+}
+
+export async function apiAttendanceCalendarYears(calendarId) {
+  const res = await http.get(`/attendance/calendar-masters/${calendarId}/years`);
+  return res.data;
+}
+
+export async function apiCreateAttendanceCalendarYear(calendarId, payload) {
+  const res = await http.post(`/attendance/calendar-masters/${calendarId}/years`, payload);
+  return res.data;
+}
+
+export async function apiAttendanceCalendarYearDates(calendarYearId) {
+  const res = await http.get(`/attendance/calendar-years/${calendarYearId}/dates`);
+  return res.data;
+}
+
+export async function apiSaveAttendanceCalendarYearDate(calendarYearId, date, payload) {
+  const res = await http.put(`/attendance/calendar-years/${calendarYearId}/dates/${date}`, payload);
+  return res.data;
+}
+
+export async function apiDeleteAttendanceCalendarYearDate(calendarYearId, date) {
+  const res = await http.delete(`/attendance/calendar-years/${calendarYearId}/dates/${date}`);
+  return res.data;
+}
+
+export async function apiPublishAttendanceCalendarYear(calendarYearId) {
+  const res = await http.post(`/attendance/calendar-years/${calendarYearId}/publish`);
+  return res.data;
+}
+
+
 export async function apiAttendanceCalendars(params = {}) {
   const res = await http.get("/attendance/calendars", {
     params: {
@@ -563,6 +614,16 @@ export async function apiCreateAttendanceShiftGroup(payload) {
 
 export async function apiUpdateAttendanceShiftGroup(shiftGroupId, payload) {
   const res = await http.put(`/attendance/shift-groups/${shiftGroupId}`, payload);
+  return res.data;
+}
+
+export async function apiAttendanceShiftGroupConfiguration(shiftGroupId) {
+  const res = await http.get(`/attendance/shift-groups/${shiftGroupId}/configuration`);
+  return res.data;
+}
+
+export async function apiSaveAttendanceShiftGroupConfiguration(shiftGroupId, payload) {
+  const res = await http.put(`/attendance/shift-groups/${shiftGroupId}/configuration`, payload);
   return res.data;
 }
 

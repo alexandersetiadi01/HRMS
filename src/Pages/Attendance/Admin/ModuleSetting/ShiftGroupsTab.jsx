@@ -13,12 +13,13 @@ import AddIcon from "@mui/icons-material/Add";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import {
+  apiAttendanceCalendarMasters,
+  apiAttendanceShiftGroupConfiguration,
   apiAttendanceShiftGroups,
-  apiCreateAttendanceShiftGroup,
-  apiUpdateAttendanceShiftGroup,
-  apiAttendanceShiftGroupShifts,
   apiAttendanceShifts,
-  apiSaveAttendanceShiftGroupShifts,
+  apiCreateAttendanceShiftGroup,
+  apiSaveAttendanceShiftGroupConfiguration,
+  apiUpdateAttendanceShiftGroup,
 } from "../../../../API/attendance";
 
 import FormDialog from "../../../../Components/FormDialog";
@@ -95,6 +96,8 @@ export default function ShiftGroupsTab() {
   });
 
   const [shiftConfigRow, setShiftConfigRow] = useState(null);
+  const [calendarOptions, setCalendarOptions] = useState([]);
+  const [selectedCalendarId, setSelectedCalendarId] = useState("");
   const [shiftOptions, setShiftOptions] = useState([]);
   const [selectedShiftIds, setSelectedShiftIds] = useState([]);
   const [defaultShiftId, setDefaultShiftId] = useState("");
@@ -297,6 +300,8 @@ export default function ShiftGroupsTab() {
     if (shiftGroupId <= 0) return;
 
     setShiftConfigRow(row);
+    setCalendarOptions([]);
+    setSelectedCalendarId("");
     setShiftOptions([]);
     setSelectedShiftIds([]);
     setDefaultShiftId("");
@@ -304,55 +309,81 @@ export default function ShiftGroupsTab() {
     setShiftConfigLoading(true);
 
     try {
-      const [shiftResponse, configResponse] = await Promise.all([
-        apiAttendanceShifts(),
-        apiAttendanceShiftGroupShifts(shiftGroupId),
-      ]);
+      const [calendarResponse, shiftResponse, configResponse] =
+        await Promise.all([
+          apiAttendanceCalendarMasters(),
+          apiAttendanceShifts(),
+          apiAttendanceShiftGroupConfiguration(shiftGroupId),
+        ]);
 
+      const calendars = getItems(calendarResponse);
       const shifts = getItems(shiftResponse);
       const configPayload = configResponse?.data ?? configResponse;
       const configuredShifts = Array.isArray(configPayload?.shifts)
         ? configPayload.shifts
         : [];
 
+      setCalendarOptions(
+        calendars.map((calendar) => ({
+          value: String(calendar.calendar_id),
+          label: `${calendar.calendar_code}－${calendar.calendar_name}`,
+        })),
+      );
+
+      setSelectedCalendarId(
+        configPayload?.shift_group?.calendar_id
+          ? String(configPayload.shift_group.calendar_id)
+          : "",
+      );
+
       const groupCycleDays = Number(row.cycle_days || 1);
 
-      setShiftOptions(
-        shifts
-          .filter(
-            (shift) =>
-              ["active", "啟用"].includes(shift.status) &&
-              Number(shift.cycle_days || 1) === groupCycleDays,
-          )
-          .map((shift) => ({
-            value: String(shift.shift_id),
-            label: `${shift.shift_code}－${shift.shift_name}`,
-          })),
+      const compatibleOptions = shifts
+        .filter(
+          (shift) =>
+            ["active", "啟用"].includes(shift.status) &&
+            Number(shift.cycle_days || 1) === groupCycleDays,
+        )
+        .map((shift) => ({
+          value: String(shift.shift_id),
+          label: `${shift.shift_code}－${shift.shift_name}`,
+        }));
+
+      const compatibleIds = new Set(
+        compatibleOptions.map((option) => option.value),
       );
 
-      setSelectedShiftIds(
-        configuredShifts.map((shift) => String(shift.shift_id)),
-      );
+      const compatibleSelectedIds = configuredShifts
+        .map((shift) => String(shift.shift_id))
+        .filter((shiftId) => compatibleIds.has(shiftId));
 
+      const configuredDefaultShiftId = configPayload?.shift_group
+        ?.default_shift_id
+        ? String(configPayload.shift_group.default_shift_id)
+        : "";
+
+      setShiftOptions(compatibleOptions);
+      setSelectedShiftIds(compatibleSelectedIds);
       setDefaultShiftId(
-        configPayload?.shift_group?.default_shift_id
-          ? String(configPayload.shift_group.default_shift_id)
+        compatibleIds.has(configuredDefaultShiftId)
+          ? configuredDefaultShiftId
           : "",
       );
     } catch (error) {
       console.error(error);
       setShiftConfigErrorText(
-        error?.response?.data?.message || "無法載入班別班次設定。",
+        error?.response?.data?.message || "無法載入班別配置。",
       );
     } finally {
       setShiftConfigLoading(false);
     }
   };
-
   const handleCloseShiftConfig = () => {
     if (submitting) return;
 
     setShiftConfigRow(null);
+    setCalendarOptions([]);
+    setSelectedCalendarId("");
     setShiftOptions([]);
     setSelectedShiftIds([]);
     setDefaultShiftId("");
@@ -378,6 +409,11 @@ export default function ShiftGroupsTab() {
 
     if (shiftGroupId <= 0) return;
 
+    if (!selectedCalendarId) {
+      setShiftConfigErrorText("請選擇行事曆。");
+      return;
+    }
+
     if (!selectedShiftIds.length) {
       setShiftConfigErrorText("請至少選擇一個班次。");
       return;
@@ -392,12 +428,15 @@ export default function ShiftGroupsTab() {
     setShiftConfigErrorText("");
 
     try {
-      await apiSaveAttendanceShiftGroupShifts(shiftGroupId, {
+      await apiSaveAttendanceShiftGroupConfiguration(shiftGroupId, {
+        calendar_id: Number(selectedCalendarId),
         shift_ids: selectedShiftIds.map(Number),
         default_shift_id: Number(defaultShiftId),
       });
 
       setShiftConfigRow(null);
+      setCalendarOptions([]);
+      setSelectedCalendarId("");
       setShiftOptions([]);
       setSelectedShiftIds([]);
       setDefaultShiftId("");
@@ -406,12 +445,12 @@ export default function ShiftGroupsTab() {
       setSuccessDialog({
         open: true,
         title: "更新成功",
-        message: "班別班次設定已成功更新。",
+        message: "班別配置已成功更新。",
       });
     } catch (error) {
       console.error(error);
       setShiftConfigErrorText(
-        error?.response?.data?.message || "更新班別班次設定失敗。",
+        error?.response?.data?.message || "更新班別配置失敗。",
       );
     } finally {
       setSubmitting(false);
@@ -435,7 +474,7 @@ export default function ShiftGroupsTab() {
             </IconButton>
           </Tooltip>
 
-          <Tooltip title="班次設定">
+          <Tooltip title="班別配置">
             <IconButton size="small" onClick={() => handleOpenShiftConfig(row)}>
               <SettingsOutlinedIcon fontSize="small" />
             </IconButton>
@@ -711,7 +750,7 @@ export default function ShiftGroupsTab() {
       </FormDialog>
       <FormDialog
         open={Boolean(shiftConfigRow)}
-        title={`班次設定${shiftConfigRow?.shift_group_name ? `－${shiftConfigRow.shift_group_name}` : ""}`}
+        title={`班別配置${shiftConfigRow?.shift_group_name ? `－${shiftConfigRow.shift_group_name}` : ""}`}
         submitLabel="儲存"
         submitting={submitting}
         maxWidth="sm"
@@ -736,8 +775,28 @@ export default function ShiftGroupsTab() {
         ) : (
           <>
             <Box>
+              <Typography sx={{ mb: "6px", fontSize: "15px", fontWeight: 500 }}>
+                行事曆
+              </Typography>
+
+              <SelectField
+                value={selectedCalendarId}
+                onChange={setSelectedCalendarId}
+                options={calendarOptions}
+                displayEmpty
+                fullWidth
+                height="38px"
+                disabled={submitting}
+              />
+
+              <Typography sx={{ mt: "6px", fontSize: "13px", color: "#6b7280" }}>
+                班別會使用此行事曆各年度的已發布資料產生班表。
+              </Typography>
+            </Box>
+
+            <Box>
               <Typography sx={{ mb: "8px", fontSize: "15px", fontWeight: 500 }}>
-                班次
+                適用班次
               </Typography>
 
               <Typography

@@ -10,35 +10,29 @@ import {
   Typography,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import BlockOutlinedIcon from "@mui/icons-material/BlockOutlined";
 import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import PublishOutlinedIcon from "@mui/icons-material/PublishOutlined";
 
 import {
-  apiAttendanceCalendarDates,
-  apiAttendanceCalendars,
-  apiCreateAttendanceCalendar,
-  apiDeactivateAttendanceCalendar,
-  apiDeleteAttendanceCalendar,
-  apiDeleteAttendanceCalendarDate,
-  apiPublishAttendanceCalendar,
-  apiSaveAttendanceCalendarDate,
-  apiUpdateAttendanceCalendar,
+  apiAttendanceCalendarMasters,
+  apiAttendanceCalendarYearDates,
+  apiAttendanceCalendarYears,
+  apiCreateAttendanceCalendarMaster,
+  apiCreateAttendanceCalendarYear,
+  apiDeleteAttendanceCalendarYearDate,
+  apiPublishAttendanceCalendarYear,
+  apiSaveAttendanceCalendarYearDate,
+  apiUpdateAttendanceCalendarMaster,
 } from "../../../../API/attendance";
 
 import FormDialog from "../../../../Components/FormDialog";
 import SuccessDialog from "../../../../Components/SuccessDialog";
 import CalendarMonthView from "./CalendarMonthView";
 import ResponsiveAttendanceTable from "../../AttendanceForm/ResponsiveAttendanceTable";
-import {
-  ActionButtons,
-  SelectField,
-} from "../../AttendanceForm/ApplicationRecord/SharedFields";
+import { SelectField } from "../../AttendanceForm/ApplicationRecord/SharedFields";
 import {
   CALENDAR_OVERRIDE_TYPE_OPTIONS,
-  CALENDAR_STATUS_FILTER_OPTIONS,
   createCalendarYearOptions,
   getCalendarDateTypeOption,
   getCalendarStatusLabel,
@@ -46,30 +40,23 @@ import {
 
 const CURRENT_YEAR = new Date().getFullYear();
 
-const YEAR_OPTIONS = [
-  { value: "", label: "全部年度" },
-  ...createCalendarYearOptions(CURRENT_YEAR - 5, CURRENT_YEAR + 5),
-];
-
-const INITIAL_FILTERS = {
-  year: "",
-  status: "",
-};
+const YEAR_OPTIONS = createCalendarYearOptions(
+  CURRENT_YEAR - 5,
+  CURRENT_YEAR + 5,
+);
 
 const INITIAL_FORM = {
   calendar_code: "",
   calendar_name: "",
-  calendar_year: String(CURRENT_YEAR),
 };
 
 const TABLE_COLUMNS = [
   { key: "calendar_code", label: "行事曆代碼", width: "1fr" },
-  { key: "calendar_name", label: "行事曆名稱", width: "1.15fr" },
-  { key: "calendar_year_text", label: "年度", width: "0.75fr" },
-  { key: "status_text", label: "狀態", width: "0.75fr" },
-  { key: "published_at_text", label: "發布時間", width: "1fr" },
+  { key: "calendar_name", label: "行事曆名稱", width: "1.35fr" },
+  { key: "year_count_text", label: "年度數", width: "0.75fr" },
+  { key: "latest_year_text", label: "最新年度", width: "0.85fr" },
   { key: "updated_at_text", label: "最後更新", width: "1.15fr" },
-  { key: "actions", label: "操作", width: "140px" },
+  { key: "actions", label: "操作", width: "90px" },
 ];
 
 function getItems(response) {
@@ -97,7 +84,6 @@ function formatDateTime(value) {
 }
 
 export default function CalendarTab() {
-  const [filters, setFilters] = useState(INITIAL_FILTERS);
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorText, setErrorText] = useState("");
@@ -112,6 +98,13 @@ export default function CalendarTab() {
     title: "",
     message: "",
   });
+  const [yearRow, setYearRow] = useState(null);
+  const [yearRows, setYearRows] = useState([]);
+  const [yearLoading, setYearLoading] = useState(false);
+  const [yearErrorText, setYearErrorText] = useState("");
+  const [yearFormOpen, setYearFormOpen] = useState(false);
+  const [yearFormValue, setYearFormValue] = useState(String(CURRENT_YEAR));
+  const [yearSubmitting, setYearSubmitting] = useState(false);
   const [detailRow, setDetailRow] = useState(null);
   const [detailDates, setDetailDates] = useState([]);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -123,22 +116,18 @@ export default function CalendarTab() {
   const [dateSubmitting, setDateSubmitting] = useState(false);
   const [publishRow, setPublishRow] = useState(null);
   const [publishSubmitting, setPublishSubmitting] = useState(false);
-  const [actionRow, setActionRow] = useState(null);
-  const [actionType, setActionType] = useState("");
-  const [actionSubmitting, setActionSubmitting] = useState(false);
 
   const displayRows = useMemo(() => {
     return rows.map((row) => ({
       ...row,
-      calendar_year_text: row.calendar_year ? `${row.calendar_year} 年` : "-",
-      status_text: getCalendarStatusLabel(row.status),
-      published_at_text: formatDateTime(row.published_at),
+      year_count_text: Number(row.year_count || 0),
+      latest_year_text: row.latest_year ? `${row.latest_year} 年` : "-",
       updated_at_text: formatDateTime(row.updated_at),
     }));
   }, [rows]);
 
-  const loadRows = useCallback(async (params = {}) => {
-    const response = await apiAttendanceCalendars(params);
+  const loadRows = useCallback(async () => {
+    const response = await apiAttendanceCalendarMasters();
     setRows(getItems(response));
   }, []);
 
@@ -150,7 +139,7 @@ export default function CalendarTab() {
       setErrorText("");
 
       try {
-        const response = await apiAttendanceCalendars();
+        const response = await apiAttendanceCalendarMasters();
 
         if (active) {
           setRows(getItems(response));
@@ -176,44 +165,6 @@ export default function CalendarTab() {
     };
   }, []);
 
-  const handleFilterChange = (field, value) => {
-    setFilters((current) => ({
-      ...current,
-      [field]: value,
-    }));
-  };
-
-  const handleSearch = async () => {
-    setLoading(true);
-    setErrorText("");
-
-    try {
-      await loadRows(filters);
-    } catch (error) {
-      console.error(error);
-      setRows([]);
-      setErrorText("無法載入行事曆資料。");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleClear = async () => {
-    setFilters(INITIAL_FILTERS);
-    setLoading(true);
-    setErrorText("");
-
-    try {
-      await loadRows();
-    } catch (error) {
-      console.error(error);
-      setRows([]);
-      setErrorText("無法載入行事曆資料。");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleOpenCreate = () => {
     setEditingRow(null);
     setForm(INITIAL_FORM);
@@ -222,16 +173,10 @@ export default function CalendarTab() {
   };
 
   const handleOpenEdit = (row) => {
-    if (row.status === "published") {
-      setErrorText("已發布的行事曆無法直接編輯基本資料。");
-      return;
-    }
-
     setEditingRow(row);
     setForm({
       calendar_code: row.calendar_code || "",
       calendar_name: row.calendar_name || "",
-      calendar_year: String(row.calendar_year || CURRENT_YEAR),
     });
     setFormErrorText("");
     setFormOpen(true);
@@ -256,7 +201,6 @@ export default function CalendarTab() {
   const handleSubmit = async () => {
     const calendarCode = form.calendar_code.trim();
     const calendarName = form.calendar_name.trim();
-    const calendarYear = Number(form.calendar_year || 0);
 
     if (!calendarCode) {
       setFormErrorText("請輸入行事曆代碼。");
@@ -268,19 +212,9 @@ export default function CalendarTab() {
       return;
     }
 
-    if (
-      !Number.isInteger(calendarYear) ||
-      calendarYear < 2000 ||
-      calendarYear > 2100
-    ) {
-      setFormErrorText("行事曆年度必須介於 2000 至 2100 年。");
-      return;
-    }
-
     const payload = {
       calendar_code: calendarCode,
       calendar_name: calendarName,
-      calendar_year: calendarYear,
     };
 
     setSubmitting(true);
@@ -288,9 +222,12 @@ export default function CalendarTab() {
 
     try {
       if (editingRow) {
-        await apiUpdateAttendanceCalendar(editingRow.calendar_id, payload);
+        await apiUpdateAttendanceCalendarMaster(
+          editingRow.calendar_id,
+          payload,
+        );
       } else {
-        await apiCreateAttendanceCalendar(payload);
+        await apiCreateAttendanceCalendarMaster(payload);
       }
 
       const editing = Boolean(editingRow);
@@ -298,7 +235,7 @@ export default function CalendarTab() {
       setFormOpen(false);
       setEditingRow(null);
       setForm(INITIAL_FORM);
-      await loadRows(filters);
+      await loadRows();
 
       setSuccessDialog({
         open: true,
@@ -317,18 +254,105 @@ export default function CalendarTab() {
     }
   };
 
-  const loadCalendarDates = async (calendarId) => {
-    const response = await apiAttendanceCalendarDates(calendarId);
+    const loadCalendarYears = async (calendarId) => {
+    const response = await apiAttendanceCalendarYears(calendarId);
+    const payload = response?.data ?? response;
+
+    setYearRows(Array.isArray(payload?.years) ? payload.years : []);
+  };
+
+  const handleOpenYears = async (row) => {
+    const calendarId = Number(row?.calendar_id || 0);
+
+    if (calendarId <= 0) return;
+
+    setYearRow(row);
+    setYearRows([]);
+    setYearErrorText("");
+    setYearLoading(true);
+
+    try {
+      await loadCalendarYears(calendarId);
+    } catch (error) {
+      console.error(error);
+      setYearErrorText(
+        error?.response?.data?.message || "無法載入行事曆年度資料。",
+      );
+    } finally {
+      setYearLoading(false);
+    }
+  };
+
+  const handleCloseYears = () => {
+    if (yearLoading || yearSubmitting) return;
+
+    setYearRow(null);
+    setYearRows([]);
+    setYearErrorText("");
+    setYearFormOpen(false);
+  };
+
+  const handleOpenCreateYear = () => {
+    setYearFormValue(String(CURRENT_YEAR));
+    setYearErrorText("");
+    setYearFormOpen(true);
+  };
+
+  const handleCreateYear = async () => {
+    const calendarId = Number(yearRow?.calendar_id || 0);
+    const calendarYear = Number(yearFormValue || 0);
+
+    if (calendarId <= 0) return;
+
+    if (
+      !Number.isInteger(calendarYear) ||
+      calendarYear < 2000 ||
+      calendarYear > 2100
+    ) {
+      setYearErrorText("行事曆年度必須介於 2000 至 2100 年。");
+      return;
+    }
+
+    setYearSubmitting(true);
+    setYearErrorText("");
+
+    try {
+      await apiCreateAttendanceCalendarYear(calendarId, {
+        calendar_year: calendarYear,
+      });
+
+      setYearFormOpen(false);
+      await loadCalendarYears(calendarId);
+      await loadRows();
+
+      setSuccessDialog({
+        open: true,
+        title: "新增成功",
+        message: "行事曆年度已成功新增。",
+      });
+    } catch (error) {
+      console.error(error);
+      setYearErrorText(
+        error?.response?.data?.message || "新增行事曆年度失敗。",
+      );
+    } finally {
+      setYearSubmitting(false);
+    }
+  };
+
+
+  const loadCalendarDates = async (calendarYearId) => {
+    const response = await apiAttendanceCalendarYearDates(calendarYearId);
     const payload = response?.data ?? response;
 
     setDetailDates(Array.isArray(payload?.dates) ? payload.dates : []);
   };
 
   const handleOpenCalendarDetail = async (row) => {
-    const calendarId = Number(row?.calendar_id || 0);
+    const calendarYearId = Number(row?.calendar_year_id || 0);
     const calendarYear = Number(row?.calendar_year || 0);
 
-    if (calendarId <= 0 || calendarYear <= 0) return;
+    if (calendarYearId <= 0 || calendarYear <= 0) return;
 
     setDetailRow(row);
     setDetailDates([]);
@@ -339,7 +363,7 @@ export default function CalendarTab() {
     setDetailLoading(true);
 
     try {
-      await loadCalendarDates(calendarId);
+      await loadCalendarDates(calendarYearId);
     } catch (error) {
       console.error(error);
       setDetailErrorText(
@@ -399,11 +423,11 @@ export default function CalendarTab() {
   };
 
   const handleSaveCalendarDate = async () => {
-    const calendarId = Number(detailRow?.calendar_id || 0);
+    const calendarYearId = Number(detailRow?.calendar_year_id || 0);
     const eventDate = String(selectedDay?.date || "");
     const eventType = String(dateForm.event_type || "").trim();
 
-    if (calendarId <= 0 || !eventDate) return;
+    if (calendarYearId <= 0 || !eventDate) return;
 
     if (!eventType) {
       setDateFormErrorText("請選擇日期類型。");
@@ -414,12 +438,12 @@ export default function CalendarTab() {
     setDateFormErrorText("");
 
     try {
-      await apiSaveAttendanceCalendarDate(calendarId, eventDate, {
+      await apiSaveAttendanceCalendarYearDate(calendarYearId, eventDate, {
         event_type: eventType,
         event_name: dateForm.event_name.trim(),
       });
 
-      await loadCalendarDates(calendarId);
+      await loadCalendarDates(calendarYearId);
 
       setSelectedDay(null);
       setDateForm({ event_type: "", event_name: "" });
@@ -440,17 +464,17 @@ export default function CalendarTab() {
   };
 
   const handleRevertCalendarDate = async () => {
-    const calendarId = Number(detailRow?.calendar_id || 0);
+    const calendarYearId = Number(detailRow?.calendar_year_id || 0);
     const eventDate = String(selectedDay?.date || "");
 
-    if (calendarId <= 0 || !eventDate || !selectedDay?.is_override) return;
+    if (calendarYearId <= 0 || !eventDate || !selectedDay?.is_override) return;
 
     setDateSubmitting(true);
     setDateFormErrorText("");
 
     try {
-      await apiDeleteAttendanceCalendarDate(calendarId, eventDate);
-      await loadCalendarDates(calendarId);
+      await apiDeleteAttendanceCalendarYearDate(calendarYearId, eventDate);
+      await loadCalendarDates(calendarYearId);
 
       setSelectedDay(null);
       setDateForm({ event_type: "", event_name: "" });
@@ -484,83 +508,32 @@ export default function CalendarTab() {
   };
 
   const handlePublishCalendar = async () => {
-    const calendarId = Number(publishRow?.calendar_id || 0);
+    const calendarYearId = Number(publishRow?.calendar_year_id || 0);
+    const calendarId = Number(yearRow?.calendar_id || 0);
 
-    if (calendarId <= 0) return;
+    if (calendarYearId <= 0 || calendarId <= 0) return;
 
     setPublishSubmitting(true);
-    setErrorText("");
+    setYearErrorText("");
 
     try {
-      await apiPublishAttendanceCalendar(calendarId);
+      await apiPublishAttendanceCalendarYear(calendarYearId);
       setPublishRow(null);
-      await loadRows(filters);
+      await loadCalendarYears(calendarId);
+      await loadRows();
 
       setSuccessDialog({
         open: true,
         title: "發布成功",
-        message: "行事曆已成功發布。",
+        message: `${publishRow?.calendar_year || ""} 年行事曆已成功發布。`,
       });
     } catch (error) {
       console.error(error);
-      setErrorText(error?.response?.data?.message || "發布行事曆失敗。");
-    } finally {
-      setPublishSubmitting(false);
-    }
-  };
-
-  const handleOpenAction = (row, type) => {
-    setActionRow(row);
-    setActionType(type);
-    setErrorText("");
-  };
-
-  const handleCloseAction = () => {
-    if (actionSubmitting) return;
-
-    setActionRow(null);
-    setActionType("");
-  };
-
-  const handleActionSubmit = async () => {
-    const calendarId = Number(actionRow?.calendar_id || 0);
-
-    if (calendarId <= 0 || !actionType) return;
-
-    setActionSubmitting(true);
-    setErrorText("");
-
-    try {
-      if (actionType === "deactivate") {
-        await apiDeactivateAttendanceCalendar(calendarId);
-      } else if (actionType === "delete") {
-        await apiDeleteAttendanceCalendar(calendarId);
-      }
-
-      const completedAction = actionType;
-
-      setActionRow(null);
-      setActionType("");
-      await loadRows(filters);
-
-      setSuccessDialog({
-        open: true,
-        title: completedAction === "deactivate" ? "停用成功" : "刪除成功",
-        message:
-          completedAction === "deactivate"
-            ? "行事曆已成功停用。"
-            : "行事曆已成功刪除。",
-      });
-    } catch (error) {
-      console.error(error);
-      setErrorText(
-        error?.response?.data?.message ||
-          (actionType === "deactivate"
-            ? "停用行事曆失敗。"
-            : "刪除行事曆失敗。"),
+      setYearErrorText(
+        error?.response?.data?.message || "發布行事曆年度失敗。",
       );
     } finally {
-      setActionSubmitting(false);
+      setPublishSubmitting(false);
     }
   };
 
@@ -575,66 +548,22 @@ export default function CalendarTab() {
             gap: "4px",
           }}
         >
-          <Tooltip title="查看行事曆">
-            <IconButton
-              size="small"
-              onClick={() => handleOpenCalendarDetail(row)}
-            >
+          <Tooltip title="年度管理">
+            <IconButton size="small" onClick={() => handleOpenYears(row)}>
               <CalendarMonthOutlinedIcon fontSize="small" />
             </IconButton>
           </Tooltip>
 
-          <Tooltip
-            title={
-              ["published", "inactive"].includes(row.status)
-                ? "已發布或已停用，無法直接編輯"
-                : "編輯"
-            }
-          >
-            <span>
-              <IconButton
-                size="small"
-                disabled={["published", "inactive"].includes(row.status)}
-                onClick={() => handleOpenEdit(row)}
-              >
-                <EditOutlinedIcon fontSize="small" />
-              </IconButton>
-            </span>
+          <Tooltip title="編輯">
+            <IconButton size="small" onClick={() => handleOpenEdit(row)}>
+              <EditOutlinedIcon fontSize="small" />
+            </IconButton>
           </Tooltip>
-
-          {row.status === "draft" ? (
-            <Tooltip title="發布">
-              <IconButton size="small" onClick={() => handleOpenPublish(row)}>
-                <PublishOutlinedIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          ) : null}
-          {row.status === "draft" ? (
-            <Tooltip title="刪除">
-              <IconButton
-                size="small"
-                onClick={() => handleOpenAction(row, "delete")}
-              >
-                <DeleteOutlineIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          ) : null}
-
-          {row.status === "published" ? (
-            <Tooltip title="停用">
-              <IconButton
-                size="small"
-                onClick={() => handleOpenAction(row, "deactivate")}
-              >
-                <BlockOutlinedIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          ) : null}
         </Box>
       );
     }
 
-    return row[column.key] || "-";
+    return row[column.key] ?? "-";
   };
 
   return (
@@ -669,60 +598,6 @@ export default function CalendarTab() {
         >
           新增行事曆
         </Button>
-      </Box>
-
-      <Box sx={{ mb: "18px" }}>
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: {
-              xs: "1fr",
-              sm: "repeat(2, minmax(0, 1fr))",
-              md: "repeat(2, minmax(0, 260px))",
-            },
-            gap: "14px",
-          }}
-        >
-          <Box sx={{ minWidth: 0 }}>
-            <Typography sx={{ mb: "6px", fontSize: "15px", fontWeight: 500 }}>
-              年度
-            </Typography>
-
-            <SelectField
-              value={filters.year}
-              onChange={(value) => handleFilterChange("year", value)}
-              options={YEAR_OPTIONS}
-              displayEmpty
-              fullWidth
-              height="38px"
-              disabled={loading}
-            />
-          </Box>
-
-          <Box sx={{ minWidth: 0 }}>
-            <Typography sx={{ mb: "6px", fontSize: "15px", fontWeight: 500 }}>
-              狀態
-            </Typography>
-
-            <SelectField
-              value={filters.status}
-              onChange={(value) => handleFilterChange("status", value)}
-              options={CALENDAR_STATUS_FILTER_OPTIONS}
-              displayEmpty
-              fullWidth
-              height="38px"
-              disabled={loading}
-            />
-          </Box>
-        </Box>
-
-        <Box sx={{ mt: "14px", display: "flex", justifyContent: "flex-end" }}>
-          <ActionButtons
-            onClear={handleClear}
-            onSearch={handleSearch}
-            disabled={loading}
-          />
-        </Box>
       </Box>
 
       {errorText ? (
@@ -782,7 +657,7 @@ export default function CalendarTab() {
             onChange={(event) =>
               handleFormChange("calendar_code", event.target.value)
             }
-            placeholder="例如 CAL-2026"
+            placeholder="例如 TW-HQ"
             fullWidth
             size="small"
             disabled={submitting}
@@ -799,27 +674,9 @@ export default function CalendarTab() {
             onChange={(event) =>
               handleFormChange("calendar_name", event.target.value)
             }
-            placeholder="例如 2026 公司行事曆"
+            placeholder="例如 台灣總公司行事曆"
             fullWidth
             size="small"
-            disabled={submitting}
-          />
-        </Box>
-
-        <Box>
-          <Typography sx={{ mb: "6px", fontSize: "15px", fontWeight: 500 }}>
-            年度
-          </Typography>
-
-          <SelectField
-            value={form.calendar_year}
-            onChange={(value) => handleFormChange("calendar_year", value)}
-            options={createCalendarYearOptions(
-              CURRENT_YEAR - 5,
-              CURRENT_YEAR + 5,
-            )}
-            fullWidth
-            height="38px"
             disabled={submitting}
           />
         </Box>
@@ -828,7 +685,7 @@ export default function CalendarTab() {
           <Typography
             sx={{ fontSize: "13px", color: "#6b7280", lineHeight: 1.6 }}
           >
-            新增後將先建立為草稿；完成日期設定後再進行發布。
+            新增行事曆後，再於年度管理中建立各年度資料。
           </Typography>
         ) : null}
       </FormDialog>
@@ -955,6 +812,144 @@ export default function CalendarTab() {
         ) : null}
       </FormDialog>
 
+            <FormDialog
+        open={Boolean(yearRow)}
+        title={
+          yearRow ? `${yearRow.calendar_name}－年度管理` : "年度管理"
+        }
+        hideSubmit
+        cancelLabel="關閉"
+        maxWidth="md"
+        onClose={handleCloseYears}
+      >
+        {yearErrorText ? (
+          <Alert severity="error">{yearErrorText}</Alert>
+        ) : null}
+
+        <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleOpenCreateYear}
+            disabled={yearLoading || yearSubmitting}
+          >
+            新增年度
+          </Button>
+        </Box>
+
+        {yearLoading ? (
+          <Box
+            sx={{
+              minHeight: "180px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <CircularProgress size={32} />
+          </Box>
+        ) : yearRows.length ? (
+          <Box sx={{ display: "grid", gap: "10px" }}>
+            {yearRows.map((row) => (
+              <Box
+                key={row.calendar_year_id}
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "14px",
+                  p: "12px 14px",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: "8px",
+                }}
+              >
+                <Box>
+                  <Typography sx={{ fontSize: "16px", fontWeight: 700 }}>
+                    {row.calendar_year} 年
+                  </Typography>
+
+                  <Typography sx={{ mt: "2px", fontSize: "13px", color: "#6b7280" }}>
+                    {getCalendarStatusLabel(row.status)}
+                    {row.published_at
+                      ? `・發布時間 ${formatDateTime(row.published_at)}`
+                      : ""}
+                  </Typography>
+                </Box>
+
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
+                  }}
+                >
+                  <Tooltip title="查看行事曆">
+                    <IconButton
+                      size="small"
+                      onClick={() =>
+                        handleOpenCalendarDetail({
+                          ...row,
+                          calendar_code: yearRow?.calendar_code || "",
+                          calendar_name: yearRow?.calendar_name || "",
+                        })
+                      }
+                    >
+                      <CalendarMonthOutlinedIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+
+                  {row.status === "draft" ? (
+                    <Tooltip title="發布">
+                      <IconButton
+                        size="small"
+                        onClick={() => handleOpenPublish(row)}
+                      >
+                        <PublishOutlinedIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  ) : null}
+                </Box>
+              </Box>
+            ))}
+          </Box>
+        ) : (
+          <Typography sx={{ py: "24px", textAlign: "center", color: "#6b7280" }}>
+            尚未建立年度資料
+          </Typography>
+        )}
+      </FormDialog>
+
+      <FormDialog
+        open={yearFormOpen}
+        title="新增行事曆年度"
+        submitLabel="新增"
+        submitting={yearSubmitting}
+        maxWidth="xs"
+        onClose={() => {
+          if (!yearSubmitting) setYearFormOpen(false);
+        }}
+        onSubmit={handleCreateYear}
+      >
+        <Box>
+          <Typography sx={{ mb: "6px", fontSize: "15px", fontWeight: 500 }}>
+            年度
+          </Typography>
+
+          <SelectField
+            value={yearFormValue}
+            onChange={setYearFormValue}
+            options={YEAR_OPTIONS}
+            fullWidth
+            height="38px"
+            disabled={yearSubmitting}
+          />
+        </Box>
+
+        <Typography sx={{ fontSize: "13px", color: "#6b7280", lineHeight: 1.6 }}>
+          新增後年度將先建立為草稿；完成日期設定後再發布。
+        </Typography>
+      </FormDialog>
+
       <FormDialog
         open={Boolean(selectedDay)}
         title={selectedDay?.date ? `日期設定－${selectedDay.date}` : "日期設定"}
@@ -1075,26 +1070,7 @@ export default function CalendarTab() {
         <Typography
           sx={{ fontSize: "15px", color: "#374151", lineHeight: 1.7 }}
         >
-          {`確認發布「${publishRow?.calendar_name || ""}」？發布後將無法直接修改基本資料及日期設定。`}
-        </Typography>
-      </FormDialog>
-
-      <FormDialog
-        open={Boolean(actionRow)}
-        title={actionType === "deactivate" ? "確認停用" : "確認刪除"}
-        submitLabel={actionType === "deactivate" ? "停用" : "刪除"}
-        cancelLabel="取消"
-        submitting={actionSubmitting}
-        maxWidth="xs"
-        onClose={handleCloseAction}
-        onSubmit={handleActionSubmit}
-      >
-        <Typography
-          sx={{ fontSize: "15px", color: "#374151", lineHeight: 1.7 }}
-        >
-          {actionType === "deactivate"
-            ? `確認停用「${actionRow?.calendar_name || ""}」？停用後將保留已發布的行事曆及日期資料，但不再作為有效行事曆使用。`
-            : `確認刪除「${actionRow?.calendar_name || ""}」？只有從未發布過的草稿行事曆可以刪除。`}
+          {`確認發布 ${publishRow?.calendar_year || ""} 年行事曆？發布後此年度的日期設定將無法直接修改。`}
         </Typography>
       </FormDialog>
 
