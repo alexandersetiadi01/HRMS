@@ -60,7 +60,7 @@ function SidebarMenuItem({
           alignItems: "center",
           justifyContent: "space-between",
           fontSize: "15px",
-          fontWeight: isActive ? 700 : 500,
+          fontWeight: isActive ? 700 : 400,
           color: isDisabled
             ? "rgba(255,255,255,0.35)"
             : isActive
@@ -151,7 +151,7 @@ function SidebarMenuItem({
                     : isChildActive
                       ? "#ffffff"
                       : "#c9c9c9",
-                  fontWeight: isChildActive ? 700 : 500,
+                  fontWeight: isChildActive ? 700 : 400,
                   cursor: isChildDisabled ? "not-allowed" : "pointer",
                   "&:hover": isChildDisabled
                     ? {}

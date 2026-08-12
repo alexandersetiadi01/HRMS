@@ -1,12 +1,5 @@
 import { useState } from "react";
-import {
-  Box,
-  Collapse,
-  Paper,
-  Tab,
-  Tabs,
-  Typography,
-} from "@mui/material";
+import { Box, Collapse, Paper, Tab, Tabs, Typography } from "@mui/material";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 
@@ -14,25 +7,36 @@ import Breadcrumb from "../../../../Utils/Breadcrumb";
 import AttendanceRulesTab from "./AttendanceRulesTab";
 import CalendarTab from "./CalendarTab";
 import LeaveTypesTab from "./LeaveTypesTab";
+import ShiftGroupAssignments from "./ShiftGroupAssignments";
 import ShiftGroupsTab from "./ShiftGroupsTab";
 import ShiftsTab from "./ShiftsTab";
 import {
   ATTENDANCE_RULE_ITEMS,
   FORM_PARAMETER_ITEMS,
   MODULE_TABS,
+  SHIFT_GROUP_ITEMS,
 } from "./moduleSettingOptions";
 
 export default function ModuleSettingPage() {
   const [activeTab, setActiveTab] = useState("form-parameters");
   const [activeParameter, setActiveParameter] = useState("leave-types");
   const [activeAttendanceRule, setActiveAttendanceRule] = useState("leave");
+  const [activeShiftGroupItem, setActiveShiftGroupItem] = useState("groups");
   const [attendanceRulesOpen, setAttendanceRulesOpen] = useState(false);
+  const [shiftGroupOpen, setShiftGroupOpen] = useState(false);
 
   const handleParameterClick = (item) => {
     if (item.value === "attendance-rules") {
       setActiveParameter("attendance-rules");
       setActiveTab("form-parameters");
       setAttendanceRulesOpen((current) => !current);
+      return;
+    }
+
+    if (item.value === "shift-group") {
+      setActiveParameter("shift-group");
+      setActiveTab("form-parameters");
+      setShiftGroupOpen((current) => !current);
       return;
     }
 
@@ -44,6 +48,12 @@ export default function ModuleSettingPage() {
     setActiveTab("form-parameters");
     setActiveParameter("attendance-rules");
     setActiveAttendanceRule(value);
+  };
+
+  const handleShiftGroupClick = (value) => {
+    setActiveTab("form-parameters");
+    setActiveParameter("shift-group");
+    setActiveShiftGroupItem(value);
   };
 
   return (
@@ -113,7 +123,7 @@ export default function ModuleSettingPage() {
                         bgcolor: active ? "#e8f3ff" : "transparent",
                         color: active ? "#1976d2" : "#374151",
                         fontSize: "15px",
-                        fontWeight: active ? 700 : 500,
+                        fontWeight: active ? 700 : 400,
                         textAlign: "left",
                         cursor: "pointer",
                         whiteSpace: "nowrap",
@@ -125,16 +135,28 @@ export default function ModuleSettingPage() {
                       <Box component="span">{item.label}</Box>
 
                       {expandable ? (
-                        attendanceRulesOpen ? (
-                          <KeyboardArrowDownIcon sx={{ fontSize: "20px" }} />
-                        ) : (
-                          <KeyboardArrowRightIcon sx={{ fontSize: "20px" }} />
-                        )
+                        item.value === "attendance-rules" ? (
+                          attendanceRulesOpen ? (
+                            <KeyboardArrowDownIcon sx={{ fontSize: "20px" }} />
+                          ) : (
+                            <KeyboardArrowRightIcon sx={{ fontSize: "20px" }} />
+                          )
+                        ) : item.value === "shift-group" ? (
+                          shiftGroupOpen ? (
+                            <KeyboardArrowDownIcon sx={{ fontSize: "20px" }} />
+                          ) : (
+                            <KeyboardArrowRightIcon sx={{ fontSize: "20px" }} />
+                          )
+                        ) : null
                       ) : null}
                     </Box>
 
-                    {expandable ? (
-                      <Collapse in={attendanceRulesOpen} timeout="auto" unmountOnExit>
+                    {item.value === "attendance-rules" ? (
+                      <Collapse
+                        in={attendanceRulesOpen}
+                        timeout="auto"
+                        unmountOnExit
+                      >
                         <Box sx={{ py: "4px" }}>
                           {ATTENDANCE_RULE_ITEMS.map((rule) => {
                             const ruleActive =
@@ -146,7 +168,9 @@ export default function ModuleSettingPage() {
                                 key={rule.value}
                                 component="button"
                                 type="button"
-                                onClick={() => handleAttendanceRuleClick(rule.value)}
+                                onClick={() =>
+                                  handleAttendanceRuleClick(rule.value)
+                                }
                                 sx={{
                                   width: "100%",
                                   display: "block",
@@ -155,10 +179,12 @@ export default function ModuleSettingPage() {
                                   pl: "30px",
                                   pr: "14px",
                                   py: "9px",
-                                  bgcolor: ruleActive ? "#f0f7ff" : "transparent",
+                                  bgcolor: ruleActive
+                                    ? "#f0f7ff"
+                                    : "transparent",
                                   color: ruleActive ? "#1976d2" : "#4b5563",
                                   fontSize: "14px",
-                                  fontWeight: ruleActive ? 700 : 500,
+                                  fontWeight: ruleActive ? 700 : 400,
                                   textAlign: "left",
                                   cursor: "pointer",
                                   whiteSpace: "nowrap",
@@ -168,6 +194,60 @@ export default function ModuleSettingPage() {
                                 }}
                               >
                                 {rule.label}
+                              </Box>
+                            );
+                          })}
+                        </Box>
+                      </Collapse>
+                    ) : null}
+
+                    {item.value === "shift-group" ? (
+                      <Collapse
+                        in={shiftGroupOpen}
+                        timeout="auto"
+                        unmountOnExit
+                      >
+                        <Box sx={{ py: "4px" }}>
+                          {SHIFT_GROUP_ITEMS.map((shiftGroupItem) => {
+                            const shiftGroupActive =
+                              activeParameter === "shift-group" &&
+                              activeShiftGroupItem === shiftGroupItem.value;
+
+                            return (
+                              <Box
+                                key={shiftGroupItem.value}
+                                component="button"
+                                type="button"
+                                onClick={() =>
+                                  handleShiftGroupClick(shiftGroupItem.value)
+                                }
+                                sx={{
+                                  width: "100%",
+                                  display: "block",
+                                  border: 0,
+                                  borderRadius: "6px",
+                                  pl: "30px",
+                                  pr: "14px",
+                                  py: "9px",
+                                  bgcolor: shiftGroupActive
+                                    ? "#f0f7ff"
+                                    : "transparent",
+                                  color: shiftGroupActive
+                                    ? "#1976d2"
+                                    : "#4b5563",
+                                  fontSize: "14px",
+                                  fontWeight: shiftGroupActive ? 700 : 400,
+                                  textAlign: "left",
+                                  cursor: "pointer",
+                                  whiteSpace: "nowrap",
+                                  "&:hover": {
+                                    bgcolor: shiftGroupActive
+                                      ? "#f0f7ff"
+                                      : "#f3f4f6",
+                                  },
+                                }}
+                              >
+                                {shiftGroupItem.label}
                               </Box>
                             );
                           })}
@@ -213,11 +293,15 @@ export default function ModuleSettingPage() {
             <Box sx={{ p: { xs: "16px", sm: "20px" }, minWidth: 0 }}>
               {activeTab === "permissions" ? (
                 <>
-                  <Typography sx={{ fontSize: "20px", fontWeight: 700, color: "#111827" }}>
+                  <Typography
+                    sx={{ fontSize: "20px", fontWeight: 700, color: "#111827" }}
+                  >
                     權限設定
                   </Typography>
 
-                  <Typography sx={{ mt: "4px", fontSize: "14px", color: "#6b7280" }}>
+                  <Typography
+                    sx={{ mt: "4px", fontSize: "14px", color: "#6b7280" }}
+                  >
                     Attendance 模組權限設定
                   </Typography>
                 </>
@@ -225,11 +309,15 @@ export default function ModuleSettingPage() {
 
               {activeTab === "approval" ? (
                 <>
-                  <Typography sx={{ fontSize: "20px", fontWeight: 700, color: "#111827" }}>
+                  <Typography
+                    sx={{ fontSize: "20px", fontWeight: 700, color: "#111827" }}
+                  >
                     簽核設定
                   </Typography>
 
-                  <Typography sx={{ mt: "4px", fontSize: "14px", color: "#6b7280" }}>
+                  <Typography
+                    sx={{ mt: "4px", fontSize: "14px", color: "#6b7280" }}
+                  >
                     請假、加班、忘打卡、公出及出差簽核流程設定
                   </Typography>
                 </>
@@ -237,21 +325,21 @@ export default function ModuleSettingPage() {
 
               {activeTab === "form-parameters" ? (
                 <>
-                  {activeParameter === "calendar" ? (
-                    <CalendarTab />
-                  ) : null}
+                  {activeParameter === "calendar" ? <CalendarTab /> : null}
 
-                  {activeParameter === "shift" ? (
-                    <ShiftsTab />
-                  ) : null}
+                  {activeParameter === "shift" ? <ShiftsTab /> : null}
 
-                  {activeParameter === "shift-group" ? (
+                  {activeParameter === "shift-group" &&
+                  activeShiftGroupItem === "groups" ? (
                     <ShiftGroupsTab />
                   ) : null}
 
-                  {activeParameter === "leave-types" ? (
-                    <LeaveTypesTab />
+                  {activeParameter === "shift-group" &&
+                  activeShiftGroupItem === "assignments" ? (
+                    <ShiftGroupAssignments />
                   ) : null}
+
+                  {activeParameter === "leave-types" ? <LeaveTypesTab /> : null}
 
                   {activeParameter === "attendance-rules" ? (
                     <AttendanceRulesTab activeRule={activeAttendanceRule} />
@@ -259,11 +347,19 @@ export default function ModuleSettingPage() {
 
                   {activeParameter === "clock-settings" ? (
                     <>
-                      <Typography sx={{ fontSize: "20px", fontWeight: 700, color: "#111827" }}>
+                      <Typography
+                        sx={{
+                          fontSize: "20px",
+                          fontWeight: 700,
+                          color: "#111827",
+                        }}
+                      >
                         打卡設定
                       </Typography>
 
-                      <Typography sx={{ mt: "4px", fontSize: "14px", color: "#6b7280" }}>
+                      <Typography
+                        sx={{ mt: "4px", fontSize: "14px", color: "#6b7280" }}
+                      >
                         Attendance 打卡相關參數設定
                       </Typography>
                     </>
@@ -271,11 +367,19 @@ export default function ModuleSettingPage() {
 
                   {activeParameter === "unit-settings" ? (
                     <>
-                      <Typography sx={{ fontSize: "20px", fontWeight: 700, color: "#111827" }}>
+                      <Typography
+                        sx={{
+                          fontSize: "20px",
+                          fontWeight: 700,
+                          color: "#111827",
+                        }}
+                      >
                         單位參數設定
                       </Typography>
 
-                      <Typography sx={{ mt: "4px", fontSize: "14px", color: "#6b7280" }}>
+                      <Typography
+                        sx={{ mt: "4px", fontSize: "14px", color: "#6b7280" }}
+                      >
                         單位排班及代申請權限相關設定
                       </Typography>
                     </>

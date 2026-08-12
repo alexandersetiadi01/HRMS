@@ -1,4 +1,6 @@
+import { useEffect, useState, useSyncExternalStore } from "react";
 import {
+  Alert,
   Box,
   Button,
   Dialog,
@@ -9,6 +11,16 @@ import {
   Typography,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
+
+import {
+  clearGlobalDialogApiError,
+  getGlobalDialogApiError,
+  getGlobalLoading,
+  registerGlobalFormDialog,
+  subscribeGlobalDialogApiError,
+  subscribeGlobalLoading,
+  unregisterGlobalFormDialog,
+} from "../Utils/GlobalLoading";
 
 export default function FormDialog({
   open,
@@ -21,12 +33,46 @@ export default function FormDialog({
   onClose,
   onSubmit,
 }) {
+  const [apiErrorText, setApiErrorText] = useState(
+    getGlobalDialogApiError(),
+  );
+
+  const globalLoading = useSyncExternalStore(
+    subscribeGlobalLoading,
+    getGlobalLoading,
+    getGlobalLoading,
+  );
+
+  useEffect(() => {
+    return subscribeGlobalDialogApiError(() => {
+      setApiErrorText(getGlobalDialogApiError());
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    clearGlobalDialogApiError();
+    registerGlobalFormDialog();
+
+    return () => {
+      unregisterGlobalFormDialog();
+    };
+  }, [open]);
+
   return (
     <Dialog
       open={open}
       onClose={submitting ? undefined : onClose}
       fullWidth
       maxWidth={maxWidth}
+      slotProps={{
+        backdrop: {
+          sx: {
+            bgcolor: "rgba(17, 24, 39, 0.56)",
+          },
+        },
+      }}
     >
       <DialogTitle
         sx={{
@@ -55,8 +101,33 @@ export default function FormDialog({
             display: "flex",
             flexDirection: "column",
             gap: "16px",
+            ...(apiErrorText
+              ? {
+                  "& .MuiAlert-root": {
+                    display: "none",
+                  },
+                }
+              : {}),
+            ...(globalLoading
+              ? {
+                  "& .MuiCircularProgress-root": {
+                    visibility: "hidden",
+                  },
+                }
+              : {}),
           }}
         >
+          {apiErrorText ? (
+            <Alert
+              severity="error"
+              sx={{
+                display: "flex !important",
+              }}
+            >
+              {apiErrorText}
+            </Alert>
+          ) : null}
+
           {children}
         </Box>
       </DialogContent>

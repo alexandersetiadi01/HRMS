@@ -7,13 +7,16 @@ function unwrapResponseData(response) {
 export async function fetchNotifications(params = {}) {
   const response = await http.get("/notifications", {
     params,
+    globalLoading: false,
   });
 
   return unwrapResponseData(response);
 }
 
 export async function fetchNotificationSummary() {
-  const response = await http.get("/notifications/summary");
+  const response = await http.get("/notifications/summary", {
+    globalLoading: false,
+  });
 
   return unwrapResponseData(response);
 }
@@ -21,6 +24,9 @@ export async function fetchNotificationSummary() {
 export async function fetchUnreadNotificationSources() {
   const response = await http.get(
     "/notifications/unread-sources",
+    {
+      globalLoading: false,
+    },
   );
 
   return unwrapResponseData(response);

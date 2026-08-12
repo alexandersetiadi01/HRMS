@@ -7,11 +7,16 @@ export const MODULE_TABS = [
 export const FORM_PARAMETER_ITEMS = [
   { value: "calendar", label: "行事曆管理" },
   { value: "shift", label: "班次" },
-  { value: "shift-group", label: "班別" },
+  { value: "shift-group", label: "班別", expandable: true },
   { value: "leave-types", label: "假別名稱維護" },
   { value: "attendance-rules", label: "出勤規則設定", expandable: true },
   { value: "clock-settings", label: "打卡設定" },
   { value: "unit-settings", label: "單位參數設定" },
+];
+
+export const SHIFT_GROUP_ITEMS = [
+  { value: "groups", label: "班別設定" },
+  { value: "assignments", label: "人員班別設定" },
 ];
 
 export const ATTENDANCE_RULE_ITEMS = [

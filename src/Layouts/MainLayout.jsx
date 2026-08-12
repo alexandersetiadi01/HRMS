@@ -265,7 +265,7 @@ function MainLayout() {
       <Box
         sx={{
           width: "100%",
-          maxWidth: "1180px",
+          maxWidth: "1200px",
           mx: "auto",
           px: { xs: "16px", md: "24px" },
           py: "20px",

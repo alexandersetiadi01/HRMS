@@ -602,6 +602,54 @@ export async function apiAttendanceShiftGroups(params = {}) {
   return res.data;
 }
 
+export async function apiAttendanceShiftGroupAssignments(params = {}) {
+  const res = await http.get("/attendance/shift-group-assignments", {
+    params: {
+      employee_id: params.employee_id || undefined,
+      shift_group_id: params.shift_group_id || undefined,
+    },
+  });
+
+  return res.data;
+}
+
+export async function apiAttendanceShiftGroupAssignment(assignmentId) {
+  const res = await http.get(
+    `/attendance/shift-group-assignments/${assignmentId}`,
+  );
+
+  return res.data;
+}
+
+export async function apiCreateAttendanceShiftGroupAssignment(payload) {
+  const res = await http.post(
+    "/attendance/shift-group-assignments",
+    payload,
+  );
+
+  return res.data;
+}
+
+export async function apiUpdateAttendanceShiftGroupAssignment(
+  assignmentId,
+  payload,
+) {
+  const res = await http.put(
+    `/attendance/shift-group-assignments/${assignmentId}`,
+    payload,
+  );
+
+  return res.data;
+}
+
+export async function apiDeleteAttendanceShiftGroupAssignment(assignmentId) {
+  const res = await http.delete(
+    `/attendance/shift-group-assignments/${assignmentId}`,
+  );
+
+  return res.data;
+}
+
 export async function apiAttendanceShiftGroup(shiftGroupId) {
   const res = await http.get(`/attendance/shift-groups/${shiftGroupId}`);
   return res.data;
@@ -617,6 +665,19 @@ export async function apiUpdateAttendanceShiftGroup(shiftGroupId, payload) {
   return res.data;
 }
 
+export async function apiUpdateAttendanceShiftGroupStatus(shiftGroupId, status) {
+  const res = await http.put(`/attendance/shift-groups/${shiftGroupId}/status`, {
+    status,
+  });
+
+  return res.data;
+}
+
+export async function apiDeleteAttendanceShiftGroup(shiftGroupId) {
+  const res = await http.delete(`/attendance/shift-groups/${shiftGroupId}`);
+  return res.data;
+}
+
 export async function apiAttendanceShiftGroupConfiguration(shiftGroupId) {
   const res = await http.get(`/attendance/shift-groups/${shiftGroupId}/configuration`);
   return res.data;
@@ -624,6 +685,21 @@ export async function apiAttendanceShiftGroupConfiguration(shiftGroupId) {
 
 export async function apiSaveAttendanceShiftGroupConfiguration(shiftGroupId, payload) {
   const res = await http.put(`/attendance/shift-groups/${shiftGroupId}/configuration`, payload);
+  return res.data;
+}
+
+export async function apiAttendanceShiftGroupFutureUpdatePreview(shiftGroupId, updateDate) {
+  const res = await http.get(`/attendance/shift-groups/${shiftGroupId}/future-update-preview`, {
+    params: {
+      update_date: updateDate,
+    },
+  });
+
+  return res.data;
+}
+
+export async function apiUpdateAttendanceShiftGroupFuture(shiftGroupId, payload) {
+  const res = await http.put(`/attendance/shift-groups/${shiftGroupId}/future-update`, payload);
   return res.data;
 }
 
