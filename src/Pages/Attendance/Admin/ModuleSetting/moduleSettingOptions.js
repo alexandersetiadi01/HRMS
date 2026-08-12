@@ -88,3 +88,19 @@ export function createCalendarYearOptions(startYear, endYear) {
     };
   });
 }
+
+export const CALENDAR_DATE_TYPE_OPTIONS = [
+  { value: "workday", label: "工作日", color: "#ffffff", textColor: "#111827" },
+  { value: "special_workday", label: "特殊上班日", color: "#dbeafe", textColor: "#1d4ed8" },
+  { value: "rest_day", label: "休息日", color: "#f3f4f6", textColor: "#6b7280" },
+  { value: "regular_holiday", label: "例假日", color: "#fef3c7", textColor: "#92400e" },
+  { value: "national_holiday", label: "國定假日", color: "#fee2e2", textColor: "#b91c1c" },
+];
+
+export const CALENDAR_OVERRIDE_TYPE_OPTIONS = CALENDAR_DATE_TYPE_OPTIONS.filter(
+  (item) => item.value !== "workday",
+);
+
+export function getCalendarDateTypeOption(value) {
+  return CALENDAR_DATE_TYPE_OPTIONS.find((item) => item.value === value) || null;
+}

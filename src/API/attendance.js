@@ -501,6 +501,36 @@ export async function apiAttendanceCalendar(calendarId) {
   return res.data;
 }
 
+export async function apiAttendanceCalendarDates(calendarId) {
+  const res = await http.get(`/attendance/calendars/${calendarId}/dates`);
+  return res.data;
+}
+
+export async function apiPublishAttendanceCalendar(calendarId) {
+  const res = await http.post(`/attendance/calendars/${calendarId}/publish`);
+  return res.data;
+}
+
+export async function apiDeactivateAttendanceCalendar(calendarId) {
+  const res = await http.post(`/attendance/calendars/${calendarId}/deactivate`);
+  return res.data;
+}
+
+export async function apiDeleteAttendanceCalendar(calendarId) {
+  const res = await http.delete(`/attendance/calendars/${calendarId}`);
+  return res.data;
+}
+
+export async function apiSaveAttendanceCalendarDate(calendarId, date, payload) {
+  const res = await http.put(`/attendance/calendars/${calendarId}/dates/${date}`, payload);
+  return res.data;
+}
+
+export async function apiDeleteAttendanceCalendarDate(calendarId, date) {
+  const res = await http.delete(`/attendance/calendars/${calendarId}/dates/${date}`);
+  return res.data;
+}
+
 export async function apiCreateAttendanceCalendar(payload) {
   const res = await http.post("/attendance/calendars", payload);
   return res.data;

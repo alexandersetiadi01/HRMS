@@ -21,11 +21,9 @@ function getStatusBackground(value) {
     .toLowerCase();
 
   if (
-    [
-      "停用",
-      "inactive",
-      "disabled",
-    ].some((item) => status === item.toLowerCase())
+    ["停用", "inactive", "disabled"].some(
+      (item) => status === item.toLowerCase(),
+    )
   ) {
     return "#6b7280";
   }
@@ -75,6 +73,7 @@ function getStatusBackground(value) {
 
   if (
     [
+      "草稿",
       "待審核",
       "待處理",
       "待確認",
@@ -88,6 +87,7 @@ function getStatusBackground(value) {
       "缺下班卡",
       "缺勤",
       "曠職",
+      "draft",
       "pending",
       "processing",
       "reviewing",
@@ -160,10 +160,7 @@ export default function ResponsiveAttendanceTable({
     .map((column) => {
       const width = String(column.width || "1fr");
 
-      if (
-        fitToContainer &&
-        /^(\d*\.?\d+)fr$/.test(width)
-      ) {
+      if (fitToContainer && /^(\d*\.?\d+)fr$/.test(width)) {
         return `minmax(0, ${width})`;
       }
 
