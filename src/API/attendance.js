@@ -939,6 +939,51 @@ export async function apiAttendanceScheduleMonth(params = {}) {
 
 /**
  * =========================
+ * Attendance Rules
+ * =========================
+ */
+
+export async function apiAttendanceRules(params = {}) {
+  const res = await http.get("/attendance/rules", {
+    params: {
+      rule_type: params.rule_type || undefined,
+      status: params.status || undefined,
+    },
+  });
+
+  return res.data;
+}
+
+export async function apiCreateAttendanceRule(payload) {
+  const res = await http.post("/attendance/rules", payload);
+  return res.data;
+}
+
+export async function apiUpdateAttendanceRule(attendanceRuleId, payload) {
+  const res = await http.put(`/attendance/rules/${attendanceRuleId}`, payload);
+  return res.data;
+}
+
+export async function apiDeleteAttendanceRule(attendanceRuleId) {
+  const res = await http.delete(`/attendance/rules/${attendanceRuleId}`);
+  return res.data;
+}
+
+export async function apiAttendanceRuleRanges(attendanceRuleId) {
+  const res = await http.get(`/attendance/rules/${attendanceRuleId}/ranges`);
+  return res.data;
+}
+
+export async function apiSaveAttendanceRuleRanges(attendanceRuleId, ranges) {
+  const res = await http.put(`/attendance/rules/${attendanceRuleId}/ranges`, {
+    ranges,
+  });
+
+  return res.data;
+}
+
+/**
+ * =========================
  * Leave
  * =========================
  */
