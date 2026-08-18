@@ -13,6 +13,7 @@ import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import {
   apiAttendanceAdminMeta,
   apiAttendanceAdminRecords,
+  apiSyncAttendanceAdminRecords,
 } from "../../../API/attendance";
 import FormDialog from "../../../Components/FormDialog";
 import { renderDateField } from "../../../Components/GlobalComponent";
@@ -278,6 +279,18 @@ export default function StaffAttendancePage() {
   };
 
   const loadRows = async (nextFilters) => {
+    if (
+      nextFilters.employee_id &&
+      nextFilters.date_from &&
+      nextFilters.date_to
+    ) {
+      await apiSyncAttendanceAdminRecords({
+        employee_id: nextFilters.employee_id,
+        date_from: nextFilters.date_from,
+        date_to: nextFilters.date_to,
+      });
+    }
+
     const result = await apiAttendanceAdminRecords({
       employee_id: nextFilters.employee_id || undefined,
       date_from: nextFilters.date_from || undefined,

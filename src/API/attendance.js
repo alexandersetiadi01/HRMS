@@ -884,6 +884,18 @@ export async function apiAttendanceAdminRecords(params = {}) {
   return res.data;
 }
 
+export async function apiSyncAttendanceAdminRecords(params = {}) {
+  const { employee_id, date_from, date_to } = params;
+
+  const res = await http.post("/attendance-records", {
+    employee_id: Number(employee_id || 0),
+    date_from,
+    date_to,
+  });
+
+  return res.data;
+}
+
 export async function apiAttendanceRecords(params = {}) {
   const { date_from, date_to, record_type, location, method, employee_id } =
     params;

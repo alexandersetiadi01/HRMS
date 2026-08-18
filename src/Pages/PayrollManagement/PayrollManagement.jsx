@@ -5,20 +5,29 @@ import {
   Button,
   Chip,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   FormControl,
+  IconButton,
   MenuItem,
   Select,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import CheckIcon from "@mui/icons-material/Check";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import {
+  deletePayrollRun,
   getPayrollPeriods,
   getPayrollRanges,
   getPayrollRuns,
 } from "../../API/payroll";
 import CreatePayrollDialog from "./CreatePayrollDialog";
+import SuccessDialog from "../../Components/SuccessDialog";
 import PayrollReadinessPanel from "./PayrollReadinessPanel";
 import PayrollCalculationPanel from "./PayrollCalculationPanel";
 import PayrollCompletionPanel from "./PayrollCompletionPanel";
@@ -244,7 +253,14 @@ function PayrollStageBar({
   );
 }
 
-function PayrollRunCard({ run, onReload, canCalculate, canApprove, canClose }) {
+function PayrollRunCard({
+  run,
+  onReload,
+  onDelete,
+  canCalculate,
+  canApprove,
+  canClose,
+}) {
   const progressStage = getRunStage(run);
   const payrollPeriod = getPayrollPeriodIdentity(run);
   const [selectedStage, setSelectedStage] = useState(progressStage);
@@ -253,6 +269,10 @@ function PayrollRunCard({ run, onReload, canCalculate, canApprove, canClose }) {
   const finalStageCompleted =
     Boolean(run?.closed_at) ||
     ["已關帳", "已通知"].includes(String(run?.status || ""));
+
+  const canDelete =
+    canCalculate &&
+    String(run?.status || "") === "草稿";
 
   const title =
     run.run_name ||
@@ -323,19 +343,45 @@ function PayrollRunCard({ run, onReload, canCalculate, canApprove, canClose }) {
           </Typography>
         </Box>
 
-        <Chip
-          label={run.status || STAGES[progressStage]}
-          size="small"
+        <Box
           sx={{
-            height: "26px",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
             flexShrink: 0,
-            bgcolor: `${statusColor}14`,
-            color: statusColor,
-            border: `1px solid ${statusColor}40`,
-            fontWeight: 700,
-            fontSize: "13px",
           }}
-        />
+        >
+          <Chip
+            label={run.status || STAGES[progressStage]}
+            size="small"
+            sx={{
+              height: "26px",
+              bgcolor: `${statusColor}14`,
+              color: statusColor,
+              border: `1px solid ${statusColor}40`,
+              fontWeight: 700,
+              fontSize: "13px",
+            }}
+          />
+
+          {canDelete ? (
+            <Tooltip title="刪除薪資批次">
+              <IconButton
+                size="small"
+                onClick={() => onDelete(run)}
+                sx={{
+                  color: "#64748b",
+                  "&:hover": {
+                    color: "#dc2626",
+                    bgcolor: "#fef2f2",
+                  },
+                }}
+              >
+                <DeleteOutlineIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          ) : null}
+        </Box>
       </Box>
 
       <PayrollStageBar
@@ -466,6 +512,14 @@ export default function PayrollManagement() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+  const [successDialog, setSuccessDialog] = useState({
+    open: false,
+    title: "",
+    message: "",
+  });
 
   const loadPayrollData = useCallback(async () => {
     setLoading(true);
@@ -493,6 +547,37 @@ export default function PayrollManagement() {
   useEffect(() => {
     loadPayrollData();
   }, [loadPayrollData]);
+
+  const handleDeletePayrollRun = async () => {
+    const payrollRunId = Number(deleteTarget?.payroll_run_id || 0);
+
+    if (payrollRunId <= 0) return;
+
+    setDeleting(true);
+    setDeleteError("");
+
+    try {
+      await deletePayrollRun(payrollRunId);
+
+      setDeleteTarget(null);
+      await loadPayrollData();
+
+      setSuccessDialog({
+        open: true,
+        title: "刪除成功",
+        message: "薪資批次已成功刪除。",
+      });
+    } catch (deleteRequestError) {
+      setDeleteError(
+        getErrorMessage(
+          deleteRequestError,
+          "刪除薪資批次失敗。",
+        ),
+      );
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const years = useMemo(() => {
     const values = new Set([currentYear]);
@@ -759,6 +844,10 @@ export default function PayrollManagement() {
               canCalculate={canCalculate}
               canApprove={canApprove}
               canClose={canClose}
+              onDelete={(target) => {
+                setDeleteTarget(target);
+                setDeleteError("");
+              }}
               onReload={loadPayrollData}
             />
           ))}
@@ -780,6 +869,79 @@ export default function PayrollManagement() {
           setRangeId(String(created.payrollRangeId));
           await loadPayrollData();
         }}
+      />
+
+      <Dialog
+        open={Boolean(deleteTarget)}
+        onClose={deleting ? undefined : () => setDeleteTarget(null)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle
+          sx={{
+            fontSize: "18px",
+            fontWeight: 700,
+          }}
+        >
+          確認刪除
+        </DialogTitle>
+
+        <DialogContent>
+          {deleteError ? (
+            <Alert severity="error" sx={{ mb: "14px" }}>
+              {deleteError}
+            </Alert>
+          ) : null}
+
+          <Typography
+            sx={{
+              color: "#475569",
+              fontSize: "14px",
+              lineHeight: 1.7,
+            }}
+          >
+            確定要刪除「
+            {deleteTarget?.run_name ||
+              `${getPayrollPeriodIdentity(deleteTarget).year || "--"} 年 ${getPayrollPeriodIdentity(deleteTarget).month || "--"} 月薪資`}
+            」批次 #{deleteTarget?.payroll_run_id} 嗎？刪除後將一併清除此批次尚未鎖定的計算結果、快照及相關暫存資料。
+          </Typography>
+        </DialogContent>
+
+        <DialogActions
+          sx={{
+            px: "24px",
+            pb: "18px",
+          }}
+        >
+          <Button
+            onClick={() => setDeleteTarget(null)}
+            disabled={deleting}
+          >
+            取消
+          </Button>
+
+          <Button
+            variant="contained"
+            color="error"
+            onClick={handleDeletePayrollRun}
+            disabled={deleting}
+          >
+            {deleting ? "處理中…" : "確認刪除"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <SuccessDialog
+        open={successDialog.open}
+        title={successDialog.title}
+        message={successDialog.message}
+        onClose={() =>
+          setSuccessDialog({
+            open: false,
+            title: "",
+            message: "",
+          })
+        }
       />
     </Box>
   );

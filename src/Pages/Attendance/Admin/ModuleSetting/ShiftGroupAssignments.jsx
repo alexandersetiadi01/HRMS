@@ -372,16 +372,21 @@ export default function ShiftGroupAssignments() {
     setFormErrorText("");
 
     try {
-      if (editingRow) {
-        await apiUpdateAttendanceShiftGroupAssignment(
-          editingRow.assignment_id,
-          payload,
-        );
-      } else {
-        await apiCreateAttendanceShiftGroupAssignment(payload);
-      }
-
       const editing = Boolean(editingRow);
+
+      const response = editingRow
+        ? await apiUpdateAttendanceShiftGroupAssignment(
+            editingRow.assignment_id,
+            payload,
+          )
+        : await apiCreateAttendanceShiftGroupAssignment(payload);
+
+      const responseData = response?.data ?? response;
+      const generation = responseData?.generation || {};
+      const insertedCount = Number(generation.inserted || 0);
+      const updatedCount = Number(generation.updated || 0);
+      const generatedCount = insertedCount + updatedCount;
+      const clearedCount = Number(responseData?.cleared_schedule_count || 0);
 
       setFormOpen(false);
       setEditingRow(null);
@@ -392,8 +397,8 @@ export default function ShiftGroupAssignments() {
         open: true,
         title: editing ? "更新成功" : "新增成功",
         message: editing
-          ? "人員班別設定已成功更新。"
-          : "人員班別設定已成功新增。",
+          ? `人員班別設定已成功更新，清除 ${clearedCount} 筆原班表，並重新產生 ${generatedCount} 筆未來班表。`
+          : `人員班別設定已成功新增，並產生 ${generatedCount} 筆未來班表。`,
       });
     } catch (error) {
       console.error(error);
@@ -436,7 +441,11 @@ export default function ShiftGroupAssignments() {
     setErrorText("");
 
     try {
-      await apiDeleteAttendanceShiftGroupAssignment(assignmentId);
+      const response =
+        await apiDeleteAttendanceShiftGroupAssignment(assignmentId);
+
+      const responseData = response?.data ?? response;
+      const clearedCount = Number(responseData?.cleared_schedule_count || 0);
 
       setDeleteRow(null);
       await loadRows(appliedFilters);
@@ -444,7 +453,7 @@ export default function ShiftGroupAssignments() {
       setSuccessDialog({
         open: true,
         title: "刪除成功",
-        message: "人員班別設定已成功刪除。",
+        message: `人員班別設定已成功刪除，並清除 ${clearedCount} 筆未來班表。`,
       });
     } catch (error) {
       console.error(error);

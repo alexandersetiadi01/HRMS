@@ -268,6 +268,12 @@ export async function createPayrollRun(payload) {
   return unwrapResponse(response, null);
 }
 
+export async function deletePayrollRun(payrollRunId) {
+  const response = await http.delete(`/payroll-runs/${payrollRunId}`);
+
+  return unwrapResponse(response, null);
+}
+
 export async function getPayrollRunReadiness(payrollRunId) {
   const response = await http.get(`/payroll-runs/${payrollRunId}/readiness`);
 
