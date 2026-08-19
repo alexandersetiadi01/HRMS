@@ -3,6 +3,7 @@ import { Box, Typography } from "@mui/material";
 import LeaveRulesTab from "./LeaveRulesTab";
 import ClockRulesTab from "./ClockRulesTab";
 import OvertimeRulesTab from "./OvertimeRulesTab";
+import ScheduleRulesTab from "./ScheduleRulesTab";
 
 export default function AttendanceRulesTab({ activeRule = "leave" }) {
   return (
@@ -20,15 +21,7 @@ export default function AttendanceRulesTab({ activeRule = "leave" }) {
       ) : null}
 
       {activeRule === "schedule" ? (
-        <Box>
-          <Typography sx={{ fontSize: "20px", fontWeight: 700, color: "#111827" }}>
-            排班規則
-          </Typography>
-
-          <Typography sx={{ mt: "4px", fontSize: "14px", color: "#6b7280" }}>
-            Attendance 排班及班表相關規則設定
-          </Typography>
-        </Box>
+        <ScheduleRulesTab />
       ) : null}
 
       {activeRule === "outing" ? (

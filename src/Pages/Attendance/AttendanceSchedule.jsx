@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  Alert,
   Box,
   Button,
   Checkbox,
@@ -7,8 +8,11 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
+  FormControl,
   IconButton,
+  MenuItem,
   Paper,
+  Select,
   Typography,
   useMediaQuery,
   useTheme,
@@ -16,7 +20,11 @@ import {
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import { fetchTaiwanCalendarYear } from "../../Utils/TaiwanHolidays";
-import { apiAttendanceScheduleMonth } from "../../API/attendance";
+import {
+  apiAttendanceScheduleMonth,
+  apiAttendanceSelfSchedulingMeta,
+  apiSaveAttendanceSelfSchedule,
+} from "../../API/attendance";
 import {
   formatCellKey,
   formatRange,
@@ -31,6 +39,7 @@ import { getDisplayHolidayName } from "../../Utils/Calendar/DayStatus";
 import YearMonthPicker from "../../Utils/Calendar/YearMonthPicker";
 import MobileCalendar from "../../Utils/Calendar/MobileCalendar";
 import Breadcrumb from "../../Utils/Breadcrumb";
+import SuccessDialog from "../../Components/SuccessDialog";
 
 const WEEK_LABELS = ["日", "一", "二", "三", "四", "五", "六"];
 
@@ -60,6 +69,10 @@ const DEFAULT_DAY_DATA = {
   expected_start: null,
   expected_end: null,
   break_minutes: 0,
+  publication_status: "",
+  published_at: null,
+  published_by_user_id: 0,
+  is_supervisor_published: false,
   block_bg: "#d9dde3",
   text_color: "#111827",
   people_color: "#22c55e",
@@ -246,6 +259,16 @@ function formatDateDisplay(date) {
   }
 
   return `${date.getFullYear()}/${pad2(date.getMonth() + 1)}/${pad2(
+    date.getDate(),
+  )}`;
+}
+
+function formatDateKey(date) {
+  if (!date) {
+    return "";
+  }
+
+  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(
     date.getDate(),
   )}`;
 }
@@ -515,6 +538,11 @@ function AttendanceDetailDialog({
   dayData,
   holidayMap,
   isMobile,
+  selfSchedulingMeta,
+  selfSchedulingLoading,
+  selfSchedulingSaving,
+  selfSchedulingError,
+  onSaveSelfSchedule,
 }) {
   const fallbackHolidayName = selectedDate
     ? getDisplayHolidayName(selectedDate, holidayMap)
@@ -527,6 +555,49 @@ function AttendanceDetailDialog({
     getLeaveDisplayName(dayData) ||
     dayData?.leave_code ||
     (dayData?.day_type === "leave" ? "請假" : "－");
+
+  const selectedDateKey = formatDateKey(selectedDate);
+  const selectedDateShiftOptions =
+    selfSchedulingMeta?.date_shift_options?.[selectedDateKey] || null;
+  const availableShifts = Array.isArray(
+    selectedDateShiftOptions?.available_shifts,
+  )
+    ? selectedDateShiftOptions.available_shifts
+    : Array.isArray(selfSchedulingMeta?.available_shifts)
+      ? selfSchedulingMeta.available_shifts
+      : [];
+  const targetYear = Number(selfSchedulingMeta?.target?.year || 0);
+  const targetMonth = Number(selfSchedulingMeta?.target?.month || 0);
+  const selectedDateIsTargetMonth =
+    selectedDate &&
+    selectedDate.getFullYear() === targetYear &&
+    selectedDate.getMonth() + 1 === targetMonth;
+  const canEditSchedule =
+    selectedDateIsTargetMonth &&
+    selfSchedulingMeta?.can_self_schedule === true &&
+    Number(selectedDateShiftOptions?.shift_group_id || 0) > 0 &&
+    availableShifts.length > 0 &&
+    dayData?.is_supervisor_published !== true;
+  const [selectedShiftId, setSelectedShiftId] = useState("");
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const currentShiftId = Number(dayData?.shift_id || 0);
+    const currentAllowed = availableShifts.some(
+      (shift) => Number(shift?.shift_id || 0) === currentShiftId,
+    );
+
+    if (currentAllowed) {
+      setSelectedShiftId(String(currentShiftId));
+      return;
+    }
+
+    const firstShiftId = Number(availableShifts[0]?.shift_id || 0);
+    setSelectedShiftId(firstShiftId > 0 ? String(firstShiftId) : "");
+  }, [availableShifts, dayData?.shift_id, open]);
 
   return (
     <Dialog
@@ -736,6 +807,134 @@ function AttendanceDetailDialog({
           </Box>
 
           <Divider sx={{ my: "18px" }} />
+
+          {selectedDateIsTargetMonth ? (
+            <>
+              <Box
+                sx={{
+                  border: "1px solid #e5e7eb",
+                  borderRadius: "14px",
+                  p: "14px",
+                  mb: "18px",
+                  bgcolor: "#ffffff",
+                }}
+              >
+                <Typography
+                  sx={{
+                    fontSize: "15px",
+                    fontWeight: 800,
+                    color: "#111827",
+                    mb: "10px",
+                  }}
+                >
+                  員工排班
+                </Typography>
+
+                {selfSchedulingLoading ? (
+                  <Typography
+                    sx={{
+                      fontSize: "14px",
+                      color: "#6b7280",
+                    }}
+                  >
+                    載入排班設定中...
+                  </Typography>
+                ) : dayData?.is_supervisor_published ? (
+                  <Alert severity="info">
+                    此日期班表已由主管發布，無法再修改。
+                  </Alert>
+                ) : !selfSchedulingMeta?.can_self_schedule ? (
+                  <Alert severity="info">
+                    {selfSchedulingMeta?.unavailable_reason ||
+                      "目前不可由員工自行排班。"}
+                  </Alert>
+                ) : Number(selectedDateShiftOptions?.shift_group_id || 0) <= 0 ? (
+                  <Alert severity="info">
+                    此日期沒有有效的員工班別設定。
+                  </Alert>
+                ) : availableShifts.length === 0 ? (
+                  <Alert severity="info">
+                    此日期所屬班別目前沒有可使用的班次。
+                  </Alert>
+                ) : (
+                  <>
+                    {selfSchedulingError ? (
+                      <Alert severity="error" sx={{ mb: "12px" }}>
+                        {selfSchedulingError}
+                      </Alert>
+                    ) : null}
+
+                    <Typography
+                      sx={{
+                        fontSize: "13px",
+                        color: "#6b7280",
+                        mb: "6px",
+                        fontWeight: 700,
+                      }}
+                    >
+                      班次
+                    </Typography>
+
+                    <FormControl fullWidth size="small">
+                      <Select
+                        value={selectedShiftId}
+                        disabled={selfSchedulingSaving}
+                        onChange={(event) =>
+                          setSelectedShiftId(event.target.value)
+                        }
+                      >
+                        {availableShifts.map((shift) => (
+                          <MenuItem
+                            key={shift.shift_id}
+                            value={String(shift.shift_id)}
+                          >
+                            {shift.shift_name ||
+                              shift.shift_code ||
+                              `班次 #${shift.shift_id}`}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "flex-end",
+                        mt: "14px",
+                      }}
+                    >
+                      <Button
+                        variant="contained"
+                        disabled={
+                          selfSchedulingSaving ||
+                          !selectedShiftId ||
+                          !canEditSchedule
+                        }
+                        onClick={() =>
+                          onSaveSelfSchedule?.({
+                            work_date: formatDateKey(selectedDate),
+                            shift_id: Number(selectedShiftId),
+                          })
+                        }
+                        sx={{
+                          bgcolor: "#101b4d",
+                          boxShadow: "none",
+                          "&:hover": {
+                            bgcolor: "#0c1438",
+                            boxShadow: "none",
+                          },
+                        }}
+                      >
+                        {selfSchedulingSaving ? "儲存中..." : "儲存班次"}
+                      </Button>
+                    </Box>
+                  </>
+                )}
+              </Box>
+
+              <Divider sx={{ my: "18px" }} />
+            </>
+          ) : null}
 
           <Box
             sx={{
@@ -1004,6 +1203,16 @@ export default function AttendanceSchedule() {
   const [scheduleDays, setScheduleDays] = useState([]);
   const [scheduleLoading, setScheduleLoading] = useState(false);
   const [scheduleError, setScheduleError] = useState("");
+  const [scheduleRefreshKey, setScheduleRefreshKey] = useState(0);
+  const [selfSchedulingMeta, setSelfSchedulingMeta] = useState(null);
+  const [selfSchedulingLoading, setSelfSchedulingLoading] = useState(true);
+  const [selfSchedulingSaving, setSelfSchedulingSaving] = useState(false);
+  const [selfSchedulingError, setSelfSchedulingError] = useState("");
+  const [successDialog, setSuccessDialog] = useState({
+    open: false,
+    title: "",
+    message: "",
+  });
   const [scheduleSummary, setScheduleSummary] = useState({
     work_minutes: 0,
     leave_minutes: 0,
@@ -1019,6 +1228,40 @@ export default function AttendanceSchedule() {
     overtime_remaining_minutes: 0,
     leave_breakdown: [],
   });
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadSelfSchedulingMeta() {
+      setSelfSchedulingLoading(true);
+
+      try {
+        const response = await apiAttendanceSelfSchedulingMeta();
+        const payload =
+          response?.data?.data || response?.data || response || {};
+
+        if (!cancelled) {
+          setSelfSchedulingMeta(payload);
+        }
+      } catch (error) {
+        console.error("Failed to load self scheduling meta:", error);
+
+        if (!cancelled) {
+          setSelfSchedulingMeta(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setSelfSchedulingLoading(false);
+        }
+      }
+    }
+
+    loadSelfSchedulingMeta();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -1128,7 +1371,7 @@ export default function AttendanceSchedule() {
     return () => {
       cancelled = true;
     };
-  }, [selectedYear, selectedMonth]);
+  }, [scheduleRefreshKey, selectedYear, selectedMonth]);
 
   const monthGrid = useMemo(
     () => getMonthGrid(selectedYear, selectedMonth),
@@ -1181,7 +1424,44 @@ export default function AttendanceSchedule() {
   }
 
   function handleCloseDateDetail() {
+    if (selfSchedulingSaving) {
+      return;
+    }
+
     setDetailOpen(false);
+    setSelfSchedulingError("");
+  }
+
+  async function handleSaveSelfSchedule(payload) {
+    if (selfSchedulingSaving) {
+      return;
+    }
+
+    setSelfSchedulingSaving(true);
+    setSelfSchedulingError("");
+
+    try {
+      await apiSaveAttendanceSelfSchedule(payload);
+
+      setScheduleRefreshKey((value) => value + 1);
+      setDetailOpen(false);
+      setSuccessDialog({
+        open: true,
+        title: "操作成功",
+        message: "班次已成功儲存。",
+      });
+    } catch (error) {
+      console.error("Failed to save self schedule:", error);
+
+      setSelfSchedulingError(
+        error?.response?.data?.message ||
+          error?.response?.data?.data?.message ||
+          error?.message ||
+          "儲存班次失敗。",
+      );
+    } finally {
+      setSelfSchedulingSaving(false);
+    }
   }
 
   function isFilterChecked(filterKey) {
@@ -1213,7 +1493,12 @@ export default function AttendanceSchedule() {
 
   return (
     <Box>
-      <Breadcrumb rootLabel="個人專區" rootTo="/attendance" currentLabel="個人班表" mb="14px" />
+      <Breadcrumb
+        rootLabel="個人專區"
+        rootTo="/attendance"
+        currentLabel="個人班表"
+        mb="14px"
+      />
 
       <Typography
         sx={{
@@ -1233,6 +1518,24 @@ export default function AttendanceSchedule() {
         dayData={selectedDayData}
         holidayMap={holidayMap}
         isMobile={isMobile}
+        selfSchedulingMeta={selfSchedulingMeta}
+        selfSchedulingLoading={selfSchedulingLoading}
+        selfSchedulingSaving={selfSchedulingSaving}
+        selfSchedulingError={selfSchedulingError}
+        onSaveSelfSchedule={handleSaveSelfSchedule}
+      />
+
+      <SuccessDialog
+        open={successDialog.open}
+        title={successDialog.title}
+        message={successDialog.message}
+        onClose={() =>
+          setSuccessDialog({
+            open: false,
+            title: "",
+            message: "",
+          })
+        }
       />
 
       {isMobile ? (

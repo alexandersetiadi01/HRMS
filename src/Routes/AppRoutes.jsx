@@ -16,6 +16,7 @@ import AttendanceRecordMaintenance from "../Pages/Attendance/Admin/RecordMainten
 import LeaveHoursManagement from "../Pages/Attendance/Admin/LeaveHoursManagement/LeaveHoursManagement";
 import ModuleSettingPage from "../Pages/Attendance/Admin/ModuleSetting/ModuleSettingPage";
 import StaffAttendancePage from "../Pages/Attendance/Supervisor/StaffAttendancePage";
+import ShiftApprovalPage from "../Pages/Attendance/Supervisor/ShiftApprovalPage";
 import Absent from "../Pages/Attendance/Absent";
 import AttendanceBusinessTrip from "../Pages/Attendance/AttendanceBusinessTrip";
 import AccountLayout from "../Layouts/AccountLayout";
@@ -144,7 +145,11 @@ export default function AppRoutes() {
         />
         <Route
           path="/attendance/admin/shift-approval"
-          element={<PlaceholderPage title="班表審核" />}
+          element={
+            <RequireStaffAttendanceAccess>
+              <ShiftApprovalPage />
+            </RequireStaffAttendanceAccess>
+          }
         />
         <Route
           path="/attendance/admin/shift-manager-setting"

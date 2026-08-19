@@ -1625,6 +1625,54 @@ export async function apiLeaveApplicationRecordList(params = {}) {
 
 /**
  * =========================
+ * Schedule Rules
+ * =========================
+ */
+
+export async function apiAttendanceScheduleRules() {
+  const res = await http.get("/attendance/schedule-rules");
+  return res.data;
+}
+
+export async function apiUpdateAttendanceScheduleRule(scheduleRuleId, payload = {}) {
+  const res = await http.put(`/attendance/schedule-rules/${scheduleRuleId}`, payload);
+  return res.data;
+}
+
+export async function apiAttendanceSelfSchedulingMeta() {
+  const res = await http.get("/attendance/self-scheduling/meta");
+  return res.data;
+}
+
+export async function apiSaveAttendanceSelfSchedule(payload = {}) {
+  const res = await http.put("/attendance/self-scheduling", payload);
+  return res.data;
+}
+
+export async function apiAttendanceSelfSchedulingReview(params = {}) {
+  const res = await http.get("/attendance/self-scheduling/review", {
+    params: {
+      employee_id: Number(params.employee_id || 0) || undefined,
+      year: Number(params.year || 0) || undefined,
+      month: Number(params.month || 0) || undefined,
+    },
+  });
+
+  return res.data;
+}
+
+export async function apiPublishAttendanceSelfSchedule(payload = {}) {
+  const res = await http.post("/attendance/self-scheduling/publish", {
+    employee_id: Number(payload.employee_id || 0),
+    year: Number(payload.year || 0),
+    month: Number(payload.month || 0),
+  });
+
+  return res.data;
+}
+
+/**
+ * =========================
  * Overtime
  * =========================
  */

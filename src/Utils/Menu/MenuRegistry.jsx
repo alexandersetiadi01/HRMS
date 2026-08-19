@@ -262,10 +262,10 @@ export const MENU_ITEMS = [
     label: "班表審核",
     to: "/attendance/admin/shift-approval",
     iconKey: "attendance-shift-approval",
-    disable: true,
+    disable: false,
     groups: ["attendance"],
     sectionKey: "supervisor",
-    adminOnly: true,
+    accessKey: "staff-attendance",
   },
   {
     id: "shift-manager-setting",
