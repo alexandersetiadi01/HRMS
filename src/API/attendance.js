@@ -1649,6 +1649,20 @@ export async function apiSaveAttendanceSelfSchedule(payload = {}) {
   return res.data;
 }
 
+export async function apiAttendanceOutingRules() {
+  const res = await http.get("/attendance/outing-rules");
+  return res.data;
+}
+
+export async function apiUpdateAttendanceOutingRule(ruleCode, ruleValue) {
+  const res = await http.put("/attendance/outing-rules", {
+    rule_code: ruleCode,
+    rule_value: ruleValue,
+  });
+
+  return res.data;
+}
+
 export async function apiAttendanceSelfSchedulingReview(params = {}) {
   const res = await http.get("/attendance/self-scheduling/review", {
     params: {

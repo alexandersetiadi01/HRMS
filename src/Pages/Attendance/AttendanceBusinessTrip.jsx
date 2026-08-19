@@ -26,6 +26,7 @@ import {
 } from "../../Utils/Attendance/SharedForm";
 import Breadcrumb from "../../Utils/Breadcrumb";
 import {
+  apiAttendanceOutingRules,
   apiCreateLeaveRequest,
   apiLeaveRequestFormMeta,
   apiLeaveTypes,
@@ -113,6 +114,7 @@ export default function AttendanceBusinessTrip() {
 
   const [leaveTypes, setLeaveTypes] = useState([]);
   const [formMeta, setFormMeta] = useState({});
+  const [outingRules, setOutingRules] = useState([]);
   const [loadingTypes, setLoadingTypes] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
@@ -149,6 +151,23 @@ export default function AttendanceBusinessTrip() {
     [leaveTypes, tripType],
   );
 
+  const outingEnabled = useMemo(() => {
+    const rule = outingRules.find(
+      (item) => String(item?.rule_code || "") === "outing_enabled",
+    );
+
+    return String(rule?.rule_value ?? "1") === "1";
+  }, [outingRules]);
+
+  const outingFormDescription = useMemo(() => {
+    const rule = outingRules.find(
+      (item) =>
+        String(item?.rule_code || "") === "outing_form_description",
+    );
+
+    return String(rule?.rule_value || "").trim();
+  }, [outingRules]);
+
   const sectionWrapperSx = buildAttendanceSectionWrapperSx(isMobile);
 
   useEffect(() => {
@@ -157,12 +176,14 @@ export default function AttendanceBusinessTrip() {
     async function loadLeaveTypes() {
       try {
         setLoadingTypes(true);
-        const [response, formMetaResponse] = await Promise.all([
-          apiLeaveTypes(),
-          apiLeaveRequestFormMeta({
-            employee_id: employeeId,
-          }),
-        ]);
+        const [response, formMetaResponse, outingRulesResponse] =
+          await Promise.all([
+            apiLeaveTypes(),
+            apiLeaveRequestFormMeta({
+              employee_id: employeeId,
+            }),
+            apiAttendanceOutingRules(),
+          ]);
 
         const rows = normalizeApiRows(response).filter(
           (item) => String(item?.status || "啟用") === "啟用",
@@ -174,9 +195,20 @@ export default function AttendanceBusinessTrip() {
           formMetaResponse ||
           {};
 
+        const outingRulesPayload =
+          outingRulesResponse?.data?.data ||
+          outingRulesResponse?.data ||
+          outingRulesResponse ||
+          [];
+
         if (mounted) {
           setLeaveTypes(rows);
           setFormMeta(metaPayload);
+          setOutingRules(
+            Array.isArray(outingRulesPayload)
+              ? outingRulesPayload
+              : [],
+          );
         }
       } catch (error) {
         if (mounted) {
@@ -198,6 +230,12 @@ export default function AttendanceBusinessTrip() {
       mounted = false;
     };
   }, [employeeId]);
+
+  useEffect(() => {
+    if (!loadingTypes && !outingEnabled && tripType === "公出") {
+      setTripType("出差");
+    }
+  }, [loadingTypes, outingEnabled, tripType]);
 
   const handleFileChange = (event) => {
     const selectedFiles = Array.from(event.target.files || []);
@@ -255,7 +293,7 @@ export default function AttendanceBusinessTrip() {
   };
 
   const handleCancel = () => {
-    setTripType("公出");
+    setTripType(outingEnabled ? "公出" : "出差");
     setStartDate(todayDate);
     setEndDate(todayDate);
     setStartHour("09");
@@ -270,6 +308,14 @@ export default function AttendanceBusinessTrip() {
 
   const handleSubmit = async () => {
     setMessage({ type: "", text: "" });
+
+    if (tripType === "公出" && !outingEnabled) {
+      setMessage({
+        type: "error",
+        text: "目前未開放公出申請。",
+      });
+      return;
+    }
 
     const startDateTime = buildDateTimeString(startDate, startHour, startMin);
     const endDateTime = buildDateTimeString(endDate, endHour, endMin);
@@ -390,6 +436,7 @@ export default function AttendanceBusinessTrip() {
                 >
                   <FormControlLabel
                     value="公出"
+                    disabled={!outingEnabled || loadingTypes}
                     control={<Radio size="small" />}
                     label="公出"
                     sx={{
@@ -413,6 +460,12 @@ export default function AttendanceBusinessTrip() {
                     }}
                   />
                 </RadioGroup>
+
+                {tripType === "公出" && outingFormDescription ? (
+                  <Alert severity="info" sx={{ mt: "10px" }}>
+                    {outingFormDescription}
+                  </Alert>
+                ) : null}
               </Box>
             </Box>
 

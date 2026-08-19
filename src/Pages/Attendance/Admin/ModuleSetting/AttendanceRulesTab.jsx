@@ -4,6 +4,7 @@ import LeaveRulesTab from "./LeaveRulesTab";
 import ClockRulesTab from "./ClockRulesTab";
 import OvertimeRulesTab from "./OvertimeRulesTab";
 import ScheduleRulesTab from "./ScheduleRulesTab";
+import OutingRulesTab from "./OutingRulesTab";
 
 export default function AttendanceRulesTab({ activeRule = "leave" }) {
   return (
@@ -25,15 +26,7 @@ export default function AttendanceRulesTab({ activeRule = "leave" }) {
       ) : null}
 
       {activeRule === "outing" ? (
-        <Box>
-          <Typography sx={{ fontSize: "20px", fontWeight: 700, color: "#111827" }}>
-            公出規則
-          </Typography>
-
-          <Typography sx={{ mt: "4px", fontSize: "14px", color: "#6b7280" }}>
-            Attendance 公出申請相關規則設定
-          </Typography>
-        </Box>
+        <OutingRulesTab />
       ) : null}
 
       {activeRule === "business-trip" ? (
