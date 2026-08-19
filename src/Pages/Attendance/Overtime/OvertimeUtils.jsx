@@ -212,9 +212,9 @@ export function addMinutesToTime(hour, minute, plusMinutes = 30) {
   };
 }
 
-export function getOvertimeEndDefaultTime(selectedDay, selectedMeta) {
+export function getOvertimeEndDefaultTime(selectedDay, selectedMeta, minimumMinutes = 30) {
   const shiftEndDefault = getShiftEndDefaultTime(selectedDay, selectedMeta);
-  return addMinutesToTime(shiftEndDefault.hour, shiftEndDefault.minute, 30);
+  return addMinutesToTime(shiftEndDefault.hour, shiftEndDefault.minute, minimumMinutes);
 }
 
 export function formatClockRecordText(selectedDay, selectedMeta, workDate, endHour, endMin) {

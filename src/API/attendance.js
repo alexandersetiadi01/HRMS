@@ -1629,6 +1629,16 @@ export async function apiLeaveApplicationRecordList(params = {}) {
  * =========================
  */
 
+export async function apiOvertimeRules() {
+  const res = await http.get("/overtime/rules");
+  return res.data;
+}
+
+export async function apiUpdateOvertimeRule(overtimeRuleId, payload = {}) {
+  const res = await http.put(`/overtime/rules/${overtimeRuleId}`, payload);
+  return res.data;
+}
+
 export async function apiOvertimeRequestMeta(params = {}) {
   const { employee_id, work_date, year, request_id } = params;
   const employeeId = Number(employee_id || getCurrentEmployeeId() || 0);

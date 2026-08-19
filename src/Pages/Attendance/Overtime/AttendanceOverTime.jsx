@@ -21,17 +21,18 @@ import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import {
   HOURS,
-  MINUTES_30,
   selectMenuProps,
   SectionLabel,
   MobileTimeSelect,
   buildAttendanceSectionWrapperSx,
 } from "../../../Utils/Attendance/SharedForm";
 import Breadcrumb from "../../../Utils/Breadcrumb";
+import { buildSelectableAttendanceDateSet } from "../../../Utils/Attendance/DateSelectionPolicy";
 import {
   apiAttendanceScheduleMonth,
   apiCreateOvertimeRequest,
   apiOvertimeRequestMeta,
+  apiOvertimeRules,
 } from "../../../API/attendance";
 import { getCurrentEmployeeId } from "../../../API/account";
 import {
@@ -42,12 +43,47 @@ import {
   formatDuration,
   getDateKey,
   getOvertimeEndDefaultTime,
-  getSelectableOvertimeDateSet,
   getShiftEndDefaultTime,
   getTaiwanTodayDayjs,
   normalizeScheduleMonthDays,
   safeText,
 } from "./OvertimeUtils";
+
+function unwrapOvertimeRules(response) {
+  const payload = response?.data?.data ?? response?.data ?? response ?? [];
+  return Array.isArray(payload) ? payload : [];
+}
+
+function getOvertimeRuleValue(rules, ruleCode, fallback) {
+  const rule = rules.find((item) => String(item?.rule_code || "") === ruleCode);
+
+  if (!rule) {
+    return fallback;
+  }
+
+  return rule.rule_value ?? fallback;
+}
+
+function buildMinuteOptions(step) {
+  const minuteStep = Number(step);
+
+  if (
+    !Number.isInteger(minuteStep)
+    || minuteStep < 1
+    || minuteStep > 60
+    || 60 % minuteStep !== 0
+  ) {
+    return ["00", "30"];
+  }
+
+  const options = [];
+
+  for (let minute = 0; minute < 60; minute += minuteStep) {
+    options.push(String(minute).padStart(2, "0"));
+  }
+
+  return options;
+}
 
 export default function AttendanceOvertime() {
   const theme = useTheme();
@@ -56,6 +92,7 @@ export default function AttendanceOvertime() {
   const today = getTaiwanTodayDayjs();
 
   const [workDate, setWorkDate] = useState(today);
+  const [endDate, setEndDate] = useState(today);
   const [calendarMonth, setCalendarMonth] = useState(today.startOf("month"));
   const [startHour, setStartHour] = useState("18");
   const [startMin, setStartMin] = useState("00");
@@ -66,11 +103,81 @@ export default function AttendanceOvertime() {
 
   const [monthDays, setMonthDays] = useState([]);
   const [meta, setMeta] = useState(null);
+  const [minimumOvertimeMinutes, setMinimumOvertimeMinutes] = useState(30);
+  const [overtimeMinuteStep, setOvertimeMinuteStep] = useState(30);
+  const [allowLeaveDayOvertime, setAllowLeaveDayOvertime] = useState(false);
+  const [allowCrossDayOvertime, setAllowCrossDayOvertime] = useState(false);
+  const [rulesLoading, setRulesLoading] = useState(true);
   const [monthLoading, setMonthLoading] = useState(true);
   const [metaLoading, setMetaLoading] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [errorText, setErrorText] = useState("");
   const [successText, setSuccessText] = useState("");
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadRules() {
+      try {
+        setRulesLoading(true);
+
+        const response = await apiOvertimeRules();
+
+        if (!active) {
+          return;
+        }
+
+        const rules = unwrapOvertimeRules(response);
+        const minimumMinutes = Number(
+          getOvertimeRuleValue(rules, "minimum_overtime_minutes", 30),
+        );
+        const minuteStep = Number(
+          getOvertimeRuleValue(rules, "overtime_minute_step", 30),
+        );
+        const allowLeaveDay = String(
+          getOvertimeRuleValue(rules, "allow_leave_day_overtime", "0"),
+        ) === "1";
+        const allowCrossDay = String(
+          getOvertimeRuleValue(rules, "allow_cross_day_overtime", "0"),
+        ) === "1";
+
+        setMinimumOvertimeMinutes(
+          Number.isInteger(minimumMinutes) && minimumMinutes > 0
+            ? minimumMinutes
+            : 30,
+        );
+        setOvertimeMinuteStep(
+          Number.isInteger(minuteStep)
+          && minuteStep > 0
+          && minuteStep <= 60
+          && 60 % minuteStep === 0
+            ? minuteStep
+            : 30,
+        );
+        setAllowLeaveDayOvertime(allowLeaveDay);
+        setAllowCrossDayOvertime(allowCrossDay);
+      } catch (error) {
+        console.error("Failed to load overtime rules:", error);
+
+        if (active) {
+          setMinimumOvertimeMinutes(30);
+          setOvertimeMinuteStep(30);
+          setAllowLeaveDayOvertime(false);
+          setAllowCrossDayOvertime(false);
+        }
+      } finally {
+        if (active) {
+          setRulesLoading(false);
+        }
+      }
+    }
+
+    loadRules();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -114,8 +221,18 @@ export default function AttendanceOvertime() {
   }, [calendarMonth, employeeId]);
 
   const allowedDateSet = useMemo(() => {
-    return getSelectableOvertimeDateSet(monthDays);
-  }, [monthDays]);
+    return buildSelectableAttendanceDateSet(monthDays, {
+      allowHoliday: true,
+      allowRestDay: true,
+      allowLeave: allowLeaveDayOvertime,
+      allowUnscheduled: true,
+      requireSchedule: false,
+    });
+  }, [allowLeaveDayOvertime, monthDays]);
+
+  const minuteOptions = useMemo(() => {
+    return buildMinuteOptions(overtimeMinuteStep);
+  }, [overtimeMinuteStep]);
 
   useEffect(() => {
     if (monthLoading) {
@@ -134,6 +251,26 @@ export default function AttendanceOvertime() {
   }, [allowedDateSet, monthLoading, workDate]);
 
   const selectedDateKey = useMemo(() => getDateKey(workDate), [workDate]);
+  const endDateKey = useMemo(
+    () => allowCrossDayOvertime ? getDateKey(endDate) : selectedDateKey,
+    [allowCrossDayOvertime, endDate, selectedDateKey],
+  );
+
+  useEffect(() => {
+    if (!allowCrossDayOvertime) {
+      setEndDate(workDate);
+      return;
+    }
+
+    if (
+      workDate
+      && endDate
+      && dayjs(endDate).isValid()
+      && dayjs(endDate).startOf("day").isBefore(dayjs(workDate).startOf("day"))
+    ) {
+      setEndDate(workDate);
+    }
+  }, [allowCrossDayOvertime, endDate, workDate]);
 
   const selectedDay = useMemo(() => {
     return findScheduleDay(monthDays, selectedDateKey);
@@ -167,12 +304,31 @@ export default function AttendanceOvertime() {
         setMeta(payload);
 
         const defaultStart = getShiftEndDefaultTime(selectedDay, payload);
-        const defaultEnd = getOvertimeEndDefaultTime(selectedDay, payload);
+        const defaultEnd = getOvertimeEndDefaultTime(
+          selectedDay,
+          payload,
+          minimumOvertimeMinutes,
+        );
 
         setStartHour(defaultStart.hour);
         setStartMin(defaultStart.minute);
         setEndHour(defaultEnd.hour);
         setEndMin(defaultEnd.minute);
+
+        if (allowCrossDayOvertime) {
+          const startMinutes =
+            (Number(defaultStart.hour) * 60) + Number(defaultStart.minute);
+          const endMinutes =
+            (Number(defaultEnd.hour) * 60) + Number(defaultEnd.minute);
+
+          setEndDate(
+            endMinutes <= startMinutes
+              ? dayjs(selectedDateKey).add(1, "day")
+              : dayjs(selectedDateKey),
+          );
+        } else {
+          setEndDate(dayjs(selectedDateKey));
+        }
       } catch (error) {
         console.error("Failed to load overtime meta:", error);
 
@@ -199,19 +355,58 @@ export default function AttendanceOvertime() {
     return () => {
       active = false;
     };
-  }, [employeeId, selectedDateKey, selectedDay]);
+  }, [
+    allowCrossDayOvertime,
+    employeeId,
+    minimumOvertimeMinutes,
+    selectedDateKey,
+    selectedDay,
+  ]);
 
   const summary = useMemo(() => {
-    return calculateOvertimeSummary({
-      workDate: selectedDateKey,
-      startHour,
-      startMin,
-      endHour,
-      endMin,
-      selectedDay,
-      selectedMeta: meta,
-    });
+    if (!allowCrossDayOvertime || endDateKey === selectedDateKey) {
+      return calculateOvertimeSummary({
+        workDate: selectedDateKey,
+        startHour,
+        startMin,
+        endHour,
+        endMin,
+        selectedDay,
+        selectedMeta: meta,
+      });
+    }
+
+    const startDateTime = dayjs(
+      buildDateTimeString(selectedDateKey, startHour, startMin),
+    );
+    const endDateTime = dayjs(
+      buildDateTimeString(endDateKey, endHour, endMin),
+    );
+
+    if (
+      !startDateTime.isValid()
+      || !endDateTime.isValid()
+      || endDateTime.valueOf() <= startDateTime.valueOf()
+    ) {
+      return {
+        totalMinutes: 0,
+        breakMinutes: 0,
+        appliedMinutes: 0,
+        overtimeMinutes: 0,
+      };
+    }
+
+    const overtimeMinutes = endDateTime.diff(startDateTime, "minute");
+
+    return {
+      totalMinutes: overtimeMinutes,
+      breakMinutes: 0,
+      appliedMinutes: overtimeMinutes,
+      overtimeMinutes,
+    };
   }, [
+    allowCrossDayOvertime,
+    endDateKey,
     endHour,
     endMin,
     meta,
@@ -240,6 +435,21 @@ export default function AttendanceOvertime() {
 
     const dateKey = dayjs(dateValue).format("YYYY-MM-DD");
     return !allowedDateSet.has(dateKey);
+  };
+
+  const shouldDisableEndDate = (dateValue) => {
+    if (
+      !dateValue
+      || !dayjs(dateValue).isValid()
+      || !workDate
+      || !dayjs(workDate).isValid()
+    ) {
+      return false;
+    }
+
+    return dayjs(dateValue)
+      .startOf("day")
+      .isBefore(dayjs(workDate).startOf("day"));
   };
 
   const commonDatePickerSlotProps = {
@@ -278,12 +488,29 @@ export default function AttendanceOvertime() {
       return;
     }
 
+    if (allowCrossDayOvertime && !endDateKey) {
+      setErrorText("請選擇結束日期。");
+      return;
+    }
+
+    if (
+      allowCrossDayOvertime
+      && dayjs(endDateKey).startOf("day").isBefore(dayjs(selectedDateKey).startOf("day"))
+    ) {
+      setErrorText("結束日期不可早於開始日期。");
+      return;
+    }
+
     const startDateTime = buildDateTimeString(
       selectedDateKey,
       startHour,
       startMin,
     );
-    const endDateTime = buildDateTimeString(selectedDateKey, endHour, endMin);
+    const endDateTime = buildDateTimeString(
+      allowCrossDayOvertime ? endDateKey : selectedDateKey,
+      endHour,
+      endMin,
+    );
 
     if (!startDateTime || !endDateTime) {
       setErrorText("請完整填寫加班時間。");
@@ -295,8 +522,8 @@ export default function AttendanceOvertime() {
       return;
     }
 
-    if (summary.overtimeMinutes < 30) {
-      setErrorText("至少須申請 0 時 30 分。");
+    if (summary.overtimeMinutes < minimumOvertimeMinutes) {
+      setErrorText(`至少須申請 ${formatDuration(minimumOvertimeMinutes)}。`);
       return;
     }
 
@@ -328,11 +555,16 @@ export default function AttendanceOvertime() {
 
       setReason("");
       const defaultStart = getShiftEndDefaultTime(selectedDay, meta);
-      const defaultEnd = getOvertimeEndDefaultTime(selectedDay, meta);
+      const defaultEnd = getOvertimeEndDefaultTime(
+        selectedDay,
+        meta,
+        minimumOvertimeMinutes,
+      );
       setStartHour(defaultStart.hour);
       setStartMin(defaultStart.minute);
       setEndHour(defaultEnd.hour);
       setEndMin(defaultEnd.minute);
+      setEndDate(workDate);
     } catch (error) {
       console.error("Failed to create overtime request:", error);
 
@@ -380,10 +612,10 @@ export default function AttendanceOvertime() {
             border: "1px solid #d1d5db",
             bgcolor: "#ffffff",
             position: "relative",
-            opacity: monthLoading ? 0.7 : 1,
+            opacity: monthLoading || rulesLoading ? 0.7 : 1,
           }}
         >
-          {monthLoading || metaLoading ? (
+          {rulesLoading || monthLoading || metaLoading ? (
             <Box
               sx={{
                 position: "absolute",
@@ -417,33 +649,77 @@ export default function AttendanceOvertime() {
                   <>
                     <Box
                       sx={{
+                        display: "grid",
+                        gridTemplateColumns: allowCrossDayOvertime
+                          ? "minmax(0, 1fr) minmax(0, 1fr)"
+                          : "minmax(0, 1fr)",
+                        gap: "8px",
                         width: "100%",
-                        minWidth: 0,
                       }}
                     >
-                      <Typography
-                        sx={{
-                          fontSize: "13px",
-                          color: "#6b7280",
-                          mb: "6px",
-                          fontWeight: 700,
-                        }}
-                      >
-                        日期
-                      </Typography>
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography
+                          sx={{
+                            fontSize: "13px",
+                            color: "#6b7280",
+                            mb: "6px",
+                            fontWeight: 700,
+                          }}
+                        >
+                          {allowCrossDayOvertime ? "開始日期" : "日期"}
+                        </Typography>
 
-                      <DatePicker
-                        value={workDate}
-                        onChange={(value) => setWorkDate(value)}
-                        onMonthChange={(value) => {
-                          if (value && dayjs(value).isValid()) {
-                            setCalendarMonth(dayjs(value).startOf("month"));
-                          }
-                        }}
-                        format="YYYY-MM-DD"
-                        shouldDisableDate={shouldDisableDate}
-                        slotProps={commonDatePickerSlotProps}
-                      />
+                        <DatePicker
+                          value={workDate}
+                          onChange={(value) => {
+                            setWorkDate(value);
+
+                            if (
+                              allowCrossDayOvertime
+                              && value
+                              && dayjs(value).isValid()
+                              && (
+                                !endDate
+                                || !dayjs(endDate).isValid()
+                                || dayjs(endDate).startOf("day").isBefore(dayjs(value).startOf("day"))
+                              )
+                            ) {
+                              setEndDate(value);
+                            }
+                          }}
+                          onMonthChange={(value) => {
+                            if (value && dayjs(value).isValid()) {
+                              setCalendarMonth(dayjs(value).startOf("month"));
+                            }
+                          }}
+                          format="YYYY-MM-DD"
+                          shouldDisableDate={shouldDisableDate}
+                          slotProps={commonDatePickerSlotProps}
+                        />
+                      </Box>
+
+                      {allowCrossDayOvertime ? (
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography
+                            sx={{
+                              fontSize: "13px",
+                              color: "#6b7280",
+                              mb: "6px",
+                              fontWeight: 700,
+                            }}
+                          >
+                            結束日期
+                          </Typography>
+
+                          <DatePicker
+                            value={endDate}
+                            onChange={(value) => setEndDate(value)}
+                            format="YYYY-MM-DD"
+                            shouldDisableDate={shouldDisableEndDate}
+                            slotProps={commonDatePickerSlotProps}
+                          />
+                        </Box>
+                      ) : null}
                     </Box>
 
                     <Box
@@ -474,7 +750,7 @@ export default function AttendanceOvertime() {
                           onChangeHour={setStartHour}
                           onChangeMinute={setStartMin}
                           hours={HOURS}
-                          minutes={MINUTES_30}
+                          minutes={minuteOptions}
                         />
                       </Box>
 
@@ -496,7 +772,7 @@ export default function AttendanceOvertime() {
                           onChangeHour={setEndHour}
                           onChangeMinute={setEndMin}
                           hours={HOURS}
-                          minutes={MINUTES_30}
+                          minutes={minuteOptions}
                         />
                       </Box>
                     </Box>
@@ -515,9 +791,30 @@ export default function AttendanceOvertime() {
                   </>
                 ) : (
                   <>
+                    {allowCrossDayOvertime ? (
+                      <Typography sx={{ fontSize: "13px", color: "#6b7280", fontWeight: 700 }}>
+                        開始
+                      </Typography>
+                    ) : null}
+
                     <DatePicker
                       value={workDate}
-                      onChange={(value) => setWorkDate(value)}
+                      onChange={(value) => {
+                        setWorkDate(value);
+
+                        if (
+                          allowCrossDayOvertime
+                          && value
+                          && dayjs(value).isValid()
+                          && (
+                            !endDate
+                            || !dayjs(endDate).isValid()
+                            || dayjs(endDate).startOf("day").isBefore(dayjs(value).startOf("day"))
+                          )
+                        ) {
+                          setEndDate(value);
+                        }
+                      }}
                       onMonthChange={(value) => {
                         if (value && dayjs(value).isValid()) {
                           setCalendarMonth(dayjs(value).startOf("month"));
@@ -554,7 +851,7 @@ export default function AttendanceOvertime() {
                         MenuProps={selectMenuProps}
                         sx={{ height: "38px", fontSize: "15px" }}
                       >
-                        {MINUTES_30.map((m) => (
+                        {minuteOptions.map((m) => (
                           <MenuItem key={m} value={m}>
                             {m}
                           </MenuItem>
@@ -565,6 +862,22 @@ export default function AttendanceOvertime() {
                     <Typography sx={{ fontSize: "18px", color: "#374151" }}>
                       ~
                     </Typography>
+
+                    {allowCrossDayOvertime ? (
+                      <>
+                        <Typography sx={{ fontSize: "13px", color: "#6b7280", fontWeight: 700 }}>
+                          結束
+                        </Typography>
+
+                        <DatePicker
+                          value={endDate}
+                          onChange={(value) => setEndDate(value)}
+                          format="YYYY-MM-DD"
+                          shouldDisableDate={shouldDisableEndDate}
+                          slotProps={commonDatePickerSlotProps}
+                        />
+                      </>
+                    ) : null}
 
                     <FormControl sx={{ width: "70px" }}>
                       <Select
@@ -592,7 +905,7 @@ export default function AttendanceOvertime() {
                         MenuProps={selectMenuProps}
                         sx={{ height: "38px", fontSize: "15px" }}
                       >
-                        {MINUTES_30.map((m) => (
+                        {minuteOptions.map((m) => (
                           <MenuItem key={m} value={m}>
                             {m}
                           </MenuItem>
@@ -633,7 +946,8 @@ export default function AttendanceOvertime() {
                   mb: "20px",
                 }}
               >
-                (至少須申請 0 時 30 分且申請時數須為 0 時 30 分的倍數)
+                (至少須申請 {formatDuration(minimumOvertimeMinutes)} 且申請時間須以{" "}
+                {formatDuration(overtimeMinuteStep)} 為單位)
               </Typography>
 
               <Typography
@@ -758,7 +1072,7 @@ export default function AttendanceOvertime() {
           <Button
             variant="contained"
             fullWidth={isMobile}
-            disabled={submitLoading || monthLoading || metaLoading}
+            disabled={submitLoading || rulesLoading || monthLoading || metaLoading}
             onClick={handleSubmit}
             sx={{
               bgcolor: "#101b4d",
@@ -777,11 +1091,16 @@ export default function AttendanceOvertime() {
             disabled={submitLoading}
             onClick={() => {
               const defaultStart = getShiftEndDefaultTime(selectedDay, meta);
-              const defaultEnd = getOvertimeEndDefaultTime(selectedDay, meta);
+              const defaultEnd = getOvertimeEndDefaultTime(
+                selectedDay,
+                meta,
+                minimumOvertimeMinutes,
+              );
               setStartHour(defaultStart.hour);
               setStartMin(defaultStart.minute);
               setEndHour(defaultEnd.hour);
               setEndMin(defaultEnd.minute);
+              setEndDate(workDate);
               setReason("");
               setPayType("補休");
               setErrorText("");
