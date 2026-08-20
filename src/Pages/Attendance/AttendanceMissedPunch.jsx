@@ -40,12 +40,10 @@ import {
   normalizeDateSet,
 } from "./Leave/LeaveUtils";
 
-const OFFICE = {
-  value: "公司",
-  label: "公司",
-  lat: 25.0729,
-  lng: 121.3615,
-};
+const LOCATION_OPTIONS = [
+  { value: "公司", label: "公司" },
+  { value: "其他", label: "其他" },
+];
 
 const TYPE_OPTIONS = [
   { value: "上班", label: "上班" },
@@ -73,7 +71,7 @@ export default function AttendanceMissedPunch() {
   const [type, setType] = useState("");
   const [timeHour, setTimeHour] = useState("");
   const [timeMinute, setTimeMinute] = useState("");
-  const [location, setLocation] = useState(OFFICE.value);
+  const [location, setLocation] = useState("公司");
   const [reason, setReason] = useState("");
 
   const [formMeta, setFormMeta] = useState({});
@@ -219,8 +217,6 @@ export default function AttendanceMissedPunch() {
         request_punch_type: type,
         request_datetime: requestDateTime,
         location_label: location,
-        latitude: OFFICE.lat,
-        longitude: OFFICE.lng,
         reason,
       });
 
@@ -485,7 +481,11 @@ export default function AttendanceMissedPunch() {
                     fontSize: "15px",
                   }}
                 >
-                  <MenuItem value={OFFICE.value}>{OFFICE.label}</MenuItem>
+                  {LOCATION_OPTIONS.map((item) => (
+                    <MenuItem key={item.value} value={item.value}>
+                      {item.label}
+                    </MenuItem>
+                  ))}
                 </Select>
               </FormControl>
             </Box>

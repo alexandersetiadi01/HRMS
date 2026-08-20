@@ -99,18 +99,10 @@ export default function ClockLocationSettingsTab() {
     () =>
       rows.map((row) => ({
         ...row,
-        latitude:
-          row.location_type === "other" || row.latitude === null
-            ? "-"
-            : String(row.latitude),
-        longitude:
-          row.location_type === "other" || row.longitude === null
-            ? "-"
-            : String(row.longitude),
+        latitude: row.latitude === null ? "-" : String(row.latitude),
+        longitude: row.longitude === null ? "-" : String(row.longitude),
         radius_meters:
-          row.location_type === "other" || row.radius_meters === null
-            ? "-"
-            : `${row.radius_meters} 公尺`,
+          row.radius_meters === null ? "-" : `${row.radius_meters} 公尺`,
         allow_app_location:
           Number(row.allow_app_location || 0) === 1 ? "是" : "否",
       })),
@@ -173,15 +165,8 @@ export default function ClockLocationSettingsTab() {
   };
 
   const validateForm = () => {
-    const isOther =
-      String(editingRow?.location_type || "") === "other";
-
-    if (!isOther && !form.location_name.trim()) {
+    if (!form.location_name.trim()) {
       return "請輸入地點名稱。";
-    }
-
-    if (isOther) {
-      return "";
     }
 
     const latitude = Number(form.latitude);
@@ -214,26 +199,14 @@ export default function ClockLocationSettingsTab() {
     return "";
   };
 
-  const buildPayload = () => {
-    const isOther =
-      String(editingRow?.location_type || "") === "other";
-
-    if (isOther) {
-      return {
-        allow_app_location: form.allow_app_location ? 1 : 0,
-        status: form.status,
-      };
-    }
-
-    return {
-      location_name: form.location_name.trim(),
-      latitude: Number(form.latitude),
-      longitude: Number(form.longitude),
-      radius_meters: Number(form.radius_meters),
-      allow_app_location: form.allow_app_location ? 1 : 0,
-      status: form.status,
-    };
-  };
+  const buildPayload = () => ({
+    location_name: form.location_name.trim(),
+    latitude: Number(form.latitude),
+    longitude: Number(form.longitude),
+    radius_meters: Number(form.radius_meters),
+    allow_app_location: form.allow_app_location ? 1 : 0,
+    status: form.status,
+  });
 
   const handleSubmit = async () => {
     if (submitting) return;
@@ -287,11 +260,7 @@ export default function ClockLocationSettingsTab() {
   const handleDelete = async (row) => {
     const locationId = Number(row.location_id || 0);
 
-    if (
-      locationId <= 0 ||
-      row.location_type === "other" ||
-      deletingId > 0
-    ) {
+    if (locationId <= 0 || deletingId > 0) {
       return;
     }
 
@@ -343,32 +312,27 @@ export default function ClockLocationSettingsTab() {
             </IconButton>
           </Tooltip>
 
-          {row.location_type !== "other" ? (
-            <Tooltip title="刪除">
-              <span>
-                <IconButton
-                  size="small"
-                  disabled={
-                    deletingId ===
-                    Number(row.location_id || 0)
-                  }
-                  onClick={() => handleDelete(row)}
-                  aria-label="刪除"
-                >
-                  <DeleteOutlineIcon fontSize="small" />
-                </IconButton>
-              </span>
-            </Tooltip>
-          ) : null}
+          <Tooltip title="刪除">
+            <span>
+              <IconButton
+                size="small"
+                disabled={
+                  deletingId ===
+                  Number(row.location_id || 0)
+                }
+                onClick={() => handleDelete(row)}
+                aria-label="刪除"
+              >
+                <DeleteOutlineIcon fontSize="small" />
+              </IconButton>
+            </span>
+          </Tooltip>
         </Box>
       );
     }
 
     return row[column.key] ?? "-";
   };
-
-  const isOther =
-    String(editingRow?.location_type || "") === "other";
 
   return (
     <Box>
@@ -414,7 +378,7 @@ export default function ClockLocationSettingsTab() {
       </Box>
 
       <Alert severity="info" sx={{ mb: "16px" }}>
-        座標請使用地圖網址中的經緯度。定位不屬於已設定地點時，系統將視為「其他」。
+        座標請使用地圖網址中的經緯度。員工僅能在已啟用且允許APP定位打卡的地點範圍內進行定位打卡。
       </Alert>
 
       {loadErrorText ? (
@@ -450,11 +414,9 @@ export default function ClockLocationSettingsTab() {
       <FormDialog
         open={formOpen}
         title={
-          isOther
-            ? "編輯其他"
-            : editingRow
-              ? "編輯地點設定"
-              : "新增地點設定"
+          editingRow
+            ? "編輯地點設定"
+            : "新增地點設定"
         }
         submitting={submitting}
         submitLabel="儲存"
@@ -468,93 +430,85 @@ export default function ClockLocationSettingsTab() {
           </Alert>
         ) : null}
 
-        {isOther ? (
-          <Alert severity="info">
-            「其他」代表目前定位不屬於任何已設定地點時的打卡方式。
-          </Alert>
-        ) : (
-          <>
-            <TextField
-              label="地點名稱"
-              value={form.location_name}
-              onChange={(event) =>
-                handleChange(
-                  "location_name",
-                  event.target.value,
-                )
-              }
-              size="small"
-              fullWidth
-              required
-            />
+        <TextField
+          label="地點名稱"
+          value={form.location_name}
+          onChange={(event) =>
+            handleChange(
+              "location_name",
+              event.target.value,
+            )
+          }
+          size="small"
+          fullWidth
+          required
+        />
 
-            <TextField
-              label="緯度"
-              type="number"
-              value={form.latitude}
-              onChange={(event) =>
-                handleChange(
-                  "latitude",
-                  event.target.value,
-                )
-              }
-              size="small"
-              fullWidth
-              required
-              slotProps={{
-                htmlInput: {
-                  step: "0.0000001",
-                  min: -90,
-                  max: 90,
-                },
-              }}
-            />
+        <TextField
+          label="緯度"
+          type="number"
+          value={form.latitude}
+          onChange={(event) =>
+            handleChange(
+              "latitude",
+              event.target.value,
+            )
+          }
+          size="small"
+          fullWidth
+          required
+          slotProps={{
+            htmlInput: {
+              step: "0.0000001",
+              min: -90,
+              max: 90,
+            },
+          }}
+        />
 
-            <TextField
-              label="經度"
-              type="number"
-              value={form.longitude}
-              onChange={(event) =>
-                handleChange(
-                  "longitude",
-                  event.target.value,
-                )
-              }
-              size="small"
-              fullWidth
-              required
-              slotProps={{
-                htmlInput: {
-                  step: "0.0000001",
-                  min: -180,
-                  max: 180,
-                },
-              }}
-            />
+        <TextField
+          label="經度"
+          type="number"
+          value={form.longitude}
+          onChange={(event) =>
+            handleChange(
+              "longitude",
+              event.target.value,
+            )
+          }
+          size="small"
+          fullWidth
+          required
+          slotProps={{
+            htmlInput: {
+              step: "0.0000001",
+              min: -180,
+              max: 180,
+            },
+          }}
+        />
 
-            <TextField
-              label="允許範圍"
-              type="number"
-              value={form.radius_meters}
-              onChange={(event) =>
-                handleChange(
-                  "radius_meters",
-                  event.target.value,
-                )
-              }
-              size="small"
-              fullWidth
-              required
-              slotProps={{
-                htmlInput: {
-                  min: 1,
-                  step: 1,
-                },
-              }}
-              helperText="單位：公尺"
-            />
-          </>
-        )}
+        <TextField
+          label="允許範圍"
+          type="number"
+          value={form.radius_meters}
+          onChange={(event) =>
+            handleChange(
+              "radius_meters",
+              event.target.value,
+            )
+          }
+          size="small"
+          fullWidth
+          required
+          slotProps={{
+            htmlInput: {
+              min: 1,
+              step: 1,
+            },
+          }}
+          helperText="單位：公尺"
+        />
 
         <FormControlLabel
           control={
