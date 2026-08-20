@@ -211,9 +211,22 @@ export default function Absent() {
 
       if (
         errorCode ===
-        "hrms_attendance_app_location_not_allowed"
+          "hrms_attendance_app_location_not_allowed" ||
+        errorCode ===
+          "hrms_attendance_punch_ip_rule_missing" ||
+        errorCode ===
+          "hrms_attendance_punch_ip_not_allowed" ||
+        errorCode ===
+          "hrms_attendance_punch_ip_missing" ||
+        errorCode ===
+          "hrms_attendance_punch_ip_ipv4_required"
       ) {
-        setLocationText("不在允許的打卡地點");
+        setLocationText(
+          errorCode ===
+            "hrms_attendance_app_location_not_allowed"
+            ? "不在允許的打卡地點"
+            : "不在允許的打卡IP",
+        );
         setStatusText(`❌ ${errorMessage}`);
         setOutsideDialogMessage(errorMessage);
         setOutsideDialogOpen(true);

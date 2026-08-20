@@ -1697,6 +1697,33 @@ export async function apiDeleteAttendancePunchLocation(locationId) {
   return res.data;
 }
 
+export async function apiAttendancePunchIpSettings() {
+  const res = await http.get("/attendance/punch-ip-settings");
+  return res.data;
+}
+
+export async function apiUpdateAttendancePunchIpSettings(enabled) {
+  const res = await http.put("/attendance/punch-ip-settings", {
+    enabled: Boolean(enabled),
+  });
+  return res.data;
+}
+
+export async function apiCreateAttendancePunchIpRule(payload = {}) {
+  const res = await http.post("/attendance/punch-ip-rules", payload);
+  return res.data;
+}
+
+export async function apiUpdateAttendancePunchIpRule(ipRuleId, payload = {}) {
+  const res = await http.put(`/attendance/punch-ip-rules/${ipRuleId}`, payload);
+  return res.data;
+}
+
+export async function apiDeleteAttendancePunchIpRule(ipRuleId) {
+  const res = await http.delete(`/attendance/punch-ip-rules/${ipRuleId}`);
+  return res.data;
+}
+
 export async function apiAttendanceSelfSchedulingReview(params = {}) {
   const res = await http.get("/attendance/self-scheduling/review", {
     params: {

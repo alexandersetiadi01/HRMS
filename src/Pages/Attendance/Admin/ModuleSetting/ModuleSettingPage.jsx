@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Box, Collapse, Paper, Tab, Tabs, Typography } from "@mui/material";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
+import ClockIpSettingsTab from "./ClockIpSettingsTab";
 import ClockLocationSettingsTab from "./ClockLocationSettingsTab";
 import Breadcrumb from "../../../../Utils/Breadcrumb";
 import AttendanceRulesTab from "./AttendanceRulesTab";
@@ -430,23 +431,7 @@ export default function ModuleSettingPage() {
 
                   {activeParameter === "clock-settings" &&
                   activeClockSetting === "ip" ? (
-                    <>
-                      <Typography
-                        sx={{
-                          fontSize: "20px",
-                          fontWeight: 700,
-                          color: "#111827",
-                        }}
-                      >
-                        IP設定
-                      </Typography>
-
-                      <Typography
-                        sx={{ mt: "4px", fontSize: "14px", color: "#6b7280" }}
-                      >
-                        Attendance IP打卡相關參數設定
-                      </Typography>
-                    </>
+                    <ClockIpSettingsTab />
                   ) : null}
 
                   {activeParameter === "unit-settings" ? (
