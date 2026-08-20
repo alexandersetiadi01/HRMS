@@ -10,8 +10,13 @@ export const FORM_PARAMETER_ITEMS = [
   { value: "shift-group", label: "班別", expandable: true },
   { value: "leave-types", label: "假別名稱維護" },
   { value: "attendance-rules", label: "出勤規則設定", expandable: true },
-  { value: "clock-settings", label: "打卡設定" },
+  { value: "clock-settings", label: "打卡設定", expandable: true },
   { value: "unit-settings", label: "單位參數設定" },
+];
+
+export const CLOCK_SETTING_ITEMS = [
+  { value: "location", label: "地點設定" },
+  { value: "ip", label: "IP設定" },
 ];
 
 export const SHIFT_GROUP_ITEMS = [

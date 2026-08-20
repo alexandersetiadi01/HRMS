@@ -1677,6 +1677,26 @@ export async function apiUpdateAttendanceBusinessTripRule(ruleCode, ruleValue) {
   return res.data;
 }
 
+export async function apiAttendancePunchLocations() {
+  const res = await http.get("/attendance/punch-locations");
+  return res.data;
+}
+
+export async function apiCreateAttendancePunchLocation(payload = {}) {
+  const res = await http.post("/attendance/punch-locations", payload);
+  return res.data;
+}
+
+export async function apiUpdateAttendancePunchLocation(locationId, payload = {}) {
+  const res = await http.put(`/attendance/punch-locations/${locationId}`, payload);
+  return res.data;
+}
+
+export async function apiDeleteAttendancePunchLocation(locationId) {
+  const res = await http.delete(`/attendance/punch-locations/${locationId}`);
+  return res.data;
+}
+
 export async function apiAttendanceSelfSchedulingReview(params = {}) {
   const res = await http.get("/attendance/self-scheduling/review", {
     params: {

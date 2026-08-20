@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Box, Collapse, Paper, Tab, Tabs, Typography } from "@mui/material";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
-
+import ClockLocationSettingsTab from "./ClockLocationSettingsTab";
 import Breadcrumb from "../../../../Utils/Breadcrumb";
 import AttendanceRulesTab from "./AttendanceRulesTab";
 import CalendarTab from "./CalendarTab";
@@ -12,6 +12,7 @@ import ShiftGroupsTab from "./ShiftGroupsTab";
 import ShiftsTab from "./ShiftsTab";
 import {
   ATTENDANCE_RULE_ITEMS,
+  CLOCK_SETTING_ITEMS,
   FORM_PARAMETER_ITEMS,
   MODULE_TABS,
   SHIFT_GROUP_ITEMS,
@@ -24,6 +25,8 @@ export default function ModuleSettingPage() {
   const [activeShiftGroupItem, setActiveShiftGroupItem] = useState("groups");
   const [attendanceRulesOpen, setAttendanceRulesOpen] = useState(false);
   const [shiftGroupOpen, setShiftGroupOpen] = useState(false);
+  const [clockSettingsOpen, setClockSettingsOpen] = useState(false);
+  const [activeClockSetting, setActiveClockSetting] = useState("location");
 
   const handleParameterClick = (item) => {
     if (item.value === "attendance-rules") {
@@ -37,6 +40,13 @@ export default function ModuleSettingPage() {
       setActiveParameter("shift-group");
       setActiveTab("form-parameters");
       setShiftGroupOpen((current) => !current);
+      return;
+    }
+
+    if (item.value === "clock-settings") {
+      setActiveParameter("clock-settings");
+      setActiveTab("form-parameters");
+      setClockSettingsOpen((current) => !current);
       return;
     }
 
@@ -54,6 +64,12 @@ export default function ModuleSettingPage() {
     setActiveTab("form-parameters");
     setActiveParameter("shift-group");
     setActiveShiftGroupItem(value);
+  };
+
+  const handleClockSettingClick = (value) => {
+    setActiveTab("form-parameters");
+    setActiveParameter("clock-settings");
+    setActiveClockSetting(value);
   };
 
   return (
@@ -143,6 +159,12 @@ export default function ModuleSettingPage() {
                           )
                         ) : item.value === "shift-group" ? (
                           shiftGroupOpen ? (
+                            <KeyboardArrowDownIcon sx={{ fontSize: "20px" }} />
+                          ) : (
+                            <KeyboardArrowRightIcon sx={{ fontSize: "20px" }} />
+                          )
+                        ) : item.value === "clock-settings" ? (
+                          clockSettingsOpen ? (
                             <KeyboardArrowDownIcon sx={{ fontSize: "20px" }} />
                           ) : (
                             <KeyboardArrowRightIcon sx={{ fontSize: "20px" }} />
@@ -254,6 +276,62 @@ export default function ModuleSettingPage() {
                         </Box>
                       </Collapse>
                     ) : null}
+
+                    {item.value === "clock-settings" ? (
+                      <Collapse
+                        in={clockSettingsOpen}
+                        timeout="auto"
+                        unmountOnExit
+                      >
+                        <Box sx={{ py: "4px" }}>
+                          {CLOCK_SETTING_ITEMS.map((clockSettingItem) => {
+                            const clockSettingActive =
+                              activeParameter === "clock-settings" &&
+                              activeClockSetting === clockSettingItem.value;
+
+                            return (
+                              <Box
+                                key={clockSettingItem.value}
+                                component="button"
+                                type="button"
+                                onClick={() =>
+                                  handleClockSettingClick(
+                                    clockSettingItem.value,
+                                  )
+                                }
+                                sx={{
+                                  width: "100%",
+                                  display: "block",
+                                  border: 0,
+                                  borderRadius: "6px",
+                                  pl: "30px",
+                                  pr: "14px",
+                                  py: "9px",
+                                  bgcolor: clockSettingActive
+                                    ? "#f0f7ff"
+                                    : "transparent",
+                                  color: clockSettingActive
+                                    ? "#1976d2"
+                                    : "#4b5563",
+                                  fontSize: "14px",
+                                  fontWeight: clockSettingActive ? 700 : 400,
+                                  textAlign: "left",
+                                  cursor: "pointer",
+                                  whiteSpace: "nowrap",
+                                  "&:hover": {
+                                    bgcolor: clockSettingActive
+                                      ? "#f0f7ff"
+                                      : "#f3f4f6",
+                                  },
+                                }}
+                              >
+                                {clockSettingItem.label}
+                              </Box>
+                            );
+                          })}
+                        </Box>
+                      </Collapse>
+                    ) : null}
                   </Box>
                 );
               })}
@@ -345,7 +423,13 @@ export default function ModuleSettingPage() {
                     <AttendanceRulesTab activeRule={activeAttendanceRule} />
                   ) : null}
 
-                  {activeParameter === "clock-settings" ? (
+                  {activeParameter === "clock-settings" &&
+                  activeClockSetting === "location" ? (
+                    <ClockLocationSettingsTab />
+                  ) : null}
+
+                  {activeParameter === "clock-settings" &&
+                  activeClockSetting === "ip" ? (
                     <>
                       <Typography
                         sx={{
@@ -354,13 +438,13 @@ export default function ModuleSettingPage() {
                           color: "#111827",
                         }}
                       >
-                        打卡設定
+                        IP設定
                       </Typography>
 
                       <Typography
                         sx={{ mt: "4px", fontSize: "14px", color: "#6b7280" }}
                       >
-                        Attendance 打卡相關參數設定
+                        Attendance IP打卡相關參數設定
                       </Typography>
                     </>
                   ) : null}

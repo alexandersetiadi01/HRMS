@@ -13,16 +13,8 @@ import PlaceOutlinedIcon from "@mui/icons-material/PlaceOutlined";
 import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 import { NavLink, useNavigate } from "react-router-dom";
 import { getCurrentPosition } from "../../Utils/Geolocation";
-import { getDistanceInMeters } from "../../Utils/Distance";
 import { getCurrentEmployeeId } from "../../API/account";
 import { apiClockIn, apiClockOut, apiTodayStatus } from "../../API/attendance";
-
-const OFFICE = {
-  lat: 25.0729,
-  lng: 121.3615,
-  radius: 50,
-  name: "台灣水禾（辦公室）",
-};
 
 function getTaiwanNowDisplay() {
   return new Intl.DateTimeFormat("zh-TW", {
@@ -152,28 +144,11 @@ export default function Absent() {
     try {
       const coords = await getCurrentPosition();
 
-      const distance = getDistanceInMeters(
-        coords.latitude,
-        coords.longitude,
-        OFFICE.lat,
-        OFFICE.lng,
-      );
-
       if (coords.accuracy > 100) {
         setLocationText("尚未取得位置");
         setStatusText("❌ 位置不準確，請移至窗邊");
         return;
       }
-
-      if (distance > OFFICE.radius) {
-        setLocationText("非辦公室範圍");
-        setStatusText(`❌ 辦公室外 (${Math.round(distance)}m)`);
-        setOutsideDialogMessage("您目前位於辦公室範圍外，請改走忘打卡申請。");
-        setOutsideDialogOpen(true);
-        return;
-      }
-
-      setLocationText(OFFICE.name);
 
       const payload = {
         employee_id: employeeId,
@@ -184,17 +159,27 @@ export default function Absent() {
       };
 
       if (isClockedIn) {
-        await apiClockOut(payload);
+        const result = await apiClockOut(payload);
+        const locationLabel =
+          result?.location_label_display ||
+          result?.location_label ||
+          "尚未取得位置";
 
+        setLocationText(locationLabel);
         setIsClockedIn(true);
         setIsCompleted(true);
-        setStatusText(`✅ 下班成功 (${Math.round(distance)}m)`);
+        setStatusText("✅ 下班成功");
       } else {
-        await apiClockIn(payload);
+        const result = await apiClockIn(payload);
+        const locationLabel =
+          result?.location_label_display ||
+          result?.location_label ||
+          "尚未取得位置";
 
+        setLocationText(locationLabel);
         setIsClockedIn(true);
         setIsCompleted(false);
-        setStatusText(`✅ 上班成功 (${Math.round(distance)}m)`);
+        setStatusText("✅ 上班成功");
       }
 
       try {
@@ -215,7 +200,26 @@ export default function Absent() {
         // The optimistic UI state above is already enough to keep the button correct.
       }
     } catch (error) {
-      setStatusText(getErrorMessage(error, "取得位置失敗"));
+      const errorCode =
+        error?.response?.data?.code ||
+        "";
+
+      const errorMessage = getErrorMessage(
+        error,
+        "取得位置失敗",
+      );
+
+      if (
+        errorCode ===
+        "hrms_attendance_app_location_not_allowed"
+      ) {
+        setLocationText("不在允許的打卡地點");
+        setStatusText(`❌ ${errorMessage}`);
+        setOutsideDialogMessage(errorMessage);
+        setOutsideDialogOpen(true);
+      } else {
+        setStatusText(errorMessage);
+      }
     } finally {
       setActionLoading(false);
     }
