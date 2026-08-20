@@ -1663,6 +1663,20 @@ export async function apiUpdateAttendanceOutingRule(ruleCode, ruleValue) {
   return res.data;
 }
 
+export async function apiAttendanceBusinessTripRules() {
+  const res = await http.get("/attendance/business-trip-rules");
+  return res.data;
+}
+
+export async function apiUpdateAttendanceBusinessTripRule(ruleCode, ruleValue) {
+  const res = await http.put("/attendance/business-trip-rules", {
+    rule_code: ruleCode,
+    rule_value: ruleValue,
+  });
+
+  return res.data;
+}
+
 export async function apiAttendanceSelfSchedulingReview(params = {}) {
   const res = await http.get("/attendance/self-scheduling/review", {
     params: {

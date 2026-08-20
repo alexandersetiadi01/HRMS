@@ -26,6 +26,7 @@ import {
 } from "../../Utils/Attendance/SharedForm";
 import Breadcrumb from "../../Utils/Breadcrumb";
 import {
+  apiAttendanceBusinessTripRules,
   apiAttendanceOutingRules,
   apiCreateLeaveRequest,
   apiLeaveRequestFormMeta,
@@ -115,6 +116,7 @@ export default function AttendanceBusinessTrip() {
   const [leaveTypes, setLeaveTypes] = useState([]);
   const [formMeta, setFormMeta] = useState({});
   const [outingRules, setOutingRules] = useState([]);
+  const [businessTripRules, setBusinessTripRules] = useState([]);
   const [loadingTypes, setLoadingTypes] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
@@ -168,6 +170,24 @@ export default function AttendanceBusinessTrip() {
     return String(rule?.rule_value || "").trim();
   }, [outingRules]);
 
+  const businessTripEnabled = useMemo(() => {
+    const rule = businessTripRules.find(
+      (item) => String(item?.rule_code || "") === "business_trip_enabled",
+    );
+
+    return String(rule?.rule_value ?? "1") === "1";
+  }, [businessTripRules]);
+
+  const businessTripFormDescription = useMemo(() => {
+    const rule = businessTripRules.find(
+      (item) =>
+        String(item?.rule_code || "") ===
+        "business_trip_form_description",
+    );
+
+    return String(rule?.rule_value || "").trim();
+  }, [businessTripRules]);
+
   const sectionWrapperSx = buildAttendanceSectionWrapperSx(isMobile);
 
   useEffect(() => {
@@ -176,14 +196,19 @@ export default function AttendanceBusinessTrip() {
     async function loadLeaveTypes() {
       try {
         setLoadingTypes(true);
-        const [response, formMetaResponse, outingRulesResponse] =
-          await Promise.all([
-            apiLeaveTypes(),
-            apiLeaveRequestFormMeta({
-              employee_id: employeeId,
-            }),
-            apiAttendanceOutingRules(),
-          ]);
+        const [
+          response,
+          formMetaResponse,
+          outingRulesResponse,
+          businessTripRulesResponse,
+        ] = await Promise.all([
+          apiLeaveTypes(),
+          apiLeaveRequestFormMeta({
+            employee_id: employeeId,
+          }),
+          apiAttendanceOutingRules(),
+          apiAttendanceBusinessTripRules(),
+        ]);
 
         const rows = normalizeApiRows(response).filter(
           (item) => String(item?.status || "啟用") === "啟用",
@@ -201,12 +226,23 @@ export default function AttendanceBusinessTrip() {
           outingRulesResponse ||
           [];
 
+        const businessTripRulesPayload =
+          businessTripRulesResponse?.data?.data ||
+          businessTripRulesResponse?.data ||
+          businessTripRulesResponse ||
+          [];
+
         if (mounted) {
           setLeaveTypes(rows);
           setFormMeta(metaPayload);
           setOutingRules(
             Array.isArray(outingRulesPayload)
               ? outingRulesPayload
+              : [],
+          );
+          setBusinessTripRules(
+            Array.isArray(businessTripRulesPayload)
+              ? businessTripRulesPayload
               : [],
           );
         }
@@ -232,10 +268,22 @@ export default function AttendanceBusinessTrip() {
   }, [employeeId]);
 
   useEffect(() => {
-    if (!loadingTypes && !outingEnabled && tripType === "公出") {
+    if (loadingTypes) return;
+
+    if (tripType === "公出" && !outingEnabled && businessTripEnabled) {
       setTripType("出差");
+      return;
     }
-  }, [loadingTypes, outingEnabled, tripType]);
+
+    if (tripType === "出差" && !businessTripEnabled && outingEnabled) {
+      setTripType("公出");
+    }
+  }, [
+    loadingTypes,
+    outingEnabled,
+    businessTripEnabled,
+    tripType,
+  ]);
 
   const handleFileChange = (event) => {
     const selectedFiles = Array.from(event.target.files || []);
@@ -293,7 +341,13 @@ export default function AttendanceBusinessTrip() {
   };
 
   const handleCancel = () => {
-    setTripType(outingEnabled ? "公出" : "出差");
+    setTripType(
+      outingEnabled
+        ? "公出"
+        : businessTripEnabled
+          ? "出差"
+          : "公出",
+    );
     setStartDate(todayDate);
     setEndDate(todayDate);
     setStartHour("09");
@@ -313,6 +367,14 @@ export default function AttendanceBusinessTrip() {
       setMessage({
         type: "error",
         text: "目前未開放公出申請。",
+      });
+      return;
+    }
+
+    if (tripType === "出差" && !businessTripEnabled) {
+      setMessage({
+        type: "error",
+        text: "目前未開放出差申請。",
       });
       return;
     }
@@ -449,6 +511,7 @@ export default function AttendanceBusinessTrip() {
                   />
                   <FormControlLabel
                     value="出差"
+                    disabled={!businessTripEnabled || loadingTypes}
                     control={<Radio size="small" />}
                     label="出差"
                     sx={{
@@ -464,6 +527,12 @@ export default function AttendanceBusinessTrip() {
                 {tripType === "公出" && outingFormDescription ? (
                   <Alert severity="info" sx={{ mt: "10px" }}>
                     {outingFormDescription}
+                  </Alert>
+                ) : null}
+
+                {tripType === "出差" && businessTripFormDescription ? (
+                  <Alert severity="info" sx={{ mt: "10px" }}>
+                    {businessTripFormDescription}
                   </Alert>
                 ) : null}
               </Box>
