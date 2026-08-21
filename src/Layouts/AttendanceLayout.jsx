@@ -3,7 +3,7 @@ import MenuTile from "../Components/MenuTile";
 import { getStoredAuthUser } from "../API/auth";
 import {
   canManageAttendanceSchedule,
-  canViewStaffAttendance,
+  hasAttendancePermission,
 } from "../Utils/AttendancePermissions";
 import { getAttendanceMenuItemsBySection } from "../Utils/Menu/MenuRegistry";
 
@@ -55,21 +55,31 @@ export default function AttendanceLayout() {
 
   const personalItems = getAttendanceMenuItemsBySection("personal");
 
-  const supervisorItems = getAttendanceMenuItemsBySection(
-    "supervisor",
-  ).filter((item) => {
-    if (item.accessKey === "staff-attendance") {
-      return canViewStaffAttendance(authUser);
+  const filterByAccess = (item) => {
+    if (
+      item.attendancePermission &&
+      !hasAttendancePermission(authUser, item.attendancePermission)
+    ) {
+      return false;
     }
 
-    if (item.accessKey === "schedule-management") {
-      return canManageAttendanceSchedule(authUser);
+    if (
+      item.requiresScheduleManagement &&
+      !canManageAttendanceSchedule(authUser)
+    ) {
+      return false;
     }
 
     return true;
-  });
+  };
 
-  const managerItems = getAttendanceMenuItemsBySection("manager");
+  const supervisorItems = getAttendanceMenuItemsBySection(
+    "supervisor",
+  ).filter(filterByAccess);
+
+  const managerItems = getAttendanceMenuItemsBySection(
+    "manager",
+  ).filter(filterByAccess);
 
   return (
     <Box>

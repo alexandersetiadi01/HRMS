@@ -255,7 +255,7 @@ export const MENU_ITEMS = [
     disable: false,
     groups: ["attendance"],
     sectionKey: "supervisor",
-    accessKey: "staff-attendance",
+    attendancePermission: "attendance_staff_view",
   },
   {
     id: "shift-approval",
@@ -265,7 +265,8 @@ export const MENU_ITEMS = [
     disable: false,
     groups: ["attendance"],
     sectionKey: "supervisor",
-    accessKey: "schedule-management",
+    attendancePermission: "attendance_shift_approval",
+    requiresScheduleManagement: true,
   },
   {
     id: "shift-manager-setting",
@@ -295,7 +296,7 @@ export const MENU_ITEMS = [
     iconKey: "attendance-record-maintenance",
     groups: ["attendance"],
     sectionKey: "manager",
-    adminOnly: true,
+    attendancePermission: "attendance_punch_maintenance",
   },
   {
     id: "form-management",
@@ -315,7 +316,7 @@ export const MENU_ITEMS = [
     disable: false,
     groups: ["attendance"],
     sectionKey: "manager",
-    adminOnly: true,
+    attendancePermission: "attendance_leave_balance_manage",
   },
   {
     id: "payroll-work",
@@ -325,7 +326,7 @@ export const MENU_ITEMS = [
     disable: false,
     groups: ["attendance"],
     sectionKey: "manager",
-    adminOnly: true,
+    attendancePermission: "attendance_settlement_manage",
   },
   {
     id: "module-setting",
@@ -335,7 +336,7 @@ export const MENU_ITEMS = [
     disable: false,
     groups: ["attendance"],
     sectionKey: "manager",
-    adminOnly: true,
+    attendancePermission: "attendance_module_settings_manage",
   },
   {
     id: "personnel-basic",

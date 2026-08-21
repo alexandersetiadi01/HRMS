@@ -4,6 +4,7 @@ import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import ClockIpSettingsTab from "./ClockIpSettingsTab";
 import ClockLocationSettingsTab from "./ClockLocationSettingsTab";
+import PermissionSettingsTab from "./PermissionSettingsTab";
 import UnitParameterSettingsTab from "./UnitParameterSettingsTab";
 import Breadcrumb from "../../../../Utils/Breadcrumb";
 import AttendanceRulesTab from "./AttendanceRulesTab";
@@ -383,19 +384,7 @@ export default function ModuleSettingPage() {
           <Box sx={{ minWidth: 0 }}>
             <Box sx={{ p: { xs: "16px", sm: "20px" }, minWidth: 0 }}>
               {activeTab === "permissions" ? (
-                <>
-                  <Typography
-                    sx={{ fontSize: "20px", fontWeight: 700, color: "#111827" }}
-                  >
-                    權限設定
-                  </Typography>
-
-                  <Typography
-                    sx={{ mt: "4px", fontSize: "14px", color: "#6b7280" }}
-                  >
-                    Attendance 模組權限設定
-                  </Typography>
-                </>
+                <PermissionSettingsTab />
               ) : null}
 
               {activeTab === "approval" ? (

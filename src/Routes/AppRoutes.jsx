@@ -40,7 +40,7 @@ import StickyNotes from "../Pages/StickyNote/StickyNotes";
 import Settings from "../Pages/Settings/Settings";
 import MenuShortcuts from "../Pages/Settings/MenuShortcut";
 import RequireAuth from "./RequireAuth";
-import RequireStaffAttendanceAccess from "./RequireStaffAttendanceAccess";
+import RequireAttendancePermission from "./RequireAttendancePermission";
 import RequireScheduleManagementAccess from "./RequireScheduleManagementAccess";
 import RequirePayrollAdmin from "./RequirePayrollAdmin";
 import RequirePayrollPermission, {
@@ -139,17 +139,19 @@ export default function AppRoutes() {
         <Route
           path="/attendance/admin/staff-attendance"
           element={
-            <RequireStaffAttendanceAccess>
+            <RequireAttendancePermission permission="attendance_staff_view">
               <StaffAttendancePage />
-            </RequireStaffAttendanceAccess>
+            </RequireAttendancePermission>
           }
         />
         <Route
           path="/attendance/admin/shift-approval"
           element={
-            <RequireScheduleManagementAccess>
-              <ShiftApprovalPage />
-            </RequireScheduleManagementAccess>
+            <RequireAttendancePermission permission="attendance_shift_approval">
+              <RequireScheduleManagementAccess>
+                <ShiftApprovalPage />
+              </RequireScheduleManagementAccess>
+            </RequireAttendancePermission>
           }
         />
         <Route
@@ -162,7 +164,11 @@ export default function AppRoutes() {
         />
         <Route
           path="/attendance/admin/record-maintenance"
-          element={<AttendanceRecordMaintenance />}
+          element={
+            <RequireAttendancePermission permission="attendance_punch_maintenance">
+              <AttendanceRecordMaintenance />
+            </RequireAttendancePermission>
+          }
         />
         <Route
           path="/attendance/admin/form-management"
@@ -170,14 +176,20 @@ export default function AppRoutes() {
         />
         <Route
           path="/attendance/admin/leave-hours-management"
-          element={<LeaveHoursManagement />}
+          element={
+            <RequireAttendancePermission permission="attendance_leave_balance_manage">
+              <LeaveHoursManagement />
+            </RequireAttendancePermission>
+          }
         />
         <Route
           path="/attendance/admin/payroll-work"
           element={
-            <RequirePayrollAdmin>
-              <PayrollDefaultRedirect />
-            </RequirePayrollAdmin>
+            <RequireAttendancePermission permission="attendance_settlement_manage">
+              <RequirePayrollAdmin>
+                <PayrollDefaultRedirect />
+              </RequirePayrollAdmin>
+            </RequireAttendancePermission>
           }
         />
 
@@ -194,17 +206,19 @@ export default function AppRoutes() {
           <Route
             path="operations/salary"
             element={
-              <RequirePayrollPermission
-                permissions={[
-                  "payroll_view",
-                  "payroll_calculate",
-                  "payroll_approve",
-                  "payroll_close",
-                  "payroll_mark_paid",
-                ]}
-              >
-                <PayrollManagement />
-              </RequirePayrollPermission>
+              <RequireAttendancePermission permission="attendance_settlement_manage">
+                <RequirePayrollPermission
+                  permissions={[
+                    "payroll_view",
+                    "payroll_calculate",
+                    "payroll_approve",
+                    "payroll_close",
+                    "payroll_mark_paid",
+                  ]}
+                >
+                  <PayrollManagement />
+                </RequirePayrollPermission>
+              </RequireAttendancePermission>
             }
           />
 
@@ -419,7 +433,11 @@ export default function AppRoutes() {
         </Route>
         <Route
           path="/attendance/admin/module-setting"
-          element={<ModuleSettingPage />}
+          element={
+            <RequireAttendancePermission permission="attendance_module_settings_manage">
+              <ModuleSettingPage />
+            </RequireAttendancePermission>
+          }
         />
         <Route
           path="/attendance/admin/personnel-basic"

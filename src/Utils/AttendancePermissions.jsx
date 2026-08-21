@@ -15,6 +15,24 @@ function normalizeRole(value) {
   return String(value || "").trim().toLowerCase();
 }
 
+export function getAttendancePermissionCodes(authUser) {
+  return Array.isArray(authUser?.attendance_permission_codes)
+    ? authUser.attendance_permission_codes
+        .map((code) => String(code || "").trim())
+        .filter(Boolean)
+    : [];
+}
+
+export function hasAttendancePermission(authUser, permissionCode) {
+  const code = String(permissionCode || "").trim();
+
+  if (!code) {
+    return false;
+  }
+
+  return getAttendancePermissionCodes(authUser).includes(code);
+}
+
 export function getAuthUserSystemRole(authUser) {
   return normalizeRole(
     authUser?.employee?.system_role?.role_code,

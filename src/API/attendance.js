@@ -1686,6 +1686,24 @@ export async function apiAttendanceProxyRequestMeta() {
   return res.data;
 }
 
+export async function apiAttendancePermissionSettings() {
+  const res = await http.get("/attendance/permission-settings");
+  return res.data;
+}
+
+export async function apiAttendancePermissionSetting(roleId) {
+  const res = await http.get(`/attendance/permission-settings/${roleId}`);
+  return res.data;
+}
+
+export async function apiUpdateAttendancePermissionSetting(roleId, permissionCodes = []) {
+  const res = await http.put(`/attendance/permission-settings/${roleId}`, {
+    permission_codes: permissionCodes,
+  });
+
+  return res.data;
+}
+
 export async function apiAttendanceBusinessTripRules() {
   const res = await http.get("/attendance/business-trip-rules");
   return res.data;
