@@ -98,6 +98,41 @@ export default function ModuleSettingPage() {
       <Paper
         variant="outlined"
         sx={{
+          mb: "14px",
+          overflow: "hidden",
+          borderColor: "#d1d5db",
+          borderRadius: "8px",
+        }}
+      >
+        <Tabs
+          value={activeTab}
+          onChange={(_event, value) => setActiveTab(value)}
+          variant="scrollable"
+          scrollButtons="auto"
+          allowScrollButtonsMobile
+          sx={{
+            minHeight: "52px",
+            "& .MuiTabs-flexContainer": {
+              justifyContent: { sm: "center" },
+            },
+            "& .MuiTab-root": {
+              minHeight: "52px",
+              minWidth: { xs: "120px", sm: "160px" },
+              px: { xs: 1.5, sm: 3 },
+              fontSize: { xs: "14px", sm: "15px", md: "16px" },
+              fontWeight: 700,
+            },
+          }}
+        >
+          {MODULE_TABS.map((tab) => (
+            <Tab key={tab.value} value={tab.value} label={tab.label} />
+          ))}
+        </Tabs>
+      </Paper>
+
+      <Paper
+        variant="outlined"
+        sx={{
           overflow: "hidden",
           borderColor: "#d1d5db",
           borderRadius: "8px",
@@ -106,17 +141,21 @@ export default function ModuleSettingPage() {
         <Box
           sx={{
             display: { xs: "block", md: "grid" },
-            gridTemplateColumns: { md: "210px minmax(0, 1fr)" },
+            gridTemplateColumns:
+              activeTab === "form-parameters"
+                ? { md: "210px minmax(0, 1fr)" }
+                : { md: "minmax(0, 1fr)" },
             minHeight: "520px",
           }}
         >
-          <Box
-            sx={{
-              borderRight: { md: "1px solid #e5e7eb" },
-              borderBottom: { xs: "1px solid #e5e7eb", md: "none" },
-              bgcolor: "#f9fafb",
-            }}
-          >
+          {activeTab === "form-parameters" ? (
+            <Box
+              sx={{
+                borderRight: { md: "1px solid #e5e7eb" },
+                borderBottom: { xs: "1px solid #e5e7eb", md: "none" },
+                bgcolor: "#f9fafb",
+              }}
+            >
             <Box sx={{ p: "10px" }}>
               {FORM_PARAMETER_ITEMS.map((item) => {
                 const active = activeParameter === item.value;
@@ -339,37 +378,9 @@ export default function ModuleSettingPage() {
               })}
             </Box>
           </Box>
+          ) : null}
 
           <Box sx={{ minWidth: 0 }}>
-            <Box
-              sx={{
-                overflowX: "auto",
-                borderBottom: "1px solid #e5e7eb",
-              }}
-            >
-              <Tabs
-                value={activeTab}
-                onChange={(_event, value) => setActiveTab(value)}
-                variant="scrollable"
-                scrollButtons="auto"
-                allowScrollButtonsMobile
-                sx={{
-                  minHeight: "48px",
-                  "& .MuiTab-root": {
-                    minHeight: "48px",
-                    minWidth: { xs: "120px", sm: "150px" },
-                    px: { xs: 1.5, sm: 2.5 },
-                    fontSize: { xs: "14px", sm: "15px", md: "16px" },
-                    fontWeight: 700,
-                  },
-                }}
-              >
-                {MODULE_TABS.map((tab) => (
-                  <Tab key={tab.value} value={tab.value} label={tab.label} />
-                ))}
-              </Tabs>
-            </Box>
-
             <Box sx={{ p: { xs: "16px", sm: "20px" }, minWidth: 0 }}>
               {activeTab === "permissions" ? (
                 <>

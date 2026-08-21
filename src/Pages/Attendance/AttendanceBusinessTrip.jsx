@@ -33,6 +33,7 @@ import {
   apiLeaveTypes,
 } from "../../API/attendance";
 import { getCurrentEmployeeId } from "../../API/account";
+import ProxyRequestEmployeeField from "./AttendanceForm/ProxyRequestEmployeeField";
 import {
   buildDateTimeString,
   getTaiwanTodayDayjs,
@@ -99,6 +100,8 @@ export default function AttendanceBusinessTrip() {
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
   const employeeId = Number(getCurrentEmployeeId() || 0);
+  const [proxyEmployeeId, setProxyEmployeeId] = useState("");
+  const requestEmployeeId = Number(proxyEmployeeId || employeeId);
   const todayDate = useMemo(() => getTaiwanTodayDayjs(), []);
 
   const [tripType, setTripType] = useState("公出");
@@ -128,10 +131,10 @@ export default function AttendanceBusinessTrip() {
   const approvedLeaveDateSet = useMemo(() => {
     const approvedLeaveRaw = formMeta?.approved_leave_dates_map || {};
     const approvedLeaveSource =
-      approvedLeaveRaw?.[String(employeeId)] || approvedLeaveRaw || {};
+      approvedLeaveRaw?.[String(requestEmployeeId)] || approvedLeaveRaw || {};
 
     return normalizeDateSet(approvedLeaveSource);
-  }, [employeeId, formMeta]);
+  }, [requestEmployeeId, formMeta]);
 
   const totalMinutes = useMemo(() => {
     if (
@@ -163,8 +166,7 @@ export default function AttendanceBusinessTrip() {
 
   const outingFormDescription = useMemo(() => {
     const rule = outingRules.find(
-      (item) =>
-        String(item?.rule_code || "") === "outing_form_description",
+      (item) => String(item?.rule_code || "") === "outing_form_description",
     );
 
     return String(rule?.rule_value || "").trim();
@@ -181,8 +183,7 @@ export default function AttendanceBusinessTrip() {
   const businessTripFormDescription = useMemo(() => {
     const rule = businessTripRules.find(
       (item) =>
-        String(item?.rule_code || "") ===
-        "business_trip_form_description",
+        String(item?.rule_code || "") === "business_trip_form_description",
     );
 
     return String(rule?.rule_value || "").trim();
@@ -204,7 +205,7 @@ export default function AttendanceBusinessTrip() {
         ] = await Promise.all([
           apiLeaveTypes(),
           apiLeaveRequestFormMeta({
-            employee_id: employeeId,
+            employee_id: requestEmployeeId,
           }),
           apiAttendanceOutingRules(),
           apiAttendanceBusinessTripRules(),
@@ -236,9 +237,7 @@ export default function AttendanceBusinessTrip() {
           setLeaveTypes(rows);
           setFormMeta(metaPayload);
           setOutingRules(
-            Array.isArray(outingRulesPayload)
-              ? outingRulesPayload
-              : [],
+            Array.isArray(outingRulesPayload) ? outingRulesPayload : [],
           );
           setBusinessTripRules(
             Array.isArray(businessTripRulesPayload)
@@ -265,7 +264,7 @@ export default function AttendanceBusinessTrip() {
     return () => {
       mounted = false;
     };
-  }, [employeeId]);
+  }, [requestEmployeeId]);
 
   useEffect(() => {
     if (loadingTypes) return;
@@ -278,12 +277,7 @@ export default function AttendanceBusinessTrip() {
     if (tripType === "出差" && !businessTripEnabled && outingEnabled) {
       setTripType("公出");
     }
-  }, [
-    loadingTypes,
-    outingEnabled,
-    businessTripEnabled,
-    tripType,
-  ]);
+  }, [loadingTypes, outingEnabled, businessTripEnabled, tripType]);
 
   const handleFileChange = (event) => {
     const selectedFiles = Array.from(event.target.files || []);
@@ -341,13 +335,7 @@ export default function AttendanceBusinessTrip() {
   };
 
   const handleCancel = () => {
-    setTripType(
-      outingEnabled
-        ? "公出"
-        : businessTripEnabled
-          ? "出差"
-          : "公出",
-    );
+    setTripType(outingEnabled ? "公出" : businessTripEnabled ? "出差" : "公出");
     setStartDate(todayDate);
     setEndDate(todayDate);
     setStartHour("09");
@@ -421,6 +409,7 @@ export default function AttendanceBusinessTrip() {
       setSubmitting(true);
 
       await apiCreateLeaveRequest({
+        employee_id: requestEmployeeId,
         leave_type_id: Number(selectedLeaveType.leave_type_id),
         start_datetime: startDateTime,
         end_datetime: endDateTime,
@@ -476,6 +465,15 @@ export default function AttendanceBusinessTrip() {
             </Alert>
           ) : null}
 
+          <Box sx={{ mb: "16px" }}>
+            <ProxyRequestEmployeeField
+              formType={tripType === "出差" ? "business_trip" : "outing"}
+              value={proxyEmployeeId}
+              onChange={setProxyEmployeeId}
+              disabled={loadingTypes || submitting}
+            />
+          </Box>
+
           <Box
             sx={{
               width: "100%",
@@ -490,10 +488,9 @@ export default function AttendanceBusinessTrip() {
                 <RadioGroup
                   row
                   value={tripType}
-                  onChange={(e) => setTripType(e.target.value)}
-                  sx={{
-                    gap: "24px",
-                    flexWrap: "nowrap",
+                  onChange={(e) => {
+                    setTripType(e.target.value);
+                    setProxyEmployeeId("");
                   }}
                 >
                   <FormControlLabel

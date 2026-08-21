@@ -35,6 +35,7 @@ import {
   apiOvertimeRules,
 } from "../../../API/attendance";
 import { getCurrentEmployeeId } from "../../../API/account";
+import ProxyRequestEmployeeField from "../AttendanceForm/ProxyRequestEmployeeField";
 import {
   buildDateTimeString,
   calculateOvertimeSummary,
@@ -68,10 +69,10 @@ function buildMinuteOptions(step) {
   const minuteStep = Number(step);
 
   if (
-    !Number.isInteger(minuteStep)
-    || minuteStep < 1
-    || minuteStep > 60
-    || 60 % minuteStep !== 0
+    !Number.isInteger(minuteStep) ||
+    minuteStep < 1 ||
+    minuteStep > 60 ||
+    60 % minuteStep !== 0
   ) {
     return ["00", "30"];
   }
@@ -89,6 +90,8 @@ export default function AttendanceOvertime() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const employeeId = Number(getCurrentEmployeeId() || 0);
+  const [proxyEmployeeId, setProxyEmployeeId] = useState("");
+  const requestEmployeeId = Number(proxyEmployeeId || employeeId);
   const today = getTaiwanTodayDayjs();
 
   const [workDate, setWorkDate] = useState(today);
@@ -134,12 +137,14 @@ export default function AttendanceOvertime() {
         const minuteStep = Number(
           getOvertimeRuleValue(rules, "overtime_minute_step", 30),
         );
-        const allowLeaveDay = String(
-          getOvertimeRuleValue(rules, "allow_leave_day_overtime", "0"),
-        ) === "1";
-        const allowCrossDay = String(
-          getOvertimeRuleValue(rules, "allow_cross_day_overtime", "0"),
-        ) === "1";
+        const allowLeaveDay =
+          String(
+            getOvertimeRuleValue(rules, "allow_leave_day_overtime", "0"),
+          ) === "1";
+        const allowCrossDay =
+          String(
+            getOvertimeRuleValue(rules, "allow_cross_day_overtime", "0"),
+          ) === "1";
 
         setMinimumOvertimeMinutes(
           Number.isInteger(minimumMinutes) && minimumMinutes > 0
@@ -147,10 +152,10 @@ export default function AttendanceOvertime() {
             : 30,
         );
         setOvertimeMinuteStep(
-          Number.isInteger(minuteStep)
-          && minuteStep > 0
-          && minuteStep <= 60
-          && 60 % minuteStep === 0
+          Number.isInteger(minuteStep) &&
+            minuteStep > 0 &&
+            minuteStep <= 60 &&
+            60 % minuteStep === 0
             ? minuteStep
             : 30,
         );
@@ -189,7 +194,7 @@ export default function AttendanceOvertime() {
         const response = await apiAttendanceScheduleMonth({
           year: calendarMonth.year(),
           month: calendarMonth.month() + 1,
-          employee_id: employeeId,
+          employee_id: requestEmployeeId,
         });
 
         if (!active) {
@@ -218,7 +223,7 @@ export default function AttendanceOvertime() {
     return () => {
       active = false;
     };
-  }, [calendarMonth, employeeId]);
+  }, [calendarMonth, requestEmployeeId]);
 
   const allowedDateSet = useMemo(() => {
     return buildSelectableAttendanceDateSet(monthDays, {
@@ -252,7 +257,7 @@ export default function AttendanceOvertime() {
 
   const selectedDateKey = useMemo(() => getDateKey(workDate), [workDate]);
   const endDateKey = useMemo(
-    () => allowCrossDayOvertime ? getDateKey(endDate) : selectedDateKey,
+    () => (allowCrossDayOvertime ? getDateKey(endDate) : selectedDateKey),
     [allowCrossDayOvertime, endDate, selectedDateKey],
   );
 
@@ -263,10 +268,10 @@ export default function AttendanceOvertime() {
     }
 
     if (
-      workDate
-      && endDate
-      && dayjs(endDate).isValid()
-      && dayjs(endDate).startOf("day").isBefore(dayjs(workDate).startOf("day"))
+      workDate &&
+      endDate &&
+      dayjs(endDate).isValid() &&
+      dayjs(endDate).startOf("day").isBefore(dayjs(workDate).startOf("day"))
     ) {
       setEndDate(workDate);
     }
@@ -290,7 +295,7 @@ export default function AttendanceOvertime() {
         setErrorText("");
 
         const response = await apiOvertimeRequestMeta({
-          employee_id: employeeId,
+          employee_id: requestEmployeeId,
           work_date: selectedDateKey,
           year: dayjs(selectedDateKey).year(),
         });
@@ -317,9 +322,9 @@ export default function AttendanceOvertime() {
 
         if (allowCrossDayOvertime) {
           const startMinutes =
-            (Number(defaultStart.hour) * 60) + Number(defaultStart.minute);
+            Number(defaultStart.hour) * 60 + Number(defaultStart.minute);
           const endMinutes =
-            (Number(defaultEnd.hour) * 60) + Number(defaultEnd.minute);
+            Number(defaultEnd.hour) * 60 + Number(defaultEnd.minute);
 
           setEndDate(
             endMinutes <= startMinutes
@@ -357,7 +362,7 @@ export default function AttendanceOvertime() {
     };
   }, [
     allowCrossDayOvertime,
-    employeeId,
+    requestEmployeeId,
     minimumOvertimeMinutes,
     selectedDateKey,
     selectedDay,
@@ -379,14 +384,12 @@ export default function AttendanceOvertime() {
     const startDateTime = dayjs(
       buildDateTimeString(selectedDateKey, startHour, startMin),
     );
-    const endDateTime = dayjs(
-      buildDateTimeString(endDateKey, endHour, endMin),
-    );
+    const endDateTime = dayjs(buildDateTimeString(endDateKey, endHour, endMin));
 
     if (
-      !startDateTime.isValid()
-      || !endDateTime.isValid()
-      || endDateTime.valueOf() <= startDateTime.valueOf()
+      !startDateTime.isValid() ||
+      !endDateTime.isValid() ||
+      endDateTime.valueOf() <= startDateTime.valueOf()
     ) {
       return {
         totalMinutes: 0,
@@ -439,10 +442,10 @@ export default function AttendanceOvertime() {
 
   const shouldDisableEndDate = (dateValue) => {
     if (
-      !dateValue
-      || !dayjs(dateValue).isValid()
-      || !workDate
-      || !dayjs(workDate).isValid()
+      !dateValue ||
+      !dayjs(dateValue).isValid() ||
+      !workDate ||
+      !dayjs(workDate).isValid()
     ) {
       return false;
     }
@@ -494,8 +497,10 @@ export default function AttendanceOvertime() {
     }
 
     if (
-      allowCrossDayOvertime
-      && dayjs(endDateKey).startOf("day").isBefore(dayjs(selectedDateKey).startOf("day"))
+      allowCrossDayOvertime &&
+      dayjs(endDateKey)
+        .startOf("day")
+        .isBefore(dayjs(selectedDateKey).startOf("day"))
     ) {
       setErrorText("結束日期不可早於開始日期。");
       return;
@@ -536,7 +541,7 @@ export default function AttendanceOvertime() {
       setSubmitLoading(true);
 
       const response = await apiCreateOvertimeRequest({
-        employee_id: employeeId,
+        employee_id: requestEmployeeId,
         overtime_type: "下班後",
         pay_method: payType === "加班費" ? "加班費" : "補休",
         start_datetime: startDateTime,
@@ -582,7 +587,12 @@ export default function AttendanceOvertime() {
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <Box sx={{ width: "100%" }}>
-        <Breadcrumb rootLabel="個人專區" rootTo="/attendance" currentLabel="加班" mb="14px" />
+        <Breadcrumb
+          rootLabel="個人專區"
+          rootTo="/attendance"
+          currentLabel="加班"
+          mb="14px"
+        />
         <Typography
           sx={{
             fontSize: isMobile ? "24px" : "22px",
@@ -593,6 +603,17 @@ export default function AttendanceOvertime() {
         >
           加班
         </Typography>
+
+        <Box sx={{ mb: "16px" }}>
+          <ProxyRequestEmployeeField
+            formType="overtime"
+            value={proxyEmployeeId}
+            onChange={setProxyEmployeeId}
+            disabled={
+              rulesLoading || monthLoading || metaLoading || submitLoading
+            }
+          />
+        </Box>
 
         {errorText ? (
           <Alert severity="error" sx={{ mb: "16px" }}>
@@ -675,14 +696,14 @@ export default function AttendanceOvertime() {
                             setWorkDate(value);
 
                             if (
-                              allowCrossDayOvertime
-                              && value
-                              && dayjs(value).isValid()
-                              && (
-                                !endDate
-                                || !dayjs(endDate).isValid()
-                                || dayjs(endDate).startOf("day").isBefore(dayjs(value).startOf("day"))
-                              )
+                              allowCrossDayOvertime &&
+                              value &&
+                              dayjs(value).isValid() &&
+                              (!endDate ||
+                                !dayjs(endDate).isValid() ||
+                                dayjs(endDate)
+                                  .startOf("day")
+                                  .isBefore(dayjs(value).startOf("day")))
                             ) {
                               setEndDate(value);
                             }
@@ -792,7 +813,13 @@ export default function AttendanceOvertime() {
                 ) : (
                   <>
                     {allowCrossDayOvertime ? (
-                      <Typography sx={{ fontSize: "13px", color: "#6b7280", fontWeight: 700 }}>
+                      <Typography
+                        sx={{
+                          fontSize: "13px",
+                          color: "#6b7280",
+                          fontWeight: 700,
+                        }}
+                      >
                         開始
                       </Typography>
                     ) : null}
@@ -803,14 +830,14 @@ export default function AttendanceOvertime() {
                         setWorkDate(value);
 
                         if (
-                          allowCrossDayOvertime
-                          && value
-                          && dayjs(value).isValid()
-                          && (
-                            !endDate
-                            || !dayjs(endDate).isValid()
-                            || dayjs(endDate).startOf("day").isBefore(dayjs(value).startOf("day"))
-                          )
+                          allowCrossDayOvertime &&
+                          value &&
+                          dayjs(value).isValid() &&
+                          (!endDate ||
+                            !dayjs(endDate).isValid() ||
+                            dayjs(endDate)
+                              .startOf("day")
+                              .isBefore(dayjs(value).startOf("day")))
                         ) {
                           setEndDate(value);
                         }
@@ -865,7 +892,13 @@ export default function AttendanceOvertime() {
 
                     {allowCrossDayOvertime ? (
                       <>
-                        <Typography sx={{ fontSize: "13px", color: "#6b7280", fontWeight: 700 }}>
+                        <Typography
+                          sx={{
+                            fontSize: "13px",
+                            color: "#6b7280",
+                            fontWeight: 700,
+                          }}
+                        >
                           結束
                         </Typography>
 
@@ -946,8 +979,8 @@ export default function AttendanceOvertime() {
                   mb: "20px",
                 }}
               >
-                (至少須申請 {formatDuration(minimumOvertimeMinutes)} 且申請時間須以{" "}
-                {formatDuration(overtimeMinuteStep)} 為單位)
+                (至少須申請 {formatDuration(minimumOvertimeMinutes)}{" "}
+                且申請時間須以 {formatDuration(overtimeMinuteStep)} 為單位)
               </Typography>
 
               <Typography
@@ -1072,7 +1105,9 @@ export default function AttendanceOvertime() {
           <Button
             variant="contained"
             fullWidth={isMobile}
-            disabled={submitLoading || rulesLoading || monthLoading || metaLoading}
+            disabled={
+              submitLoading || rulesLoading || monthLoading || metaLoading
+            }
             onClick={handleSubmit}
             sx={{
               bgcolor: "#101b4d",

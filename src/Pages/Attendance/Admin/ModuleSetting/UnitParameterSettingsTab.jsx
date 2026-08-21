@@ -10,8 +10,6 @@ import {
   IconButton,
   MenuItem,
   TextField,
-  ToggleButton,
-  ToggleButtonGroup,
   Tooltip,
   Typography,
 } from "@mui/material";
@@ -273,10 +271,8 @@ export default function UnitParameterSettingsTab() {
     setViewMode("all");
   };
 
-  const handleViewModeChange = (_event, value) => {
-    if (value) {
-      setViewMode(value);
-    }
+  const handleViewModeChange = (event) => {
+    setViewMode(event.target.value);
   };
 
   const handleOpenPermission = (row) => {
@@ -778,25 +774,18 @@ export default function UnitParameterSettingsTab() {
           ))}
         </TextField>
 
-        <ToggleButtonGroup
+        <TextField
+          select
+          label="篩選"
           value={viewMode}
-          exclusive
-          size="small"
           onChange={handleViewModeChange}
-          sx={{
-            justifySelf: { xs: "stretch", md: "start" },
-            "& .MuiToggleButton-root": {
-              flex: { xs: 1, md: "none" },
-              minWidth: { md: "84px" },
-              px: "16px",
-              textTransform: "none",
-            },
-          }}
+          size="small"
+          fullWidth
         >
-          <ToggleButton value="all">全部</ToggleButton>
-          <ToggleButton value="schedule">排班</ToggleButton>
-          <ToggleButton value="proxy">代申請</ToggleButton>
-        </ToggleButtonGroup>
+          <MenuItem value="all">全部</MenuItem>
+          <MenuItem value="schedule">排班</MenuItem>
+          <MenuItem value="proxy">代申請</MenuItem>
+        </TextField>
       </Box>
 
       {loading ? (

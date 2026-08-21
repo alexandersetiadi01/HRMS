@@ -34,6 +34,7 @@ import {
   apiLeaveRequestFormMeta,
 } from "../../API/attendance";
 import { getCurrentEmployeeId } from "../../API/account";
+import ProxyRequestEmployeeField from "./AttendanceForm/ProxyRequestEmployeeField";
 import {
   buildDateTimeString,
   getTaiwanTodayDayjs,
@@ -64,6 +65,8 @@ export default function AttendanceMissedPunch() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const employeeId = Number(getCurrentEmployeeId() || 0);
+  const [proxyEmployeeId, setProxyEmployeeId] = useState("");
+  const requestEmployeeId = Number(proxyEmployeeId || employeeId);
   const today = useMemo(() => getTaiwanTodayDayjs(), []);
 
   const [open, setOpen] = useState(true);
@@ -89,14 +92,15 @@ export default function AttendanceMissedPunch() {
         setErrorText("");
 
         const response = await apiLeaveRequestFormMeta({
-          employee_id: employeeId,
+          employee_id: requestEmployeeId,
         });
 
         if (!active) {
           return;
         }
 
-        const payload = response?.data?.data || response?.data || response || {};
+        const payload =
+          response?.data?.data || response?.data || response || {};
         setFormMeta(payload);
       } catch (error) {
         console.error("Failed to load missed punch form meta:", error);
@@ -119,18 +123,18 @@ export default function AttendanceMissedPunch() {
     return () => {
       active = false;
     };
-  }, [employeeId]);
+  }, [requestEmployeeId]);
 
   const disabledDateSet = useMemo(() => {
     const holidaySet = normalizeDateSet(formMeta?.holiday_disabled_dates);
 
     const approvedLeaveRaw = formMeta?.approved_leave_dates_map || {};
     const approvedLeaveSource =
-      approvedLeaveRaw?.[String(employeeId)] || approvedLeaveRaw || {};
+      approvedLeaveRaw?.[String(requestEmployeeId)] || approvedLeaveRaw || {};
     const approvedLeaveSet = normalizeDateSet(approvedLeaveSource);
 
     return new Set([...holidaySet, ...approvedLeaveSet]);
-  }, [employeeId, formMeta]);
+  }, [requestEmployeeId, formMeta]);
 
   const shouldDisableDate = (dateValue) => {
     if (!dateValue || !dayjs(dateValue).isValid()) {
@@ -213,7 +217,7 @@ export default function AttendanceMissedPunch() {
       setSubmitLoading(true);
 
       await apiCreateMissedPunchRequest({
-        employee_id: employeeId,
+        employee_id: requestEmployeeId,
         request_punch_type: type,
         request_datetime: requestDateTime,
         location_label: location,
@@ -300,6 +304,15 @@ export default function AttendanceMissedPunch() {
             <CloseIcon />
           </IconButton>
         </DialogTitle>
+
+        <Box sx={{ px: 3, pt: 1 }}>
+          <ProxyRequestEmployeeField
+            formType="missed_punch"
+            value={proxyEmployeeId}
+            onChange={setProxyEmployeeId}
+            disabled={pageLoading || submitLoading}
+          />
+        </Box>
 
         <DialogContent
           dividers

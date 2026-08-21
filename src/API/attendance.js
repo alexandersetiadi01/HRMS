@@ -1681,6 +1681,11 @@ export async function apiAttendanceUnitParameterCandidates() {
   return res.data;
 }
 
+export async function apiAttendanceProxyRequestMeta() {
+  const res = await http.get("/attendance/proxy-request-meta");
+  return res.data;
+}
+
 export async function apiAttendanceBusinessTripRules() {
   const res = await http.get("/attendance/business-trip-rules");
   return res.data;

@@ -58,6 +58,7 @@ import {
   normalizeLeaveTypes,
   safeText,
 } from "./LeaveUtils";
+import ProxyRequestEmployeeField from "../AttendanceForm/ProxyRequestEmployeeField";
 import LeaveTypeRow from "./LeaveTypeRow";
 import LeaveSpecialDialog from "./LeaveSpecialDialog";
 
@@ -66,6 +67,8 @@ export default function AttendanceLeave() {
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const today = getTaiwanTodayDayjs();
   const employeeId = Number(getCurrentEmployeeId() || 0);
+  const [proxyEmployeeId, setProxyEmployeeId] = useState("");
+  const requestEmployeeId = Number(proxyEmployeeId || employeeId);
 
   const [startDate, setStartDate] = useState(today);
   const [endDate, setEndDate] = useState(today);
@@ -109,9 +112,11 @@ export default function AttendanceLeave() {
 
         const [leaveTypesRes, formMetaRes, entitlementRes] = await Promise.all([
           apiLeaveTypes(),
-          apiLeaveRequestFormMeta(),
+          apiLeaveRequestFormMeta({
+            employee_id: requestEmployeeId,
+          }),
           apiLeaveEntitlementInstances({
-            employee_id: employeeId,
+            employee_id: requestEmployeeId,
             status: "啟用",
           }),
         ]);
@@ -148,7 +153,7 @@ export default function AttendanceLeave() {
     return () => {
       active = false;
     };
-  }, [employeeId]);
+  }, [requestEmployeeId]);
 
   const holidayDateSet = useMemo(() => {
     return normalizeDateSet(formMeta?.holiday_disabled_dates);
@@ -157,10 +162,10 @@ export default function AttendanceLeave() {
   const approvedLeaveDateSet = useMemo(() => {
     const approvedLeaveRaw = formMeta?.approved_leave_dates_map || {};
     const approvedLeaveSource =
-      approvedLeaveRaw?.[String(employeeId)] || approvedLeaveRaw || {};
+      approvedLeaveRaw?.[String(requestEmployeeId)] || approvedLeaveRaw || {};
 
     return normalizeDateSet(approvedLeaveSource);
-  }, [employeeId, formMeta]);
+  }, [requestEmployeeId, formMeta]);
 
   const disabledDateSet = useMemo(() => {
     return new Set([...holidayDateSet]);
@@ -501,6 +506,7 @@ export default function AttendanceLeave() {
       setSubmitLoading(true);
 
       const requestPayload = {
+        employee_id: requestEmployeeId,
         leave_type_id: Number(selectedBaseLeaveTypeId),
         start_datetime: startDateTime,
         end_datetime: endDateTime,
@@ -616,6 +622,15 @@ export default function AttendanceLeave() {
             {submitSuccess}
           </Alert>
         ) : null}
+
+        <Box sx={{ mb: "16px" }}>
+          <ProxyRequestEmployeeField
+            formType="leave"
+            value={proxyEmployeeId}
+            onChange={setProxyEmployeeId}
+            disabled={pageLoading || submitLoading}
+          />
+        </Box>
 
         <Box
           sx={{
