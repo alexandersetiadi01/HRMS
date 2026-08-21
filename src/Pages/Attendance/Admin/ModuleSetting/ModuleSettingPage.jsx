@@ -4,6 +4,7 @@ import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import ClockIpSettingsTab from "./ClockIpSettingsTab";
 import ClockLocationSettingsTab from "./ClockLocationSettingsTab";
+import UnitParameterSettingsTab from "./UnitParameterSettingsTab";
 import Breadcrumb from "../../../../Utils/Breadcrumb";
 import AttendanceRulesTab from "./AttendanceRulesTab";
 import CalendarTab from "./CalendarTab";
@@ -435,23 +436,7 @@ export default function ModuleSettingPage() {
                   ) : null}
 
                   {activeParameter === "unit-settings" ? (
-                    <>
-                      <Typography
-                        sx={{
-                          fontSize: "20px",
-                          fontWeight: 700,
-                          color: "#111827",
-                        }}
-                      >
-                        單位參數設定
-                      </Typography>
-
-                      <Typography
-                        sx={{ mt: "4px", fontSize: "14px", color: "#6b7280" }}
-                      >
-                        單位排班及代申請權限相關設定
-                      </Typography>
-                    </>
+                    <UnitParameterSettingsTab />
                   ) : null}
                 </>
               ) : null}

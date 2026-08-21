@@ -1663,6 +1663,24 @@ export async function apiUpdateAttendanceOutingRule(ruleCode, ruleValue) {
   return res.data;
 }
 
+export async function apiAttendanceUnitParameters(unitId) {
+  const res = await http.get(`/attendance/unit-parameters/${unitId}`);
+  return res.data;
+}
+
+export async function apiUpdateAttendanceUnitParameters(unitId, items = []) {
+  const res = await http.put(`/attendance/unit-parameters/${unitId}`, {
+    items,
+  });
+
+  return res.data;
+}
+
+export async function apiAttendanceUnitParameterCandidates() {
+  const res = await http.get("/attendance/unit-parameters/candidates");
+  return res.data;
+}
+
 export async function apiAttendanceBusinessTripRules() {
   const res = await http.get("/attendance/business-trip-rules");
   return res.data;

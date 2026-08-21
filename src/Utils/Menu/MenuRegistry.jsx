@@ -265,7 +265,7 @@ export const MENU_ITEMS = [
     disable: false,
     groups: ["attendance"],
     sectionKey: "supervisor",
-    accessKey: "staff-attendance",
+    accessKey: "schedule-management",
   },
   {
     id: "shift-manager-setting",

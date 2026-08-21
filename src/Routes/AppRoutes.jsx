@@ -41,6 +41,7 @@ import Settings from "../Pages/Settings/Settings";
 import MenuShortcuts from "../Pages/Settings/MenuShortcut";
 import RequireAuth from "./RequireAuth";
 import RequireStaffAttendanceAccess from "./RequireStaffAttendanceAccess";
+import RequireScheduleManagementAccess from "./RequireScheduleManagementAccess";
 import RequirePayrollAdmin from "./RequirePayrollAdmin";
 import RequirePayrollPermission, {
   PayrollDefaultRedirect,
@@ -146,9 +147,9 @@ export default function AppRoutes() {
         <Route
           path="/attendance/admin/shift-approval"
           element={
-            <RequireStaffAttendanceAccess>
+            <RequireScheduleManagementAccess>
               <ShiftApprovalPage />
-            </RequireStaffAttendanceAccess>
+            </RequireScheduleManagementAccess>
           }
         />
         <Route

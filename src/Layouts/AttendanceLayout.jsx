@@ -1,7 +1,10 @@
 import { Box, Typography } from "@mui/material";
 import MenuTile from "../Components/MenuTile";
 import { getStoredAuthUser } from "../API/auth";
-import { canViewStaffAttendance } from "../Utils/AttendancePermissions";
+import {
+  canManageAttendanceSchedule,
+  canViewStaffAttendance,
+} from "../Utils/AttendancePermissions";
 import { getAttendanceMenuItemsBySection } from "../Utils/Menu/MenuRegistry";
 
 function AttendanceMenuSection({ title, items }) {
@@ -57,6 +60,10 @@ export default function AttendanceLayout() {
   ).filter((item) => {
     if (item.accessKey === "staff-attendance") {
       return canViewStaffAttendance(authUser);
+    }
+
+    if (item.accessKey === "schedule-management") {
+      return canManageAttendanceSchedule(authUser);
     }
 
     return true;

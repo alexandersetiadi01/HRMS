@@ -43,3 +43,23 @@ export function canViewStaffAttendance(authUser) {
     STAFF_ATTENDANCE_WORDPRESS_ROLES.includes(role),
   );
 }
+
+export function getScheduleManagerUnitIds(authUser) {
+  const unitIds = Array.isArray(
+    authUser?.schedule_manager_unit_ids,
+  )
+    ? authUser.schedule_manager_unit_ids
+    : [];
+
+  return Array.from(
+    new Set(
+      unitIds
+        .map((unitId) => Number(unitId || 0))
+        .filter((unitId) => unitId > 0),
+    ),
+  );
+}
+
+export function canManageAttendanceSchedule(authUser) {
+  return authUser?.can_manage_schedule === true;
+}

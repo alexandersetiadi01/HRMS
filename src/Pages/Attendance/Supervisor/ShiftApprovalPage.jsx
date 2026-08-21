@@ -13,9 +13,15 @@ import {
   apiAttendanceSelfSchedulingReview,
   apiPublishAttendanceSelfSchedule,
 } from "../../../API/attendance";
+import { getStoredAuthUser } from "../../../API/auth";
 import FormDialog from "../../../Components/FormDialog";
 import SuccessDialog from "../../../Components/SuccessDialog";
 import Breadcrumb from "../../../Utils/Breadcrumb";
+import {
+  getAuthUserSystemRole,
+  getAuthUserWordPressRoles,
+  getScheduleManagerUnitIds,
+} from "../../../Utils/AttendancePermissions";
 import ResponsiveAttendanceTable from "../AttendanceForm/ResponsiveAttendanceTable";
 import { SelectField } from "../AttendanceForm/ApplicationRecord/SharedFields";
 
@@ -92,6 +98,18 @@ function formatPublicationStatus(row) {
 
 export default function ShiftApprovalPage() {
   const targetMonth = useMemo(() => getNextMonthYear(), []);
+  const authUser = useMemo(() => getStoredAuthUser(), []);
+  const scheduleManagerUnitIds = useMemo(
+    () => getScheduleManagerUnitIds(authUser),
+    [authUser],
+  );
+  const systemRole = getAuthUserSystemRole(authUser);
+  const wordpressRoles = getAuthUserWordPressRoles(authUser);
+  const hasGlobalScheduleAccess =
+    systemRole === "admin" ||
+    wordpressRoles.includes("administrator") ||
+    wordpressRoles.includes("hrms_admin");
+  const restrictScheduleUnits = !hasGlobalScheduleAccess;
 
   const [unitOptions, setUnitOptions] = useState([]);
   const [employeeOptions, setEmployeeOptions] = useState([]);
@@ -117,13 +135,31 @@ export default function ShiftApprovalPage() {
       try {
         const meta = await apiAttendanceAdminMeta();
 
+        const availableUnitOptions = Array.isArray(meta?.unitOptions)
+          ? meta.unitOptions
+          : [];
+
+        const scopedUnitOptions = restrictScheduleUnits
+          ? availableUnitOptions.filter((unit) =>
+              scheduleManagerUnitIds.includes(Number(unit?.value || 0)),
+            )
+          : availableUnitOptions;
+
         setUnitOptions([
           { value: "", label: "全部單位" },
-          ...(Array.isArray(meta?.unitOptions) ? meta.unitOptions : []),
+          ...scopedUnitOptions,
         ]);
 
+        const availableEmployeeOptions = Array.isArray(meta?.employeeOptions)
+          ? meta.employeeOptions
+          : [];
+
         setEmployeeOptions(
-          Array.isArray(meta?.employeeOptions) ? meta.employeeOptions : [],
+          restrictScheduleUnits
+            ? availableEmployeeOptions.filter((employee) =>
+                scheduleManagerUnitIds.includes(Number(employee?.unit_id || 0)),
+              )
+            : availableEmployeeOptions,
         );
       } catch (error) {
         console.error(error);
@@ -136,7 +172,7 @@ export default function ShiftApprovalPage() {
     };
 
     loadMeta();
-  }, []);
+  }, [restrictScheduleUnits, scheduleManagerUnitIds]);
 
   const filteredEmployeeOptions = useMemo(() => {
     if (!unitId) {
