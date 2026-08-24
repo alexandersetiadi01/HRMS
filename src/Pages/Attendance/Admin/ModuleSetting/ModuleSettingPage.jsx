@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Box, Collapse, Paper, Tab, Tabs, Typography } from "@mui/material";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
@@ -22,58 +23,146 @@ import {
   SHIFT_GROUP_ITEMS,
 } from "./moduleSettingOptions";
 
+const MODULE_SETTING_BASE = "/attendance/admin/module-setting";
+
+function getModuleSettingState(pathname) {
+  const relativePath = pathname
+    .replace(MODULE_SETTING_BASE, "")
+    .replace(/^\/+|\/+$/g, "");
+
+  const parts = relativePath ? relativePath.split("/") : [];
+
+  if (parts[0] === "approval") {
+    return {
+      activeTab: "approval",
+      activeParameter: "",
+      activeAttendanceRule: "leave",
+      activeShiftGroupItem: "groups",
+      activeClockSetting: "location",
+    };
+  }
+
+  if (parts[0] === "form-parameters") {
+    const activeParameter = parts[1] || "calendar";
+
+    return {
+      activeTab: "form-parameters",
+      activeParameter,
+      activeAttendanceRule:
+        activeParameter === "attendance-rules" ? parts[2] || "leave" : "leave",
+      activeShiftGroupItem:
+        activeParameter === "shift-group" ? parts[2] || "groups" : "groups",
+      activeClockSetting:
+        activeParameter === "clock-settings" ? parts[2] || "location" : "location",
+    };
+  }
+
+  return {
+    activeTab: "permissions",
+    activeParameter: "",
+    activeAttendanceRule: "leave",
+    activeShiftGroupItem: "groups",
+    activeClockSetting: "location",
+  };
+}
+
 export default function ModuleSettingPage() {
-  const [activeTab, setActiveTab] = useState("form-parameters");
-  const [activeParameter, setActiveParameter] = useState("leave-types");
-  const [activeAttendanceRule, setActiveAttendanceRule] = useState("leave");
-  const [activeShiftGroupItem, setActiveShiftGroupItem] = useState("groups");
-  const [attendanceRulesOpen, setAttendanceRulesOpen] = useState(false);
-  const [shiftGroupOpen, setShiftGroupOpen] = useState(false);
-  const [clockSettingsOpen, setClockSettingsOpen] = useState(false);
-  const [activeClockSetting, setActiveClockSetting] = useState("location");
+  const location = useLocation();
+  const navigate = useNavigate();
+  const routeState = getModuleSettingState(location.pathname);
+  const {
+    activeTab,
+    activeParameter,
+    activeAttendanceRule,
+    activeShiftGroupItem,
+    activeClockSetting,
+  } = routeState;
+
+  const [attendanceRulesOpen, setAttendanceRulesOpen] = useState(
+    activeParameter === "attendance-rules",
+  );
+  const [shiftGroupOpen, setShiftGroupOpen] = useState(
+    activeParameter === "shift-group",
+  );
+  const [clockSettingsOpen, setClockSettingsOpen] = useState(
+    activeParameter === "clock-settings",
+  );
+
+  useEffect(() => {
+    if (activeParameter === "attendance-rules") {
+      setAttendanceRulesOpen(true);
+    }
+
+    if (activeParameter === "shift-group") {
+      setShiftGroupOpen(true);
+    }
+
+    if (activeParameter === "clock-settings") {
+      setClockSettingsOpen(true);
+    }
+  }, [activeParameter]);
+
+  const handleTabChange = (_event, value) => {
+    if (value === "permissions") {
+      navigate(`${MODULE_SETTING_BASE}/permissions`);
+      return;
+    }
+
+    if (value === "approval") {
+      navigate(`${MODULE_SETTING_BASE}/approval`);
+      return;
+    }
+
+    navigate(`${MODULE_SETTING_BASE}/form-parameters/calendar`);
+  };
 
   const handleParameterClick = (item) => {
     if (item.value === "attendance-rules") {
-      setActiveParameter("attendance-rules");
-      setActiveTab("form-parameters");
-      setAttendanceRulesOpen((current) => !current);
+      if (activeParameter === "attendance-rules") {
+        setAttendanceRulesOpen((current) => !current);
+        return;
+      }
+
+      setAttendanceRulesOpen(true);
+      navigate(`${MODULE_SETTING_BASE}/form-parameters/attendance-rules/leave`);
       return;
     }
 
     if (item.value === "shift-group") {
-      setActiveParameter("shift-group");
-      setActiveTab("form-parameters");
-      setShiftGroupOpen((current) => !current);
+      if (activeParameter === "shift-group") {
+        setShiftGroupOpen((current) => !current);
+        return;
+      }
+
+      setShiftGroupOpen(true);
+      navigate(`${MODULE_SETTING_BASE}/form-parameters/shift-group/groups`);
       return;
     }
 
     if (item.value === "clock-settings") {
-      setActiveParameter("clock-settings");
-      setActiveTab("form-parameters");
-      setClockSettingsOpen((current) => !current);
+      if (activeParameter === "clock-settings") {
+        setClockSettingsOpen((current) => !current);
+        return;
+      }
+
+      setClockSettingsOpen(true);
+      navigate(`${MODULE_SETTING_BASE}/form-parameters/clock-settings/location`);
       return;
     }
 
-    setActiveParameter(item.value);
-    setActiveTab("form-parameters");
+    navigate(`${MODULE_SETTING_BASE}/form-parameters/${item.value}`);
   };
 
   const handleAttendanceRuleClick = (value) => {
-    setActiveTab("form-parameters");
-    setActiveParameter("attendance-rules");
-    setActiveAttendanceRule(value);
+    navigate(`${MODULE_SETTING_BASE}/form-parameters/attendance-rules/${value}`);
   };
 
   const handleShiftGroupClick = (value) => {
-    setActiveTab("form-parameters");
-    setActiveParameter("shift-group");
-    setActiveShiftGroupItem(value);
+    navigate(`${MODULE_SETTING_BASE}/form-parameters/shift-group/${value}`);
   };
 
   const handleClockSettingClick = (value) => {
-    setActiveTab("form-parameters");
-    setActiveParameter("clock-settings");
-    setActiveClockSetting(value);
+    navigate(`${MODULE_SETTING_BASE}/form-parameters/clock-settings/${value}`);
   };
 
   return (
@@ -108,7 +197,7 @@ export default function ModuleSettingPage() {
       >
         <Tabs
           value={activeTab}
-          onChange={(_event, value) => setActiveTab(value)}
+          onChange={handleTabChange}
           variant="scrollable"
           scrollButtons="auto"
           allowScrollButtonsMobile

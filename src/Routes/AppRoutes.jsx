@@ -432,7 +432,7 @@ export default function AppRoutes() {
           <Route path="*" element={<PayrollUnavailableModule />} />
         </Route>
         <Route
-          path="/attendance/admin/module-setting"
+          path="/attendance/admin/module-setting/*"
           element={
             <RequireAttendancePermission permission="attendance_module_settings_manage">
               <ModuleSettingPage />
