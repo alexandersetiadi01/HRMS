@@ -1709,6 +1709,21 @@ export async function apiAttendanceApprovalSettings() {
   return res.data;
 }
 
+export async function apiAttendanceFormManagement(params = {}) {
+  const res = await http.get("/attendance/form-management", {
+    params: {
+      type: params.type || undefined,
+      unit_id: params.unit_id || undefined,
+      employee_id: params.employee_id || undefined,
+      status: params.status || undefined,
+      date_from: params.date_from || undefined,
+      date_to: params.date_to || undefined,
+    },
+  });
+
+  return res.data;
+}
+
 export async function apiAttendanceApprovalSetting(requestType) {
   const res = await http.get(`/attendance/approval-settings/${requestType}`);
   return res.data;

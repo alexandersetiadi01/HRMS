@@ -13,6 +13,7 @@ import AttendanceOvertime from "../Pages/Attendance/Overtime/AttendanceOverTime"
 import AttendanceLeaveBalance from "../Pages/Attendance/AttendanceLeaveBalance";
 import AttendancePendingApproval from "../Pages/Attendance/PendingApproval/AttendancePendingApproval";
 import AttendanceRecordMaintenance from "../Pages/Attendance/Admin/RecordMaintenance/AttendanceRecordMaintenance";
+import FormManagementPage from "../Pages/Attendance/Admin/FormManagement/FormManagementPage";
 import LeaveHoursManagement from "../Pages/Attendance/Admin/LeaveHoursManagement/LeaveHoursManagement";
 import ModuleSettingPage from "../Pages/Attendance/Admin/ModuleSetting/ModuleSettingPage";
 import StaffAttendancePage from "../Pages/Attendance/Supervisor/StaffAttendancePage";
@@ -172,7 +173,11 @@ export default function AppRoutes() {
         />
         <Route
           path="/attendance/admin/form-management"
-          element={<PlaceholderPage title="表單紀錄管理" />}
+          element={
+            <RequireAttendancePermission permission="attendance_form_management_manage">
+              <FormManagementPage />
+            </RequireAttendancePermission>
+          }
         />
         <Route
           path="/attendance/admin/leave-hours-management"

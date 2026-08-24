@@ -303,10 +303,10 @@ export const MENU_ITEMS = [
     label: "表單紀錄管理",
     to: "/attendance/admin/form-management",
     iconKey: "attendance-form-management",
-    disable: true,
+    disable: false,
     groups: ["attendance"],
     sectionKey: "manager",
-    adminOnly: true,
+    attendancePermission: "attendance_form_management_manage",
   },
   {
     id: "leave-hours-management",
