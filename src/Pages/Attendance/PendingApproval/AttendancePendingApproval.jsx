@@ -307,6 +307,7 @@ export default function AttendancePendingApproval() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [activeRow, setActiveRow] = useState(null);
   const [errorText, setErrorText] = useState("");
+  const [detailErrorText, setDetailErrorText] = useState("");
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [deleteTargetRow, setDeleteTargetRow] = useState(null);
 
@@ -451,12 +452,14 @@ export default function AttendancePendingApproval() {
 
   const handleOpenDetail = (row) => {
     setActiveRow(row);
+    setDetailErrorText("");
     setDetailOpen(true);
   };
 
   const handleCloseDetail = () => {
     setDetailOpen(false);
     setActiveRow(null);
+    setDetailErrorText("");
   };
 
   const handleRequestDelete = (row) => {
@@ -512,7 +515,7 @@ export default function AttendancePendingApproval() {
 
     try {
       setSubmitting(true);
-      setErrorText("");
+      setDetailErrorText("");
 
       await apiApprovalAction({
         type: row.type,
@@ -525,7 +528,7 @@ export default function AttendancePendingApproval() {
       await loadData();
     } catch (error) {
       console.error(error);
-      setErrorText(getErrorMessage(error));
+      setDetailErrorText(getErrorMessage(error));
     } finally {
       setSubmitting(false);
     }
@@ -827,6 +830,7 @@ export default function AttendancePendingApproval() {
         row={activeRow}
         actor={actor}
         submitting={submitting}
+        errorText={detailErrorText}
         onClose={handleCloseDetail}
         onAction={handleAction}
         onRequestDelete={handleRequestDelete}

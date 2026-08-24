@@ -75,6 +75,7 @@ export default function BulkPunchTab() {
   const [previewing, setPreviewing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorText, setErrorText] = useState("");
+  const [previewErrorText, setPreviewErrorText] = useState("");
   const [successDialog, setSuccessDialog] = useState({
     open: false,
     title: "",
@@ -114,6 +115,7 @@ export default function BulkPunchTab() {
   const handleChange = (field, value) => {
     setForm((current) => ({ ...current, [field]: value }));
     setPreview(null);
+    setPreviewErrorText("");
   };
 
   const buildPayload = () => ({
@@ -151,6 +153,7 @@ export default function BulkPunchTab() {
 
     setPreviewing(true);
     setErrorText("");
+    setPreviewErrorText("");
 
     try {
       const result = await apiAttendancePunchBulkPreview(buildPayload());
@@ -171,12 +174,12 @@ export default function BulkPunchTab() {
     }
 
     if (!Number(preview?.summary?.processable || 0)) {
-      setErrorText("目前沒有可建立或取代的打卡紀錄。");
+      setPreviewErrorText("目前沒有可建立或取代的打卡紀錄。");
       return;
     }
 
     setSubmitting(true);
-    setErrorText("");
+    setPreviewErrorText("");
 
     try {
       const result = await apiAttendancePunchBulkCreate(buildPayload());
@@ -190,10 +193,11 @@ export default function BulkPunchTab() {
       });
 
       setPreview(null);
+      setPreviewErrorText("");
       setForm((current) => ({ ...current, dates: [], maintenance_reason: "" }));
     } catch (error) {
       console.error(error);
-      setErrorText(getErrorMessage(error, "批次建立打卡紀錄失敗。"));
+      setPreviewErrorText(getErrorMessage(error, "批次建立打卡紀錄失敗。"));
     } finally {
       setSubmitting(false);
     }
@@ -203,6 +207,7 @@ export default function BulkPunchTab() {
     setForm(EMPTY_FORM);
     setPreview(null);
     setErrorText("");
+    setPreviewErrorText("");
   };
 
   const renderPreviewValue = (row, column) => {
@@ -376,10 +381,17 @@ export default function BulkPunchTab() {
         onClose={() => {
           if (!submitting) {
             setPreview(null);
+            setPreviewErrorText("");
           }
         }}
         onSubmit={handleSubmit}
       >
+        {previewErrorText ? (
+          <Alert severity="error">
+            {previewErrorText}
+          </Alert>
+        ) : null}
+
         <Box
           sx={{
             display: "grid",

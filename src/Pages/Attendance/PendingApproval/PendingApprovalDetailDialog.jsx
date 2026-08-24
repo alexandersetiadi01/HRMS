@@ -1,4 +1,5 @@
 import {
+  Alert,
   Box,
   Button,
   Dialog,
@@ -69,6 +70,7 @@ export default function PendingApprovalDetailDialog({
   open,
   row,
   submitting = false,
+  errorText = "",
   onClose,
   onAction,
   onRequestDelete,
@@ -101,6 +103,12 @@ export default function PendingApprovalDetailDialog({
 
       <DialogContent dividers>
         <Box sx={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          {errorText ? (
+            <Alert severity="error">
+              {errorText}
+            </Alert>
+          ) : null}
+
           <Field label="表單類型" value={row?.formType} />
           <Field label="狀態" value={row?.statusLabel} />
           <Field label="申請人" value={row?.applicant} />
