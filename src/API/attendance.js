@@ -1704,6 +1704,24 @@ export async function apiUpdateAttendancePermissionSetting(roleId, permissionCod
   return res.data;
 }
 
+export async function apiAttendanceApprovalSettings() {
+  const res = await http.get("/attendance/approval-settings");
+  return res.data;
+}
+
+export async function apiAttendanceApprovalSetting(requestType) {
+  const res = await http.get(`/attendance/approval-settings/${requestType}`);
+  return res.data;
+}
+
+export async function apiUpdateAttendanceApprovalSetting(requestType, steps = []) {
+  const res = await http.put(`/attendance/approval-settings/${requestType}`, {
+    steps,
+  });
+
+  return res.data;
+}
+
 export async function apiAttendanceBusinessTripRules() {
   const res = await http.get("/attendance/business-trip-rules");
   return res.data;
@@ -2592,7 +2610,7 @@ export async function apiGetPendingApprovalActor() {
 
 export async function apiGetPendingApprovals(params = {}) {
   const { type, employee_id } = params;
-  const employeeId = Number(employee_id || getCurrentEmployeeId() || 0);
+  const employeeId = Number(employee_id || 0);
 
   const res = await http.get("/approval/pending", {
     params: {

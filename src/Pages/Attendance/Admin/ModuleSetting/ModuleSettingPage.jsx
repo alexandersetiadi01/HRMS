@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Box, Collapse, Paper, Tab, Tabs, Typography } from "@mui/material";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
+import ApprovalSettingsTab from "./ApprovalSettingsTab";
 import ClockIpSettingsTab from "./ClockIpSettingsTab";
 import ClockLocationSettingsTab from "./ClockLocationSettingsTab";
 import PermissionSettingsTab from "./PermissionSettingsTab";
@@ -388,19 +389,7 @@ export default function ModuleSettingPage() {
               ) : null}
 
               {activeTab === "approval" ? (
-                <>
-                  <Typography
-                    sx={{ fontSize: "20px", fontWeight: 700, color: "#111827" }}
-                  >
-                    簽核設定
-                  </Typography>
-
-                  <Typography
-                    sx={{ mt: "4px", fontSize: "14px", color: "#6b7280" }}
-                  >
-                    請假、加班、忘打卡、公出及出差簽核流程設定
-                  </Typography>
-                </>
+                <ApprovalSettingsTab />
               ) : null}
 
               {activeTab === "form-parameters" ? (

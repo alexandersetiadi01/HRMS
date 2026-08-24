@@ -37,7 +37,8 @@ const FORM_TYPE_OPTIONS = [
   { value: "leave_cancel", label: "請假撤銷", disabled: true },
   { value: "overtime", label: "加班", disabled: false },
   { value: "overtime_cancel", label: "加班撤銷", disabled: true },
-  { value: "business_trip", label: "公出/出差", disabled: true },
+  { value: "outing", label: "公出", disabled: false },
+  { value: "business_trip", label: "出差", disabled: false },
   { value: "business_trip_cancel", label: "公出/出差撤銷", disabled: true },
 ];
 
@@ -92,9 +93,14 @@ function getTypeFilterValue(formType) {
   }
 
   if (
-    ["leave", "leave_entitlement", "overtime", "missed_punch"].includes(
-      formType,
-    )
+    [
+      "leave",
+      "leave_entitlement",
+      "overtime",
+      "missed_punch",
+      "outing",
+      "business_trip",
+    ].includes(formType)
   ) {
     return formType;
   }
@@ -235,7 +241,9 @@ function getReasonFromRaw(raw) {
 }
 
 function getContentFromRaw(type, raw) {
-  if (type === "leave" || type === "overtime") {
+  if (
+    ["leave", "outing", "business_trip", "overtime"].includes(type)
+  ) {
     return formatDateTimeRange(raw?.start_datetime, raw?.end_datetime);
   }
 
@@ -524,7 +532,7 @@ export default function AttendancePendingApproval() {
   };
 
   const handleBatchApprove = async () => {
-    if (isEmployee || selectedIds.length === 0) {
+    if (selectedIds.length === 0) {
       return;
     }
 
@@ -559,28 +567,12 @@ export default function AttendancePendingApproval() {
       return false;
     }
 
-    if (isEmployee) {
-      return Number(row.employee_id) === Number(actor?.employee_id);
-    }
-
-    return true;
+    return Number(row.employee_id) === Number(actor?.employee_id);
   };
 
-  const canApproveRow = (row) => {
-    if (!row) {
-      return false;
-    }
+  const canApproveRow = (row) => !!row;
 
-    return !isEmployee;
-  };
-
-  const canRejectRow = (row) => {
-    if (!row) {
-      return false;
-    }
-
-    return !isEmployee;
-  };
+  const canRejectRow = (row) => !!row;
 
   return (
     <Box>
@@ -673,26 +665,23 @@ export default function AttendancePendingApproval() {
             mb: "10px",
           }}
         >
-          {!isEmployee ? (
-            <Button
-              variant="contained"
-              sx={BATCH_BUTTON_SX}
-              onClick={handleBatchApprove}
-              disabled={selectedIds.length === 0 || submitting}
-            >
-              批次簽核
-            </Button>
-          ) : null}
+          <Button
+            variant="contained"
+            sx={BATCH_BUTTON_SX}
+            onClick={handleBatchApprove}
+            disabled={selectedIds.length === 0 || submitting}
+          >
+            批次簽核
+          </Button>
         </Box>
 
         <Box sx={{ overflowX: "auto" }}>
-          <Box sx={{ minWidth: isEmployee ? "1040px" : "1160px" }}>
+          <Box sx={{ minWidth: "1160px" }}>
             <Box
               sx={{
                 display: "grid",
-                gridTemplateColumns: isEmployee
-                  ? "100px 220px 220px 240px 1fr 72px"
-                  : "100px 220px 220px 240px 1fr 72px 48px",
+                gridTemplateColumns:
+                  "100px 220px 220px 240px 1fr 72px 48px",
                 minHeight: "62px",
                 alignItems: "center",
                 bgcolor: "#d4d4d4",
@@ -719,13 +708,11 @@ export default function AttendancePendingApproval() {
                 操作
               </Typography>
 
-              {!isEmployee ? (
-                <Checkbox
-                  checked={isAllChecked}
-                  indeterminate={isIndeterminate}
-                  onChange={(e) => handleCheckAll(e.target.checked)}
-                />
-              ) : null}
+              <Checkbox
+                checked={isAllChecked}
+                indeterminate={isIndeterminate}
+                onChange={(e) => handleCheckAll(e.target.checked)}
+              />
             </Box>
 
             {filteredData.length === 0 ? (
@@ -753,9 +740,8 @@ export default function AttendancePendingApproval() {
                     key={rowKey}
                     sx={{
                       display: "grid",
-                      gridTemplateColumns: isEmployee
-                        ? "100px 220px 220px 240px 1fr 72px"
-                        : "100px 220px 220px 240px 1fr 72px 48px",
+                      gridTemplateColumns:
+                        "100px 220px 220px 240px 1fr 72px 48px",
                       minHeight: "62px",
                       alignItems: "center",
                       px: "12px",
@@ -821,15 +807,13 @@ export default function AttendancePendingApproval() {
                       ) : null}
                     </Box>
 
-                    {!isEmployee ? (
-                      <Checkbox
-                        checked={selectedIds.includes(rowKey)}
-                        onChange={(e) =>
-                          handleCheckOne(rowKey, e.target.checked)
-                        }
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    ) : null}
+                    <Checkbox
+                      checked={selectedIds.includes(rowKey)}
+                      onChange={(e) =>
+                        handleCheckOne(rowKey, e.target.checked)
+                      }
+                      onClick={(e) => e.stopPropagation()}
+                    />
                   </Box>
                 );
               })
