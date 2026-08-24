@@ -343,10 +343,10 @@ export const MENU_ITEMS = [
     label: "人員基本資料",
     to: "/attendance/admin/personnel-basic",
     iconKey: "attendance-personnel-basic",
-    disable: true,
+    disable: false,
     groups: ["attendance"],
     sectionKey: "manager",
-    adminOnly: true,
+    attendancePermission: "attendance_personnel_basic_manage",
   },
   {
     id: "report-center-manager",
@@ -363,10 +363,10 @@ export const MENU_ITEMS = [
     label: "班表匯入",
     to: "/attendance/admin/shift-import",
     iconKey: "attendance-shift-import",
-    disable: true,
+    disable: false,
     groups: ["attendance"],
     sectionKey: "manager",
-    adminOnly: true,
+    attendancePermission: "attendance_shift_import_manage",
   },
 
   {

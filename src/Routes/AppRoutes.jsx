@@ -16,6 +16,8 @@ import AttendanceRecordMaintenance from "../Pages/Attendance/Admin/RecordMainten
 import FormManagementPage from "../Pages/Attendance/Admin/FormManagement/FormManagementPage";
 import LeaveHoursManagement from "../Pages/Attendance/Admin/LeaveHoursManagement/LeaveHoursManagement";
 import ModuleSettingPage from "../Pages/Attendance/Admin/ModuleSetting/ModuleSettingPage";
+import PersonnelBasicPage from "../Pages/Attendance/Admin/PersonnelBasic/PersonnelBasicPage";
+import ShiftImportPage from "../Pages/Attendance/Admin/ShiftImport/ShiftImportPage";
 import StaffAttendancePage from "../Pages/Attendance/Supervisor/StaffAttendancePage";
 import ShiftApprovalPage from "../Pages/Attendance/Supervisor/ShiftApprovalPage";
 import Absent from "../Pages/Attendance/Absent";
@@ -446,7 +448,11 @@ export default function AppRoutes() {
         />
         <Route
           path="/attendance/admin/personnel-basic"
-          element={<PlaceholderPage title="人員基本資料" />}
+          element={
+            <RequireAttendancePermission permission="attendance_personnel_basic_manage">
+              <PersonnelBasicPage />
+            </RequireAttendancePermission>
+          }
         />
         <Route
           path="/attendance/admin/manager-report-center"
@@ -454,7 +460,11 @@ export default function AppRoutes() {
         />
         <Route
           path="/attendance/admin/shift-import"
-          element={<PlaceholderPage title="班表匯入" />}
+          element={
+            <RequireAttendancePermission permission="attendance_shift_import_manage">
+              <ShiftImportPage />
+            </RequireAttendancePermission>
+          }
         />
       </Route>
     </Routes>
