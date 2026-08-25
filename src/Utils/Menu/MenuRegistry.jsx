@@ -283,10 +283,10 @@ export const MENU_ITEMS = [
     label: "報表中心",
     to: "/attendance/admin/report-center",
     iconKey: "attendance-report-center",
-    disable: true,
+    disable: false,
     groups: ["attendance"],
     sectionKey: "supervisor",
-    adminOnly: true,
+    attendancePermission: "attendance_supervisor_report_center_view",
   },
 
   {

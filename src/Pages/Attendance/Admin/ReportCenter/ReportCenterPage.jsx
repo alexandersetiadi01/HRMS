@@ -11,6 +11,8 @@ import {
 import {
   apiAttendanceReportCenter,
   apiAttendanceReportCenterMeta,
+  apiAttendanceSupervisorReportCenter,
+  apiAttendanceSupervisorReportCenterMeta,
 } from "../../../../API/attendance";
 import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
 import * as XLSX from "xlsx";
@@ -38,7 +40,7 @@ const INITIAL_FILTERS = {
   unit_id: "",
   employee_id: "",
   date_from: getLocalDateValue(
-    new date(today.getfullyear(), today.getmonth(), 1),
+    new Date(today.getFullYear(), today.getMonth(), 1),
   ),
   date_to: getLocalDateValue(today),
 };
@@ -234,10 +236,7 @@ function formatDateTime(value) {
 
   if (!raw) return "-";
 
-  return raw
-    .replace("T", " ")
-    .replace(/-/g, "/")
-    .slice(0, 16);
+  return raw.replace("T", " ").replace(/-/g, "/").slice(0, 16);
 }
 
 function formatTime(value) {
@@ -281,23 +280,12 @@ function exportValue(row, key) {
     return formatDate(value);
   }
 
-  if (
-    [
-      "start_datetime",
-      "end_datetime",
-      "punch_time",
-    ].includes(key)
-  ) {
+  if (["start_datetime", "end_datetime", "punch_time"].includes(key)) {
     return formatDateTime(value);
   }
 
   if (
-    [
-      "expected_start",
-      "expected_end",
-      "actual_in",
-      "actual_out",
-    ].includes(key)
+    ["expected_start", "expected_end", "actual_in", "actual_out"].includes(key)
   ) {
     return formatTime(value);
   }
@@ -317,7 +305,8 @@ function exportValue(row, key) {
   return displayValue(value);
 }
 
-export default function ReportCenterPage() {
+export default function ReportCenterPage({ scope = "manager" }) {
+  const isSupervisor = scope === "supervisor";
   const [filters, setFilters] = useState(INITIAL_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState(INITIAL_FILTERS);
   const [meta, setMeta] = useState({
@@ -337,32 +326,28 @@ export default function ReportCenterPage() {
       setErrorText("");
 
       try {
-        const response = await apiAttendanceReportCenterMeta();
+        const response = isSupervisor
+          ? await apiAttendanceSupervisorReportCenterMeta()
+          : await apiAttendanceReportCenterMeta();
         const data = getData(response, {});
 
         setMeta({
           report_types: Array.isArray(data?.report_types)
             ? data.report_types
             : [],
-          units: Array.isArray(data?.units)
-            ? data.units
-            : [],
-          employees: Array.isArray(data?.employees)
-            ? data.employees
-            : [],
+          units: Array.isArray(data?.units) ? data.units : [],
+          employees: Array.isArray(data?.employees) ? data.employees : [],
         });
       } catch (error) {
         console.error(error);
-        setErrorText(
-          getErrorMessage(error, "無法載入報表中心查詢條件。"),
-        );
+        setErrorText(getErrorMessage(error, "無法載入報表中心查詢條件。"));
       } finally {
         setLoadingMeta(false);
       }
     };
 
     loadMeta();
-  }, []);
+  }, [isSupervisor]);
 
   useEffect(() => {
     const loadInitial = async () => {
@@ -370,35 +355,26 @@ export default function ReportCenterPage() {
       setErrorText("");
 
       try {
-        const response =
-          await apiAttendanceReportCenter(
-            INITIAL_FILTERS,
-          );
+        const response = isSupervisor
+          ? await apiAttendanceSupervisorReportCenter(INITIAL_FILTERS)
+          : await apiAttendanceReportCenter(INITIAL_FILTERS);
 
         const data = getData(response, {});
 
-        setRows(
-          Array.isArray(data?.items)
-            ? data.items
-            : [],
-        );
-        setReportLabel(
-          data?.report_label || "出勤明細",
-        );
+        setRows(Array.isArray(data?.items) ? data.items : []);
+        setReportLabel(data?.report_label || "出勤明細");
         setAppliedFilters(INITIAL_FILTERS);
       } catch (error) {
         console.error(error);
         setRows([]);
-        setErrorText(
-          getErrorMessage(error, "無法載入報表資料。"),
-        );
+        setErrorText(getErrorMessage(error, "無法載入報表資料。"));
       } finally {
         setLoading(false);
       }
     };
 
     loadInitial();
-  }, []);
+  }, [isSupervisor]);
 
   const reportTypeOptions = useMemo(
     () =>
@@ -425,24 +401,19 @@ export default function ReportCenterPage() {
         label:
           unit.unit_code && unit.unit_name
             ? `${unit.unit_code}/${unit.unit_name}`
-            : unit.unit_name ||
-              unit.unit_code ||
-              `#${unit.unit_id}`,
+            : unit.unit_name || unit.unit_code || `#${unit.unit_id}`,
       })),
     ],
     [meta.units],
   );
 
   const filteredEmployeeOptions = useMemo(() => {
-    const employees = Array.isArray(meta.employees)
-      ? meta.employees
-      : [];
+    const employees = Array.isArray(meta.employees) ? meta.employees : [];
 
     const filtered = filters.unit_id
       ? employees.filter(
           (employee) =>
-            String(employee.unit_id || "") ===
-            String(filters.unit_id),
+            String(employee.unit_id || "") === String(filters.unit_id),
         )
       : employees;
 
@@ -458,9 +429,8 @@ export default function ReportCenterPage() {
   }, [meta.employees, filters.unit_id]);
 
   const columns =
-    REPORT_COLUMNS[
-      appliedFilters.report_type
-    ] || REPORT_COLUMNS.attendance_detail;
+    REPORT_COLUMNS[appliedFilters.report_type] ||
+    REPORT_COLUMNS.attendance_detail;
 
   const handleFilterChange = (field, value) => {
     setFilters((current) => {
@@ -478,21 +448,14 @@ export default function ReportCenterPage() {
   };
 
   const loadRows = async (nextFilters) => {
-    const response =
-      await apiAttendanceReportCenter(
-        nextFilters,
-      );
+    const response = isSupervisor
+      ? await apiAttendanceSupervisorReportCenter(nextFilters)
+      : await apiAttendanceReportCenter(nextFilters);
 
     const data = getData(response, {});
 
-    setRows(
-      Array.isArray(data?.items)
-        ? data.items
-        : [],
-    );
-    setReportLabel(
-      data?.report_label || "",
-    );
+    setRows(Array.isArray(data?.items) ? data.items : []);
+    setReportLabel(data?.report_label || "");
   };
 
   const handleSearch = async () => {
@@ -514,9 +477,7 @@ export default function ReportCenterPage() {
     } catch (error) {
       console.error(error);
       setRows([]);
-      setErrorText(
-        getErrorMessage(error, "無法載入報表資料。"),
-      );
+      setErrorText(getErrorMessage(error, "無法載入報表資料。"));
     } finally {
       setLoading(false);
     }
@@ -533,106 +494,67 @@ export default function ReportCenterPage() {
     } catch (error) {
       console.error(error);
       setRows([]);
-      setErrorText(
-        getErrorMessage(error, "無法載入報表資料。"),
-      );
+      setErrorText(getErrorMessage(error, "無法載入報表資料。"));
     } finally {
       setLoading(false);
     }
   };
 
-    const handleDownloadExcel = () => {
+  const handleDownloadExcel = () => {
     if (!rows.length) return;
 
     const exportColumns =
-      REPORT_EXPORT_COLUMNS[
-        appliedFilters.report_type
-      ] || [];
+      REPORT_EXPORT_COLUMNS[appliedFilters.report_type] || [];
 
     if (!exportColumns.length) return;
 
     const sheetRows = [
       exportColumns.map(([label]) => label),
       ...rows.map((row) =>
-        exportColumns.map(([, key]) =>
-          exportValue(row, key),
-        ),
+        exportColumns.map(([, key]) => exportValue(row, key)),
       ),
     ];
 
-    const worksheet =
-      XLSX.utils.aoa_to_sheet(
-        sheetRows,
+    const worksheet = XLSX.utils.aoa_to_sheet(sheetRows);
+
+    worksheet["!cols"] = exportColumns.map(([label], index) => {
+      const maxLength = Math.max(
+        String(label).length,
+        ...sheetRows.slice(1).map((row) => String(row[index] ?? "").length),
       );
 
-    worksheet["!cols"] =
-      exportColumns.map(([label], index) => {
-        const maxLength = Math.max(
-          String(label).length,
-          ...sheetRows
-            .slice(1)
-            .map((row) =>
-              String(row[index] ?? "").length,
-            ),
-        );
+      return {
+        wch: Math.min(Math.max(maxLength + 2, 12), 30),
+      };
+    });
 
-        return {
-          wch: Math.min(
-            Math.max(maxLength + 2, 12),
-            30,
-          ),
-        };
-      });
+    const workbook = XLSX.utils.book_new();
 
-    const workbook =
-      XLSX.utils.book_new();
-
-    XLSX.utils.book_append_sheet(
-      workbook,
-      worksheet,
-      reportLabel || "報表",
-    );
+    XLSX.utils.book_append_sheet(workbook, worksheet, reportLabel || "報表");
 
     const rangeText =
-      appliedFilters.date_from ||
-      appliedFilters.date_to
+      appliedFilters.date_from || appliedFilters.date_to
         ? `_${appliedFilters.date_from || "起"}_${appliedFilters.date_to || "迄"}`
         : "";
 
-    XLSX.writeFile(
-      workbook,
-      `${reportLabel || "報表"}${rangeText}.xlsx`,
-    );
+    XLSX.writeFile(workbook, `${reportLabel || "報表"}${rangeText}.xlsx`);
   };
 
   const renderValue = (row, column) => {
     const value = row?.[column.key];
 
-    if (
-      [
-        "date",
-      ].includes(column.key)
-    ) {
+    if (["date"].includes(column.key)) {
       return formatDate(value);
     }
 
-    if (
-      [
-        "start_datetime",
-        "end_datetime",
-        "punch_time",
-      ].includes(column.key)
-    ) {
+    if (["start_datetime", "end_datetime", "punch_time"].includes(column.key)) {
       return formatDateTime(value);
     }
 
     if (
-      [
-        "expected_start",
-        "expected_end",
-        "actual_in",
-        "actual_out",
-      ].includes(column.key)
+      ["expected_start", "expected_end", "actual_in", "actual_out"].includes(
+        column.key,
+      )
     ) {
       return formatTime(value);
     }
@@ -660,7 +582,7 @@ export default function ReportCenterPage() {
       }}
     >
       <Breadcrumb
-        rootLabel="管理者專區"
+        rootLabel={isSupervisor ? "主管專區" : "管理者專區"}
         rootTo="/attendance"
         currentLabel="報表中心"
         mb="14px"
@@ -743,12 +665,7 @@ export default function ReportCenterPage() {
 
                 <SelectField
                   value={filters.report_type}
-                  onChange={(value) =>
-                    handleFilterChange(
-                      "report_type",
-                      value,
-                    )
-                  }
+                  onChange={(value) => handleFilterChange("report_type", value)}
                   options={reportTypeOptions}
                   fullWidth
                   height="38px"
@@ -769,12 +686,7 @@ export default function ReportCenterPage() {
 
                 <SelectField
                   value={filters.unit_id}
-                  onChange={(value) =>
-                    handleFilterChange(
-                      "unit_id",
-                      value,
-                    )
-                  }
+                  onChange={(value) => handleFilterChange("unit_id", value)}
                   options={unitOptions}
                   displayEmpty
                   fullWidth
@@ -796,12 +708,7 @@ export default function ReportCenterPage() {
 
                 <SelectField
                   value={filters.employee_id}
-                  onChange={(value) =>
-                    handleFilterChange(
-                      "employee_id",
-                      value,
-                    )
-                  }
+                  onChange={(value) => handleFilterChange("employee_id", value)}
                   options={[
                     {
                       value: "",
@@ -849,13 +756,8 @@ export default function ReportCenterPage() {
                     },
                   }}
                 >
-                  {renderDateField(
-                    filters.date_from,
-                    (event) =>
-                      handleFilterChange(
-                        "date_from",
-                        event.target.value,
-                      ),
+                  {renderDateField(filters.date_from, (event) =>
+                    handleFilterChange("date_from", event.target.value),
                   )}
                 </Box>
               </Box>
@@ -879,13 +781,8 @@ export default function ReportCenterPage() {
                     },
                   }}
                 >
-                  {renderDateField(
-                    filters.date_to,
-                    (event) =>
-                      handleFilterChange(
-                        "date_to",
-                        event.target.value,
-                      ),
+                  {renderDateField(filters.date_to, (event) =>
+                    handleFilterChange("date_to", event.target.value),
                   )}
                 </Box>
               </Box>
@@ -917,11 +814,7 @@ export default function ReportCenterPage() {
                   variant="outlined"
                   startIcon={<DownloadOutlinedIcon />}
                   onClick={handleDownloadExcel}
-                  disabled={
-                    loadingMeta ||
-                    loading ||
-                    !rows.length
-                  }
+                  disabled={loadingMeta || loading || !rows.length}
                   sx={ACTION_BUTTON_SX}
                 >
                   下載 Excel
@@ -931,10 +824,7 @@ export default function ReportCenterPage() {
           </Box>
 
           {errorText ? (
-            <Alert
-              severity="error"
-              sx={{ mb: "14px" }}
-            >
+            <Alert severity="error" sx={{ mb: "14px" }}>
               {errorText}
             </Alert>
           ) : null}
@@ -964,9 +854,7 @@ export default function ReportCenterPage() {
           <Box
             sx={{
               position: "relative",
-              minHeight: loading
-                ? "120px"
-                : "auto",
+              minHeight: loading ? "120px" : "auto",
             }}
           >
             {loading ? (

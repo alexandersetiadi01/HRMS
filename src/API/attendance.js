@@ -854,6 +854,25 @@ export async function apiAttendanceReportCenter(params = {}) {
   return res.data;
 }
 
+export async function apiAttendanceSupervisorReportCenterMeta() {
+  const res = await http.get("/attendance/supervisor-report-center/meta");
+  return res.data;
+}
+
+export async function apiAttendanceSupervisorReportCenter(params = {}) {
+  const res = await http.get("/attendance/supervisor-report-center", {
+    params: {
+      report_type: params.report_type || undefined,
+      unit_id: params.unit_id || undefined,
+      employee_id: params.employee_id || undefined,
+      date_from: params.date_from || undefined,
+      date_to: params.date_to || undefined,
+    },
+  });
+
+  return res.data;
+}
+
 export async function apiAttendanceAdminMeta() {
   const [employeeRes, unitRes, jobRecordRes] = await Promise.all([
     http.get("/employees", {
@@ -1893,8 +1912,8 @@ export async function apiAttendanceSelfSchedulingReview(params = {}) {
   const res = await http.get("/attendance/self-scheduling/review", {
     params: {
       employee_id: Number(params.employee_id || 0) || undefined,
-      year: Number(params.year || 0) || undefined,
-      month: Number(params.month || 0) || undefined,
+      date_from: params.date_from || undefined,
+      date_to: params.date_to || undefined,
     },
   });
 
@@ -1904,8 +1923,8 @@ export async function apiAttendanceSelfSchedulingReview(params = {}) {
 export async function apiPublishAttendanceSelfSchedule(payload = {}) {
   const res = await http.post("/attendance/self-scheduling/publish", {
     employee_id: Number(payload.employee_id || 0),
-    year: Number(payload.year || 0),
-    month: Number(payload.month || 0),
+    date_from: payload.date_from || "",
+    date_to: payload.date_to || "",
   });
 
   return res.data;

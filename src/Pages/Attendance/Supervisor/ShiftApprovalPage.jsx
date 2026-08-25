@@ -14,6 +14,7 @@ import {
   apiPublishAttendanceSelfSchedule,
 } from "../../../API/attendance";
 import { getStoredAuthUser } from "../../../API/auth";
+import { renderDateField } from "../../../Components/GlobalComponent";
 import FormDialog from "../../../Components/FormDialog";
 import SuccessDialog from "../../../Components/SuccessDialog";
 import Breadcrumb from "../../../Utils/Breadcrumb";
@@ -33,16 +34,6 @@ const TABLE_COLUMNS = [
   { key: "publication_status", label: "發布狀態", width: "1fr" },
 ];
 
-function getNextMonthYear() {
-  const today = new Date();
-  const target = new Date(today.getFullYear(), today.getMonth() + 1, 1);
-
-  return {
-    year: target.getFullYear(),
-    month: target.getMonth() + 1,
-  };
-}
-
 function getPayload(response) {
   return response?.data?.data || response?.data || response || {};
 }
@@ -50,6 +41,22 @@ function getPayload(response) {
 function formatDate(value) {
   const raw = String(value || "").trim();
   return raw ? raw.replace(/-/g, "/").slice(0, 10) : "-";
+}
+
+function formatRangeLabel(dateFrom, dateTo) {
+  if (!dateFrom && !dateTo) {
+    return "全部班表";
+  }
+
+  if (dateFrom && dateTo) {
+    return `${formatDate(dateFrom)} ～ ${formatDate(dateTo)}`;
+  }
+
+  if (dateFrom) {
+    return `${formatDate(dateFrom)} 起`;
+  }
+
+  return `截至 ${formatDate(dateTo)}`;
 }
 
 function formatTime(value) {
@@ -97,7 +104,6 @@ function formatPublicationStatus(row) {
 }
 
 export default function ShiftApprovalPage() {
-  const targetMonth = useMemo(() => getNextMonthYear(), []);
   const authUser = useMemo(() => getStoredAuthUser(), []);
   const scheduleManagerUnitIds = useMemo(
     () => getScheduleManagerUnitIds(authUser),
@@ -115,6 +121,12 @@ export default function ShiftApprovalPage() {
   const [employeeOptions, setEmployeeOptions] = useState([]);
   const [unitId, setUnitId] = useState("");
   const [employeeId, setEmployeeId] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [appliedRange, setAppliedRange] = useState({
+    date_from: "",
+    date_to: "",
+  });
   const [reviewData, setReviewData] = useState(null);
   const [loadingMeta, setLoadingMeta] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -191,12 +203,20 @@ export default function ShiftApprovalPage() {
     setUnitId(value);
     setEmployeeId("");
     setReviewData(null);
+    setAppliedRange({
+      date_from: "",
+      date_to: "",
+    });
     setErrorText("");
   };
 
   const handleEmployeeChange = (value) => {
     setEmployeeId(value);
     setReviewData(null);
+    setAppliedRange({
+      date_from: "",
+      date_to: "",
+    });
     setErrorText("");
   };
 
@@ -207,17 +227,27 @@ export default function ShiftApprovalPage() {
       return;
     }
 
+    if (dateFrom && dateTo && dateFrom > dateTo) {
+      setReviewData(null);
+      setErrorText("開始日期不可晚於結束日期。");
+      return;
+    }
+
     setLoading(true);
     setErrorText("");
 
     try {
       const response = await apiAttendanceSelfSchedulingReview({
         employee_id: employeeId,
-        year: targetMonth.year,
-        month: targetMonth.month,
+        date_from: dateFrom,
+        date_to: dateTo,
       });
 
       setReviewData(getPayload(response));
+      setAppliedRange({
+        date_from: dateFrom,
+        date_to: dateTo,
+      });
     } catch (error) {
       console.error(error);
       setReviewData(null);
@@ -242,14 +272,14 @@ export default function ShiftApprovalPage() {
     try {
       await apiPublishAttendanceSelfSchedule({
         employee_id: employeeId,
-        year: targetMonth.year,
-        month: targetMonth.month,
+        date_from: appliedRange.date_from,
+        date_to: appliedRange.date_to,
       });
 
       const response = await apiAttendanceSelfSchedulingReview({
         employee_id: employeeId,
-        year: targetMonth.year,
-        month: targetMonth.month,
+        date_from: appliedRange.date_from,
+        date_to: appliedRange.date_to,
       });
 
       setReviewData(getPayload(response));
@@ -257,14 +287,14 @@ export default function ShiftApprovalPage() {
       setSuccessDialog({
         open: true,
         title: "操作成功",
-        message: "次月班表已成功發布。",
+        message: "班表已成功發布。",
       });
     } catch (error) {
       console.error(error);
       setErrorText(
         error?.response?.data?.message ||
           error?.message ||
-          "發布次月班表失敗。",
+          "發布班表失敗。",
       );
     } finally {
       setPublishing(false);
@@ -329,78 +359,128 @@ export default function ShiftApprovalPage() {
             <Typography
               sx={{ fontSize: "20px", fontWeight: 700, color: "#111827" }}
             >
-              次月班表審核
+              班表審核
             </Typography>
 
             <Typography sx={{ mt: "2px", fontSize: "14px", color: "#6b7280" }}>
-              審核並發布員工 {targetMonth.year}/{String(targetMonth.month).padStart(2, "0")} 班表
+              查詢、審核並發布員工既有班表
             </Typography>
           </Box>
 
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: {
-                xs: "1fr",
-                sm: "repeat(2, minmax(0, 1fr))",
-                md: "repeat(3, minmax(0, 1fr))",
-              },
-              gap: "14px",
-              alignItems: "end",
-              mb: "18px",
-            }}
-          >
-            <Box sx={{ minWidth: 0 }}>
-              <Typography
-                sx={{ mb: "6px", fontSize: "15px", fontWeight: 500 }}
-              >
-                單位
-              </Typography>
-
-              <SelectField
-                value={unitId}
-                onChange={handleUnitChange}
-                options={unitOptions}
-                displayEmpty
-                fullWidth
-                height="38px"
-                disabled={loadingMeta || loading}
-              />
-            </Box>
-
-            <Box sx={{ minWidth: 0 }}>
-              <Typography
-                sx={{ mb: "6px", fontSize: "15px", fontWeight: 500 }}
-              >
-                員工
-              </Typography>
-
-              <SelectField
-                value={employeeId}
-                onChange={handleEmployeeChange}
-                options={[
-                  { value: "", label: "請選擇員工" },
-                  ...filteredEmployeeOptions,
-                ]}
-                displayEmpty
-                fullWidth
-                height="38px"
-                disabled={loadingMeta || loading}
-              />
-            </Box>
-
-            <Button
-              variant="contained"
-              onClick={loadReview}
-              disabled={loadingMeta || loading || !employeeId}
+          <Box sx={{ mb: "24px" }}>
+            <Box
               sx={{
-                height: "38px",
-                width: { xs: "100%", md: "auto" },
-                justifySelf: { xs: "stretch", md: "start" },
+                display: "grid",
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  sm: "repeat(2, minmax(0, 1fr))",
+                  md: "repeat(4, minmax(0, 1fr))",
+                },
+                gap: "14px",
+                alignItems: "end",
               }}
             >
-              查詢
-            </Button>
+              <Box sx={{ minWidth: 0 }}>
+                <Typography
+                  sx={{ mb: "6px", fontSize: "15px", fontWeight: 500 }}
+                >
+                  單位
+                </Typography>
+
+                <SelectField
+                  value={unitId}
+                  onChange={handleUnitChange}
+                  options={unitOptions}
+                  displayEmpty
+                  fullWidth
+                  height="38px"
+                  disabled={loadingMeta || loading}
+                />
+              </Box>
+
+              <Box sx={{ minWidth: 0 }}>
+                <Typography
+                  sx={{ mb: "6px", fontSize: "15px", fontWeight: 500 }}
+                >
+                  員工
+                </Typography>
+
+                <SelectField
+                  value={employeeId}
+                  onChange={handleEmployeeChange}
+                  options={[
+                    { value: "", label: "請選擇員工" },
+                    ...filteredEmployeeOptions,
+                  ]}
+                  displayEmpty
+                  fullWidth
+                  height="38px"
+                  disabled={loadingMeta || loading}
+                />
+              </Box>
+
+              <Box sx={{ minWidth: 0 }}>
+                <Typography
+                  sx={{ mb: "6px", fontSize: "15px", fontWeight: 500 }}
+                >
+                  開始日期
+                </Typography>
+
+                <Box
+                  sx={{
+                    width: "100%",
+                    "& > *": {
+                      width: "100% !important",
+                    },
+                  }}
+                >
+                  {renderDateField(dateFrom, (event) =>
+                    setDateFrom(event.target.value)
+                  )}
+                </Box>
+              </Box>
+
+              <Box sx={{ minWidth: 0 }}>
+                <Typography
+                  sx={{ mb: "6px", fontSize: "15px", fontWeight: 500 }}
+                >
+                  結束日期
+                </Typography>
+
+                <Box
+                  sx={{
+                    width: "100%",
+                    "& > *": {
+                      width: "100% !important",
+                    },
+                  }}
+                >
+                  {renderDateField(dateTo, (event) =>
+                    setDateTo(event.target.value)
+                  )}
+                </Box>
+              </Box>
+            </Box>
+
+            <Box
+              sx={{
+                mt: "14px",
+                display: "flex",
+                justifyContent: { xs: "stretch", sm: "flex-end" },
+              }}
+            >
+              <Button
+                variant="contained"
+                onClick={loadReview}
+                disabled={loadingMeta || loading || !employeeId}
+                sx={{
+                  height: "38px",
+                  width: { xs: "100%", sm: "auto" },
+                }}
+              >
+                查詢
+              </Button>
+            </Box>
           </Box>
 
           {errorText ? (
@@ -468,7 +548,7 @@ export default function ShiftApprovalPage() {
                 desktopMinWidth="760px"
                 mobileCardTitleKey="work_date"
                 renderValue={renderTableValue}
-                emptyText="目前尚無次月班表資料"
+                emptyText="目前尚無符合條件的班表資料"
                 pagination
                 rowsPerPage={10}
                 fitToContainer
@@ -489,13 +569,13 @@ export default function ShiftApprovalPage() {
                   }
                   onClick={() => setPublishDialogOpen(true)}
                 >
-                  發布次月班表
+                  發布班表
                 </Button>
               </Box>
             </>
           ) : (
             <Typography sx={{ fontSize: "14px", color: "#6b7280" }}>
-              請選擇員工後查詢次月班表。
+              請選擇員工後查詢班表；日期留空時將查詢全部班表。
             </Typography>
           )}
         </Box>
@@ -503,7 +583,7 @@ export default function ShiftApprovalPage() {
 
       <FormDialog
         open={publishDialogOpen}
-        title="發布次月班表"
+        title="發布班表"
         submitting={publishing}
         submitLabel="確認發布"
         cancelLabel="取消"
@@ -511,11 +591,11 @@ export default function ShiftApprovalPage() {
         onSubmit={handlePublish}
       >
         <Typography sx={{ fontSize: "15px", color: "#374151" }}>
-          發布後，員工將無法再修改此月份的自行排班內容。確定要發布
+          確定要發布
           {reviewData?.employee?.display_name
             ? `「${reviewData.employee.display_name}」`
             : "此員工"}
-          的 {targetMonth.year}/{String(targetMonth.month).padStart(2, "0")} 班表嗎？
+          的 {formatRangeLabel(appliedRange.date_from, appliedRange.date_to)}嗎？
         </Typography>
       </FormDialog>
 

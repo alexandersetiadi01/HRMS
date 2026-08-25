@@ -164,7 +164,11 @@ export default function AppRoutes() {
         />
         <Route
           path="/attendance/admin/report-center"
-          element={<PlaceholderPage title="報表中心" />}
+          element={
+            <RequireAttendancePermission permission="attendance_supervisor_report_center_view">
+              <ReportCenterPage scope="supervisor" />
+            </RequireAttendancePermission>
+          }
         />
         <Route
           path="/attendance/admin/record-maintenance"

@@ -107,6 +107,7 @@ export default function ShiftGroupAssignments() {
   const [form, setForm] = useState(INITIAL_FORM);
   const [formErrorText, setFormErrorText] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [confirmSubmitOpen, setConfirmSubmitOpen] = useState(false);
   const [deleteRow, setDeleteRow] = useState(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [successDialog, setSuccessDialog] = useState({
@@ -335,7 +336,7 @@ export default function ShiftGroupAssignments() {
     }));
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     const employeeId = Number(form.employee_id || 0);
     const shiftGroupId = Number(form.shift_group_id || 0);
     const effectiveStartDate = String(form.effective_start_date || "");
@@ -361,11 +362,16 @@ export default function ShiftGroupAssignments() {
       return;
     }
 
+    setFormErrorText("");
+    setConfirmSubmitOpen(true);
+  };
+
+  const handleConfirmedSubmit = async () => {
     const payload = {
-      employee_id: employeeId,
-      shift_group_id: shiftGroupId,
-      effective_start_date: effectiveStartDate,
-      effective_end_date: effectiveEndDate,
+      employee_id: Number(form.employee_id || 0),
+      shift_group_id: Number(form.shift_group_id || 0),
+      effective_start_date: String(form.effective_start_date || ""),
+      effective_end_date: String(form.effective_end_date || ""),
     };
 
     setSubmitting(true);
@@ -388,6 +394,7 @@ export default function ShiftGroupAssignments() {
       const generatedCount = insertedCount + updatedCount;
       const clearedCount = Number(responseData?.cleared_schedule_count || 0);
 
+      setConfirmSubmitOpen(false);
       setFormOpen(false);
       setEditingRow(null);
       setForm(INITIAL_FORM);
@@ -397,11 +404,12 @@ export default function ShiftGroupAssignments() {
         open: true,
         title: editing ? "更新成功" : "新增成功",
         message: editing
-          ? `人員班別設定已成功更新，清除 ${clearedCount} 筆原班表，並重新產生 ${generatedCount} 筆未來班表。`
-          : `人員班別設定已成功新增，並產生 ${generatedCount} 筆未來班表。`,
+          ? `人員班別設定已成功更新，清除 ${clearedCount} 筆原班表，並重新產生 ${generatedCount} 筆班表。`
+          : `人員班別設定已成功新增，並產生 ${generatedCount} 筆班表。`,
       });
     } catch (error) {
       console.error(error);
+      setConfirmSubmitOpen(false);
       setFormErrorText(
         error?.response?.data?.message ||
           (editingRow ? "更新人員班別設定失敗。" : "新增人員班別設定失敗。"),
@@ -409,6 +417,12 @@ export default function ShiftGroupAssignments() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleCloseSubmitConfirm = () => {
+    if (submitting) return;
+
+    setConfirmSubmitOpen(false);
   };
 
   const editingStarted = useMemo(() => {
@@ -457,9 +471,7 @@ export default function ShiftGroupAssignments() {
       });
     } catch (error) {
       console.error(error);
-      setErrorText(
-        error?.response?.data?.message || "刪除人員班別設定失敗。",
-      );
+      setErrorText(error?.response?.data?.message || "刪除人員班別設定失敗。");
     } finally {
       setDeleteSubmitting(false);
     }
@@ -701,9 +713,7 @@ export default function ShiftGroupAssignments() {
         onClose={handleCloseForm}
         onSubmit={handleSubmit}
       >
-        {formErrorText ? (
-          <Alert severity="error">{formErrorText}</Alert>
-        ) : null}
+        {formErrorText ? <Alert severity="error">{formErrorText}</Alert> : null}
 
         <Box>
           <Typography sx={{ mb: "6px", fontSize: "15px", fontWeight: 500 }}>
@@ -801,6 +811,74 @@ export default function ShiftGroupAssignments() {
             }}
           >
             同一員工的班別生效期間不可重疊。
+          </Typography>
+        )}
+      </FormDialog>
+
+      <FormDialog
+        open={confirmSubmitOpen}
+        title={
+          form.effective_start_date <
+          new Date().toLocaleDateString("sv-SE", {
+            timeZone: "Asia/Taipei",
+          })
+            ? "確認過去日期班表"
+            : editingRow
+              ? "確認更新"
+              : "確認新增"
+        }
+        submitLabel={
+          form.effective_start_date <
+          new Date().toLocaleDateString("sv-SE", {
+            timeZone: "Asia/Taipei",
+          })
+            ? "繼續"
+            : "確認"
+        }
+        cancelLabel="取消"
+        submitting={submitting}
+        maxWidth="sm"
+        onClose={handleCloseSubmitConfirm}
+        onSubmit={handleConfirmedSubmit}
+      >
+        {form.effective_start_date <
+        new Date().toLocaleDateString("sv-SE", {
+          timeZone: "Asia/Taipei",
+        }) ? (
+          <>
+            <Alert severity="warning">
+              選擇的開始日早於今天。繼續後，系統將嘗試從過去日期開始建立或重新產生班表。
+            </Alert>
+
+            <Typography
+              sx={{
+                fontSize: "15px",
+                color: "#374151",
+                lineHeight: 1.7,
+              }}
+            >
+              {`開始日：${formatDate(form.effective_start_date)}，今日：${formatDate(
+                new Date().toLocaleDateString("sv-SE", {
+                  timeZone: "Asia/Taipei",
+                }),
+              )}。確定要繼續嗎？`}
+            </Typography>
+          </>
+        ) : (
+          <Typography
+            sx={{
+              fontSize: "15px",
+              color: "#374151",
+              lineHeight: 1.7,
+            }}
+          >
+            {editingRow
+              ? `確認更新此人員班別設定，並重新產生 ${formatDate(
+                  form.effective_start_date,
+                )} 起的班表？`
+              : `確認新增此人員班別設定，並從 ${formatDate(
+                  form.effective_start_date,
+                )} 起產生班表？`}
           </Typography>
         )}
       </FormDialog>
