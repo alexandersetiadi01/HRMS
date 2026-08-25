@@ -21,7 +21,11 @@ import FormDialog from "../../../../Components/FormDialog";
 import SuccessDialog from "../../../../Components/SuccessDialog";
 import Breadcrumb from "../../../../Utils/Breadcrumb";
 import ResponsiveAttendanceTable from "../../AttendanceForm/ResponsiveAttendanceTable";
-import { SelectField } from "../../AttendanceForm/ApplicationRecord/SharedFields";
+import {
+  FilterActions,
+  SelectField,
+} from "../../AttendanceForm/ApplicationRecord/SharedFields";
+import { ACTION_BUTTON_SX } from "../../AttendanceForm/ApplicationRecord/Options";
 
 const PREVIEW_COLUMNS = [
   { key: "row_number", label: "列號", width: "0.6fr" },
@@ -255,36 +259,6 @@ function parseWorkbook(arrayBuffer) {
   }
 
   return rows;
-}
-
-function SummaryItem({ label, value }) {
-  return (
-    <Paper
-      variant="outlined"
-      sx={{
-        px: "14px",
-        py: "10px",
-        minWidth: 0,
-        borderColor: "#d1d5db",
-        borderRadius: "8px",
-      }}
-    >
-      <Typography sx={{ fontSize: "13px", color: "#6b7280" }}>
-        {label}
-      </Typography>
-
-      <Typography
-        sx={{
-          mt: "2px",
-          fontSize: "20px",
-          fontWeight: 700,
-          color: "#111827",
-        }}
-      >
-        {Number(value || 0)}
-      </Typography>
-    </Paper>
-  );
 }
 
 export default function ShiftImportPage() {
@@ -556,23 +530,25 @@ export default function ShiftImportPage() {
           匯入設定
         </Typography>
 
-        <Typography
-          sx={{
-            mt: "4px",
-            fontSize: "14px",
-            color: "#6b7280",
-          }}
-        >
-          Excel 必須包含「員工編號」、「日期」及「班次代碼」三個欄位。
-        </Typography>
-
         <Box
           sx={{
-            mt: "14px",
+            mt: "4px",
             display: "flex",
-            justifyContent: "flex-end",
+            alignItems: { xs: "stretch", sm: "center" },
+            justifyContent: "space-between",
+            flexDirection: { xs: "column", sm: "row" },
+            gap: "12px",
           }}
         >
+          <Typography
+            sx={{
+              fontSize: "14px",
+              color: "#6b7280",
+            }}
+          >
+            Excel 必須包含「員工編號」、「日期」及「班次代碼」三個欄位。
+          </Typography>
+
           <Button
             variant="outlined"
             startIcon={<DownloadOutlinedIcon />}
@@ -583,6 +559,7 @@ export default function ShiftImportPage() {
               previewing ||
               submitting
             }
+            sx={ACTION_BUTTON_SX}
           >
             下載匯入範本
           </Button>
@@ -590,13 +567,13 @@ export default function ShiftImportPage() {
 
         <Box
           sx={{
-            mt: "18px",
+            mt: "20px",
             display: "grid",
             gridTemplateColumns: {
               xs: "1fr",
-              md: "minmax(0, 1fr) minmax(240px, 320px)",
+              md: "minmax(0, 2fr) minmax(220px, 1fr)",
             },
-            gap: "16px",
+            gap: "14px",
             alignItems: "end",
           }}
         >
@@ -633,6 +610,10 @@ export default function ShiftImportPage() {
                   previewing ||
                   submitting
                 }
+                sx={{
+                  ...ACTION_BUTTON_SX,
+                  minWidth: "150px",
+                }}
               >
                 選擇 Excel 檔案
               </Button>
@@ -645,6 +626,13 @@ export default function ShiftImportPage() {
                 slotProps={{
                   input: {
                     readOnly: true,
+                  },
+                }}
+                sx={{
+                  "& .MuiInputBase-root": {
+                    height: "32px",
+                    fontSize: "15px",
+                    bgcolor: "#ffffff",
                   },
                 }}
               />
@@ -685,7 +673,7 @@ export default function ShiftImportPage() {
                 },
               ]}
               fullWidth
-              height="40px"
+              height="32px"
               disabled={
                 readingFile ||
                 previewing ||
@@ -707,40 +695,36 @@ export default function ShiftImportPage() {
           </Alert>
         ) : null}
 
-        <Box
-          sx={{
-            mt: "18px",
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: "10px",
-            flexWrap: "wrap",
-          }}
-        >
-          <Button
-            variant="outlined"
-            onClick={handleClear}
-            disabled={
-              readingFile ||
-              previewing ||
-              submitting
-            }
-          >
-            清空
-          </Button>
+        <Box sx={{ mt: "20px" }}>
+          <FilterActions>
+            <Button
+              variant="outlined"
+              onClick={handleClear}
+              disabled={
+                readingFile ||
+                previewing ||
+                submitting
+              }
+              sx={ACTION_BUTTON_SX}
+            >
+              清空
+            </Button>
 
-          <Button
-            variant="contained"
-            onClick={handlePreview}
-            disabled={
-              loadingMeta ||
-              readingFile ||
-              previewing ||
-              submitting ||
-              !rows.length
-            }
-          >
-            {previewing ? "預覽中..." : "預覽匯入"}
-          </Button>
+            <Button
+              variant="outlined"
+              onClick={handlePreview}
+              disabled={
+                loadingMeta ||
+                readingFile ||
+                previewing ||
+                submitting ||
+                !rows.length
+              }
+              sx={ACTION_BUTTON_SX}
+            >
+              {previewing ? "預覽中..." : "預覽匯入"}
+            </Button>
+          </FilterActions>
         </Box>
 
         {readingFile ? (
@@ -788,14 +772,53 @@ export default function ShiftImportPage() {
               xs: "repeat(2, minmax(0, 1fr))",
               sm: "repeat(5, minmax(0, 1fr))",
             },
-            gap: "10px",
+            gap: "12px",
           }}
         >
-          <SummaryItem label="總筆數" value={summary.total} />
-          <SummaryItem label="可匯入" value={summary.processable} />
-          <SummaryItem label="不可匯入" value={summary.blocked} />
-          <SummaryItem label="將新增" value={summary.insert} />
-          <SummaryItem label="將取代" value={summary.replace} />
+          <Box>
+            <Typography sx={{ fontSize: "13px", color: "#6b7280" }}>
+              總筆數
+            </Typography>
+            <Typography sx={{ fontSize: "18px", fontWeight: 700 }}>
+              {summary.total || 0}
+            </Typography>
+          </Box>
+
+          <Box>
+            <Typography sx={{ fontSize: "13px", color: "#6b7280" }}>
+              可匯入
+            </Typography>
+            <Typography sx={{ fontSize: "18px", fontWeight: 700 }}>
+              {summary.processable || 0}
+            </Typography>
+          </Box>
+
+          <Box>
+            <Typography sx={{ fontSize: "13px", color: "#6b7280" }}>
+              不可匯入
+            </Typography>
+            <Typography sx={{ fontSize: "18px", fontWeight: 700 }}>
+              {summary.blocked || 0}
+            </Typography>
+          </Box>
+
+          <Box>
+            <Typography sx={{ fontSize: "13px", color: "#6b7280" }}>
+              將新增
+            </Typography>
+            <Typography sx={{ fontSize: "18px", fontWeight: 700 }}>
+              {summary.insert || 0}
+            </Typography>
+          </Box>
+
+          <Box>
+            <Typography sx={{ fontSize: "13px", color: "#6b7280" }}>
+              將取代
+            </Typography>
+            <Typography sx={{ fontSize: "18px", fontWeight: 700 }}>
+              {summary.replace || 0}
+            </Typography>
+          </Box>
         </Box>
 
         <ResponsiveAttendanceTable

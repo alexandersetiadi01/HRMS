@@ -17,6 +17,7 @@ import FormManagementPage from "../Pages/Attendance/Admin/FormManagement/FormMan
 import LeaveHoursManagement from "../Pages/Attendance/Admin/LeaveHoursManagement/LeaveHoursManagement";
 import ModuleSettingPage from "../Pages/Attendance/Admin/ModuleSetting/ModuleSettingPage";
 import PersonnelBasicPage from "../Pages/Attendance/Admin/PersonnelBasic/PersonnelBasicPage";
+import ReportCenterPage from "../Pages/Attendance/Admin/ReportCenter/ReportCenterPage";
 import ShiftImportPage from "../Pages/Attendance/Admin/ShiftImport/ShiftImportPage";
 import StaffAttendancePage from "../Pages/Attendance/Supervisor/StaffAttendancePage";
 import ShiftApprovalPage from "../Pages/Attendance/Supervisor/ShiftApprovalPage";
@@ -456,7 +457,11 @@ export default function AppRoutes() {
         />
         <Route
           path="/attendance/admin/manager-report-center"
-          element={<PlaceholderPage title="報表中心" />}
+          element={
+            <RequireAttendancePermission permission="attendance_report_center_manage">
+              <ReportCenterPage />
+            </RequireAttendancePermission>
+          }
         />
         <Route
           path="/attendance/admin/shift-import"

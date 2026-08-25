@@ -353,10 +353,10 @@ export const MENU_ITEMS = [
     label: "報表中心",
     to: "/attendance/admin/manager-report-center",
     iconKey: "attendance-report-center",
-    disable: true,
+    disable: false,
     groups: ["attendance"],
     sectionKey: "manager",
-    adminOnly: true,
+    attendancePermission: "attendance_report_center_manage",
   },
   {
     id: "shift-import",

@@ -791,183 +791,67 @@ export async function apiSaveAttendanceShiftDays(shiftId, days) {
 }
 
 export async function apiAttendancePersonnelBasicList(params = {}) {
-  const [employeeRes, unitRes, positionRes, jobRecordRes] = await Promise.all([
-    http.get("/employees", {
-      params: {
-        page: 1,
-        per_page: 100,
-        search: params.search || undefined,
-        employee_status: params.status || undefined,
-      },
-    }),
-    http.get("/org-units"),
-    http.get("/positions"),
-    http.get("/employee-job-records"),
-  ]);
-
-  const employees = unwrapData(employeeRes, []) || [];
-  const units = unwrapData(unitRes, []) || [];
-  const positions = unwrapData(positionRes, []) || [];
-  const jobRecords = unwrapData(jobRecordRes, []) || [];
-
-  const unitMap = new Map(
-    units.map((unit) => [Number(unit?.unit_id || 0), unit]),
-  );
-
-  const positionMap = new Map(
-    positions.map((position) => [
-      Number(position?.position_id || 0),
-      position,
-    ]),
-  );
-
-  const latestJobMap = new Map();
-
-  [...jobRecords]
-    .sort((a, b) => {
-      const aDate = String(a?.effective_date || "");
-      const bDate = String(b?.effective_date || "");
-
-      if (aDate !== bDate) {
-        return bDate.localeCompare(aDate);
-      }
-
-      return Number(b?.job_record_id || 0) - Number(a?.job_record_id || 0);
-    })
-    .forEach((record) => {
-      const employeeId = Number(record?.employee_id || 0);
-
-      if (!employeeId || latestJobMap.has(employeeId)) return;
-      latestJobMap.set(employeeId, record);
-    });
-
-  const items = employees
-    .map((employee) => {
-      const employeeId = Number(employee?.employee_id || 0);
-      const job = latestJobMap.get(employeeId) || {};
-      const unitId = Number(job?.unit_id || 0);
-      const positionId = Number(job?.position_id || 0);
-      const unit = unitMap.get(unitId) || {};
-      const position = positionMap.get(positionId) || {};
-
-      return {
-        ...employee,
-        employee_id: employeeId,
-        unit_id: unitId,
-        unit_name:
-          unit?.unit_name ||
-          unit?.unit_code ||
-          "",
-        position_id: positionId,
-        position_name:
-          position?.position_name ||
-          position?.position_code ||
-          "",
-      };
-    })
-    .filter((employee) => {
-      if (
-        params.employee_id &&
-        Number(employee.employee_id) !== Number(params.employee_id)
-      ) {
-        return false;
-      }
-
-      if (
-        params.unit_id &&
-        Number(employee.unit_id) !== Number(params.unit_id)
-      ) {
-        return false;
-      }
-
-      return true;
-    });
-
-  return {
-    data: {
-      items,
-      meta: {
-        units,
-        employees: items.map((employee) => ({
-          employee_id: employee.employee_id,
-          employee_no: employee.employee_no,
-          display_name: employee.display_name,
-          unit_id: employee.unit_id,
-        })),
-      },
+  const res = await http.get("/attendance/personnel-basic", {
+    params: {
+      unit_id: params.unit_id || undefined,
+      employee_id: params.employee_id || undefined,
+      status: params.status || undefined,
+      search: params.search || undefined,
     },
-  };
+  });
+
+  return res.data;
 }
 
 export async function apiAttendancePersonnelBasicDetail(employeeId) {
-  const [
-    employeeRes,
-    contactRes,
-    militaryRes,
-    unitRes,
-    positionRes,
-    jobRecordRes,
-  ] = await Promise.all([
-    http.get(`/employees/${employeeId}`),
-    http.get(`/employees/${employeeId}/contact`),
-    http.get(`/employees/${employeeId}/military`),
-    http.get("/org-units"),
-    http.get("/positions"),
-    http.get("/employee-job-records", {
-      params: {
-        employee_id: Number(employeeId),
-      },
-    }),
-  ]);
-
-  const employee = unwrapData(employeeRes, {}) || {};
-  const contact = unwrapData(contactRes, {}) || {};
-  const military = unwrapData(militaryRes, {}) || {};
-  const units = unwrapData(unitRes, []) || [];
-  const positions = unwrapData(positionRes, []) || [];
-  const jobRecords = unwrapData(jobRecordRes, []) || [];
-
-  const latestJob =
-    [...jobRecords].sort((a, b) => {
-      const aDate = String(a?.effective_date || "");
-      const bDate = String(b?.effective_date || "");
-
-      if (aDate !== bDate) {
-        return bDate.localeCompare(aDate);
-      }
-
-      return Number(b?.job_record_id || 0) - Number(a?.job_record_id || 0);
-    })[0] || {};
-
-  const unit = units.find(
-    (item) =>
-      Number(item?.unit_id || 0) === Number(latestJob?.unit_id || 0),
+  const res = await http.get(
+    `/attendance/personnel-basic/${employeeId}`,
   );
 
-  const position = positions.find(
-    (item) =>
-      Number(item?.position_id || 0) ===
-      Number(latestJob?.position_id || 0),
+  return res.data;
+}
+
+export async function apiAttendancePersonnelBasicUpdate(
+  employeeId,
+  payload = {},
+) {
+  const res = await http.put(
+    `/attendance/personnel-basic/${employeeId}`,
+    payload,
   );
 
-  return {
-    data: {
-      employee,
-      contact,
-      military,
-      job: {
-        ...latestJob,
-        unit_name:
-          unit?.unit_name ||
-          unit?.unit_code ||
-          "",
-        position_name:
-          position?.position_name ||
-          position?.position_code ||
-          "",
-      },
+  return res.data;
+}
+
+export async function apiAttendancePersonnelBasicJobChange(
+  employeeId,
+  payload = {},
+) {
+  const res = await http.post(
+    `/attendance/personnel-basic/${employeeId}/job-record`,
+    payload,
+  );
+
+  return res.data;
+}
+
+export async function apiAttendanceReportCenterMeta() {
+  const res = await http.get("/attendance/report-center/meta");
+  return res.data;
+}
+
+export async function apiAttendanceReportCenter(params = {}) {
+  const res = await http.get("/attendance/report-center", {
+    params: {
+      report_type: params.report_type || undefined,
+      unit_id: params.unit_id || undefined,
+      employee_id: params.employee_id || undefined,
+      date_from: params.date_from || undefined,
+      date_to: params.date_to || undefined,
     },
-  };
+  });
+
+  return res.data;
 }
 
 export async function apiAttendanceAdminMeta() {
