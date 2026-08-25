@@ -78,12 +78,14 @@ function normalizeProxyFormTypes(value) {
   return Object.keys(value);
 }
 
-export default function UnitParameterSettingsTab() {
+export default function UnitParameterSettingsTab({
+  initialViewMode = "all",
+}) {
   const [unitOptions, setUnitOptions] = useState([]);
   const [unitId, setUnitId] = useState("");
   const [rows, setRows] = useState([]);
   const [proxyFormTypes, setProxyFormTypes] = useState({});
-  const [viewMode, setViewMode] = useState("all");
+  const [viewMode, setViewMode] = useState(initialViewMode);
   const [loadingMeta, setLoadingMeta] = useState(true);
   const [loadingUnit, setLoadingUnit] = useState(false);
   const [saving, setSaving] = useState(false);

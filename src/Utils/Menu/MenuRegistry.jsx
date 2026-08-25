@@ -271,9 +271,9 @@ export const MENU_ITEMS = [
   {
     id: "shift-manager-setting",
     label: "單位排班管理員設定",
-    to: "/attendance/admin/shift-manager-setting",
+    to: "/attendance/admin/module-setting/form-parameters/unit-settings?view=schedule",
     iconKey: "attendance-shift-manager-setting",
-    disable: true,
+    disable: false,
     groups: ["attendance"],
     sectionKey: "supervisor",
     adminOnly: true,

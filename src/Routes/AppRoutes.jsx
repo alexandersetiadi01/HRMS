@@ -160,7 +160,12 @@ export default function AppRoutes() {
         />
         <Route
           path="/attendance/admin/shift-manager-setting"
-          element={<PlaceholderPage title="單位排班管理員設定" />}
+          element={
+            <Navigate
+              to="/attendance/admin/module-setting/form-parameters/unit-settings?view=schedule"
+              replace
+            />
+          }
         />
         <Route
           path="/attendance/admin/report-center"

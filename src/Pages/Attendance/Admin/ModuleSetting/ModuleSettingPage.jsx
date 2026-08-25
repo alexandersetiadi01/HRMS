@@ -70,6 +70,11 @@ export default function ModuleSettingPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const routeState = getModuleSettingState(location.pathname);
+  const searchParams = new URLSearchParams(location.search);
+  const unitSettingsView =
+    searchParams.get("view") === "schedule"
+      ? "schedule"
+      : "all";
   const {
     activeTab,
     activeParameter,
@@ -514,7 +519,7 @@ export default function ModuleSettingPage() {
                   ) : null}
 
                   {activeParameter === "unit-settings" ? (
-                    <UnitParameterSettingsTab />
+                    <UnitParameterSettingsTab initialViewMode={unitSettingsView} />
                   ) : null}
                 </>
               ) : null}
