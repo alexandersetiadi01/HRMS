@@ -1084,6 +1084,7 @@ export default function LeaveRulesTab() {
               gap: "14px",
             }}
           >
+
             {Number(settingsRow.require_relation_type || 0) !== 1 &&
             ["固定天數", "以天為單位"].includes(
               settingsRow.entitlement_mode,

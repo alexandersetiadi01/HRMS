@@ -1352,6 +1352,37 @@ export async function apiLeaveBalances(params = {}) {
   return res.data;
 }
 
+export async function apiCreateLeaveBalance(payload = {}) {
+  const res = await http.post("/leave/balances", {
+    employee_id: Number(payload.employee_id || 0),
+    leave_type_id: Number(payload.leave_type_id || 0),
+    granted_hours: Number(payload.granted_hours || 0),
+    used_hours: Number(payload.used_hours || 0),
+    valid_from: payload.valid_from || "",
+    valid_to: payload.valid_to || "",
+  });
+
+  return res.data;
+}
+
+export async function apiUpdateLeaveBalance(leaveBalanceId, payload = {}) {
+  const res = await http.put(`/leave/balances/${leaveBalanceId}`, {
+    employee_id: Number(payload.employee_id || 0),
+    leave_type_id: Number(payload.leave_type_id || 0),
+    granted_hours: Number(payload.granted_hours || 0),
+    used_hours: Number(payload.used_hours || 0),
+    valid_from: payload.valid_from || "",
+    valid_to: payload.valid_to || "",
+  });
+
+  return res.data;
+}
+
+export async function apiDeleteLeaveBalance(leaveBalanceId) {
+  const res = await http.delete(`/leave/balances/${leaveBalanceId}`);
+  return res.data;
+}
+
 export async function apiLeaveEntitlementInstances(params = {}) {
   const {
     employee_id,

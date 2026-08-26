@@ -276,7 +276,7 @@ export const MENU_ITEMS = [
     disable: false,
     groups: ["attendance"],
     sectionKey: "supervisor",
-    adminOnly: true,
+    attendancePermission: "attendance_module_settings_manage",
   },
   {
     id: "report-center-supervisor",

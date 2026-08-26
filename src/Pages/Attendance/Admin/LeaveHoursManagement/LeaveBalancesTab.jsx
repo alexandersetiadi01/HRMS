@@ -2,16 +2,25 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Box,
+  Button,
   CircularProgress,
   IconButton,
+  TextField,
   Tooltip,
   Typography,
 } from "@mui/material";
+import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
+import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 
 import {
+  apiCreateLeaveBalance,
+  apiDeleteLeaveBalance,
   apiLeaveApplicationMeta,
   apiLeaveBalances,
+  apiLeaveTypes,
+  apiUpdateLeaveBalance,
 } from "../../../../API/attendance";
 
 import FormDialog from "../../../../Components/FormDialog";
@@ -20,11 +29,21 @@ import {
   ActionButtons,
   SelectField,
 } from "../../AttendanceForm/ApplicationRecord/SharedFields";
+import { ACTION_BUTTON_SX } from "../../AttendanceForm/ApplicationRecord/Options";
+import { renderDateField } from "../../../../Components/GlobalComponent";
 
 const INITIAL_FILTERS = {
   unit: "",
   employee_id: "",
   leave_type_id: "",
+};
+
+const INITIAL_CREATE_FORM = {
+  employee_id: "",
+  leave_type_id: "",
+  granted_hours: "",
+  valid_from: "",
+  valid_to: "",
 };
 
 const TABLE_COLUMNS = [
@@ -106,10 +125,18 @@ export default function LeaveBalancesTab() {
   const [appliedFilters, setAppliedFilters] = useState(INITIAL_FILTERS);
   const [unitOptions, setUnitOptions] = useState([]);
   const [employeeOptions, setEmployeeOptions] = useState([]);
+  const [allLeaveTypes, setAllLeaveTypes] = useState([]);
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [errorText, setErrorText] = useState("");
+  const [successText, setSuccessText] = useState("");
   const [detailRow, setDetailRow] = useState(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createForm, setCreateForm] = useState(INITIAL_CREATE_FORM);
+  const [editRow, setEditRow] = useState(null);
+  const [editGrantedHours, setEditGrantedHours] = useState("");
+  const [deleteRow, setDeleteRow] = useState(null);
 
   const filteredEmployeeOptions = useMemo(() => {
     if (!filters.unit) {
@@ -131,6 +158,25 @@ export default function LeaveBalancesTab() {
       ),
     [employeeOptions],
   );
+
+  const normalLeaveTypeOptions = useMemo(() => {
+    return allLeaveTypes
+      .filter((leaveType) => {
+        const category = String(leaveType.leave_category || "").trim();
+
+        return (
+          !["special", "特殊", "特別", "特殊假"].includes(category) &&
+          ["啟用", "active", "enabled", ""].includes(
+            String(leaveType.status || "").trim(),
+          )
+        );
+      })
+      .map((leaveType) => ({
+        value: Number(leaveType.leave_type_id || 0),
+        label: leaveType.leave_name || leaveType.leave_code || "-",
+      }))
+      .filter((option) => option.value > 0);
+  }, [allLeaveTypes]);
 
   const leaveTypeOptions = useMemo(() => {
     const optionMap = new Map();
@@ -184,7 +230,10 @@ export default function LeaveBalancesTab() {
   }, [rows, employeeMap, appliedFilters.unit]);
 
   const loadMeta = useCallback(async () => {
-    const meta = await apiLeaveApplicationMeta();
+    const [meta, leaveTypesResponse] = await Promise.all([
+      apiLeaveApplicationMeta(),
+      apiLeaveTypes(),
+    ]);
 
     setUnitOptions([
       { value: "", label: "全部單位" },
@@ -194,6 +243,8 @@ export default function LeaveBalancesTab() {
     setEmployeeOptions(
       Array.isArray(meta?.employeeOptions) ? meta.employeeOptions : [],
     );
+
+    setAllLeaveTypes(getItems(leaveTypesResponse));
   }, []);
 
   const loadRows = useCallback(async (nextFilters) => {
@@ -280,25 +331,213 @@ export default function LeaveBalancesTab() {
       setLoading(false);
     }
   };
+  const handleOpenCreate = () => {
+    const year = new Date().getFullYear();
+
+    setCreateForm({
+      ...INITIAL_CREATE_FORM,
+      employee_id: filters.employee_id || "",
+      leave_type_id: "",
+      valid_from: `${year}-01-01`,
+      valid_to: `${year}-12-31`,
+    });
+    setCreateOpen(true);
+    setErrorText("");
+    setSuccessText("");
+  };
+
+  const handleCreateFormChange = (field, value) => {
+    setCreateForm((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  };
+
+  const handleCreateSubmit = async () => {
+    const employeeId = Number(createForm.employee_id || 0);
+    const leaveTypeId = Number(createForm.leave_type_id || 0);
+    const grantedHours = Number(createForm.granted_hours);
+
+    if (employeeId <= 0) {
+      setErrorText("請選擇員工。");
+      return;
+    }
+
+    if (leaveTypeId <= 0) {
+      setErrorText("請選擇假別。");
+      return;
+    }
+
+    if (!Number.isFinite(grantedHours) || grantedHours < 0) {
+      setErrorText("核給時數不可小於 0。");
+      return;
+    }
+
+    if (
+      createForm.valid_from &&
+      createForm.valid_to &&
+      createForm.valid_from > createForm.valid_to
+    ) {
+      setErrorText("有效開始日不可晚於有效結束日。");
+      return;
+    }
+
+    setSaving(true);
+    setErrorText("");
+    setSuccessText("");
+
+    try {
+      await apiCreateLeaveBalance({
+        employee_id: employeeId,
+        leave_type_id: leaveTypeId,
+        granted_hours: grantedHours,
+        used_hours: 0,
+        valid_from: createForm.valid_from,
+        valid_to: createForm.valid_to,
+      });
+
+      setCreateOpen(false);
+      setCreateForm(INITIAL_CREATE_FORM);
+      await loadRows(appliedFilters);
+      setSuccessText("假別時數已新增。");
+    } catch (error) {
+      console.error(error);
+      setErrorText(
+        error?.response?.data?.message ||
+          error?.message ||
+          "新增假別時數失敗。",
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleOpenEdit = (row) => {
+    if (String(row.balance_source || "") !== "normal") {
+      return;
+    }
+
+    setEditRow(row);
+    setEditGrantedHours(String(row.granted_hours ?? ""));
+    setErrorText("");
+    setSuccessText("");
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editRow) {
+      return;
+    }
+
+    const grantedHours = Number(editGrantedHours);
+    const usedHours = Number(editRow.used_hours || 0);
+
+    if (!Number.isFinite(grantedHours) || grantedHours < 0) {
+      setErrorText("核給時數不可小於 0。");
+      return;
+    }
+
+    if (grantedHours < usedHours) {
+      setErrorText("核給時數不可小於已使用時數。");
+      return;
+    }
+
+    setSaving(true);
+    setErrorText("");
+    setSuccessText("");
+
+    try {
+      await apiUpdateLeaveBalance(editRow.balance_source_id, {
+        employee_id: editRow.employee_id,
+        leave_type_id: editRow.leave_type_id,
+        granted_hours: grantedHours,
+        used_hours: usedHours,
+        valid_from: editRow.valid_from || "",
+        valid_to: editRow.valid_to || "",
+      });
+
+      setEditRow(null);
+      await loadRows(appliedFilters);
+      setSuccessText("假別時數已更新。");
+    } catch (error) {
+      console.error(error);
+      setErrorText(
+        error?.response?.data?.message ||
+          error?.message ||
+          "更新假別時數失敗。",
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteRow) {
+      return;
+    }
+
+    setSaving(true);
+    setErrorText("");
+    setSuccessText("");
+
+    try {
+      await apiDeleteLeaveBalance(deleteRow.balance_source_id);
+
+      setDeleteRow(null);
+      await loadRows(appliedFilters);
+      setSuccessText("假別時數已刪除。");
+    } catch (error) {
+      console.error(error);
+      setErrorText(
+        error?.response?.data?.message ||
+          error?.message ||
+          "刪除假別時數失敗。",
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const renderTableValue = (row, column) => {
     if (
-      [
-        "granted_hours",
-        "used_hours",
-        "remaining_hours",
-      ].includes(column.key)
+      ["granted_hours", "used_hours", "remaining_hours"].includes(column.key)
     ) {
       return formatHours(row[column.key]);
     }
 
     if (column.key === "actions") {
+      const isNormal = String(row.balance_source || "") === "normal";
+      const hasUsedHours = Number(row.used_hours || 0) > 0;
+
       return (
-        <Tooltip title="詳細">
-          <IconButton size="small" onClick={() => setDetailRow(row)}>
-            <VisibilityOutlinedIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
+        <Box sx={{ display: "flex", alignItems: "center", gap: "2px" }}>
+          <Tooltip title="詳細">
+            <IconButton size="small" onClick={() => setDetailRow(row)}>
+              <VisibilityOutlinedIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+
+          {isNormal ? (
+            <>
+              <Tooltip title="編輯">
+                <IconButton size="small" onClick={() => handleOpenEdit(row)}>
+                  <EditOutlinedIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+
+              <Tooltip title={hasUsedHours ? "已有使用紀錄，無法刪除" : "刪除"}>
+                <span>
+                  <IconButton
+                    size="small"
+                    onClick={() => setDeleteRow(row)}
+                    disabled={hasUsedHours}
+                  >
+                    <DeleteOutlineOutlinedIcon fontSize="small" />
+                  </IconButton>
+                </span>
+              </Tooltip>
+            </>
+          ) : null}
+        </Box>
       );
     }
 
@@ -315,7 +554,7 @@ export default function LeaveBalancesTab() {
         </Typography>
 
         <Typography sx={{ mt: "2px", fontSize: "14px", color: "#6b7280" }}>
-          查詢員工假別核給、已使用及剩餘時數
+          查詢員工假別時數，並管理一般假別的核給時數
         </Typography>
       </Box>
 
@@ -384,18 +623,43 @@ export default function LeaveBalancesTab() {
           </Box>
         </Box>
 
-        <Box sx={{ mt: "14px", display: "flex", justifyContent: "flex-end" }}>
+        <Box
+          sx={{
+            mt: "14px",
+            display: "flex",
+            justifyContent: "flex-end",
+            alignItems: "center",
+            gap: "8px",
+            flexWrap: "wrap",
+          }}
+        >
           <ActionButtons
             onClear={handleClear}
             onSearch={handleSearch}
             disabled={loading}
           />
+
+          <Button
+            variant="outlined"
+            startIcon={<AddOutlinedIcon />}
+            onClick={handleOpenCreate}
+            disabled={loading}
+            sx={ACTION_BUTTON_SX}
+          >
+            新增給假
+          </Button>
         </Box>
       </Box>
 
       {errorText ? (
         <Alert severity="error" sx={{ mb: "14px" }}>
           {errorText}
+        </Alert>
+      ) : null}
+
+      {successText ? (
+        <Alert severity="success" sx={{ mb: "14px" }}>
+          {successText}
         </Alert>
       ) : null}
 
@@ -542,6 +806,203 @@ export default function LeaveBalancesTab() {
                 {detailRow.relation_type || "-"}
               </Typography>
             </Box>
+          </Box>
+        ) : null}
+      </FormDialog>
+      <FormDialog
+        open={createOpen}
+        title="新增給假"
+        submitLabel="確定"
+        cancelLabel="取消"
+        maxWidth="sm"
+        loading={saving}
+        onClose={() => setCreateOpen(false)}
+        onSubmit={handleCreateSubmit}
+      >
+        <Box sx={{ display: "grid", gap: "14px" }}>
+          <Box>
+            <Typography sx={{ mb: "6px", fontSize: "15px", fontWeight: 500 }}>
+              員工
+            </Typography>
+
+            <SelectField
+              value={createForm.employee_id}
+              onChange={(value) => handleCreateFormChange("employee_id", value)}
+              options={[{ value: "", label: "請選擇員工" }, ...employeeOptions]}
+              displayEmpty
+              fullWidth
+              height="38px"
+              disabled={saving}
+            />
+          </Box>
+
+          <Box>
+            <Typography sx={{ mb: "6px", fontSize: "15px", fontWeight: 500 }}>
+              假別
+            </Typography>
+
+            <SelectField
+              value={createForm.leave_type_id}
+              onChange={(value) =>
+                handleCreateFormChange("leave_type_id", value)
+              }
+              options={[
+                { value: "", label: "請選擇假別" },
+                ...normalLeaveTypeOptions,
+              ]}
+              displayEmpty
+              fullWidth
+              height="38px"
+              disabled={saving}
+            />
+          </Box>
+
+          <Box>
+            <Typography sx={{ mb: "6px", fontSize: "15px", fontWeight: 500 }}>
+              核給時數
+            </Typography>
+
+            <TextField
+              type="number"
+              value={createForm.granted_hours}
+              onChange={(event) =>
+                handleCreateFormChange("granted_hours", event.target.value)
+              }
+              fullWidth
+              size="small"
+              inputProps={{ min: 0, step: 0.5 }}
+              disabled={saving}
+            />
+          </Box>
+
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "repeat(2, minmax(0, 1fr))",
+              },
+              gap: "14px",
+            }}
+          >
+            <Box>
+              <Typography sx={{ mb: "6px", fontSize: "15px", fontWeight: 500 }}>
+                有效開始日
+              </Typography>
+
+              <Box
+                sx={{
+                  width: "100%",
+                  "& > *": {
+                    width: "100% !important",
+                  },
+                }}
+              >
+                {renderDateField(createForm.valid_from, (event) =>
+                  handleCreateFormChange("valid_from", event.target.value),
+                )}
+              </Box>
+            </Box>
+
+            <Box>
+              <Typography sx={{ mb: "6px", fontSize: "15px", fontWeight: 500 }}>
+                有效結束日
+              </Typography>
+
+              <Box
+                sx={{
+                  width: "100%",
+                  "& > *": {
+                    width: "100% !important",
+                  },
+                }}
+              >
+                {renderDateField(createForm.valid_to, (event) =>
+                  handleCreateFormChange("valid_to", event.target.value),
+                )}
+              </Box>
+            </Box>
+          </Box>
+        </Box>
+      </FormDialog>
+
+      <FormDialog
+        open={Boolean(editRow)}
+        title="編輯假別時數"
+        submitLabel="儲存"
+        cancelLabel="取消"
+        maxWidth="sm"
+        loading={saving}
+        onClose={() => setEditRow(null)}
+        onSubmit={handleSaveEdit}
+      >
+        {editRow ? (
+          <Box sx={{ display: "grid", gap: "14px" }}>
+            <Box>
+              <Typography sx={{ fontSize: "13px", color: "#6b7280" }}>
+                員工
+              </Typography>
+              <Typography sx={{ fontSize: "15px", fontWeight: 600 }}>
+                {editRow.employee || "-"}
+              </Typography>
+            </Box>
+
+            <Box>
+              <Typography sx={{ fontSize: "13px", color: "#6b7280" }}>
+                假別
+              </Typography>
+              <Typography sx={{ fontSize: "15px", fontWeight: 600 }}>
+                {editRow.leave_name || "-"}
+              </Typography>
+            </Box>
+
+            <Box>
+              <Typography sx={{ mb: "6px", fontSize: "15px", fontWeight: 500 }}>
+                核給時數
+              </Typography>
+
+              <TextField
+                type="number"
+                value={editGrantedHours}
+                onChange={(event) => setEditGrantedHours(event.target.value)}
+                fullWidth
+                size="small"
+                inputProps={{ min: 0, step: 0.5 }}
+                disabled={saving}
+              />
+            </Box>
+
+            <Box>
+              <Typography sx={{ fontSize: "13px", color: "#6b7280" }}>
+                已使用時數
+              </Typography>
+              <Typography sx={{ fontSize: "15px", fontWeight: 600 }}>
+                {formatHours(editRow.used_hours)}
+              </Typography>
+            </Box>
+          </Box>
+        ) : null}
+      </FormDialog>
+
+      <FormDialog
+        open={Boolean(deleteRow)}
+        title="刪除假別時數"
+        submitLabel="刪除"
+        cancelLabel="取消"
+        maxWidth="xs"
+        loading={saving}
+        onClose={() => setDeleteRow(null)}
+        onSubmit={handleDelete}
+      >
+        {deleteRow ? (
+          <Box sx={{ display: "grid", gap: "8px" }}>
+            <Typography sx={{ fontSize: "15px", color: "#374151" }}>
+              確定要刪除此筆假別時數嗎？
+            </Typography>
+
+            <Typography sx={{ fontSize: "14px", color: "#6b7280" }}>
+              {deleteRow.employee || "-"} / {deleteRow.leave_name || "-"}
+            </Typography>
           </Box>
         ) : null}
       </FormDialog>
