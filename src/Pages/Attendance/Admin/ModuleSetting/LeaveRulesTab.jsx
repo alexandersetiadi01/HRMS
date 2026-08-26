@@ -171,6 +171,7 @@ export default function LeaveRulesTab() {
   });
   const [conditionLoading, setConditionLoading] = useState(false);
   const [conditionErrorText, setConditionErrorText] = useState("");
+  const [deleteConditionRow, setDeleteConditionRow] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [successDialog, setSuccessDialog] = useState({
     open: false,
@@ -517,6 +518,7 @@ export default function LeaveRulesTab() {
     setConditionRows([]);
     setConditionFormOpen(false);
     setEditingCondition(null);
+    setDeleteConditionRow(null);
     setConditionErrorText("");
   };
 
@@ -609,8 +611,8 @@ export default function LeaveRulesTab() {
     }
   };
 
-  const handleDeleteCondition = async (row) => {
-    const conditionId = Number(row?.condition_id || 0);
+  const handleDeleteCondition = async () => {
+    const conditionId = Number(deleteConditionRow?.condition_id || 0);
     const leaveTypeId = Number(conditionRuleRow?.leave_type_id || 0);
 
     if (conditionId <= 0 || leaveTypeId <= 0) return;
@@ -621,6 +623,8 @@ export default function LeaveRulesTab() {
     try {
       await apiDeleteLeaveRuleCondition(conditionId);
       await loadConditionRows(leaveTypeId);
+
+      setDeleteConditionRow(null);
 
       setSuccessDialog({
         open: true,
@@ -1346,7 +1350,7 @@ export default function LeaveRulesTab() {
                     <Tooltip title="刪除">
                       <IconButton
                         size="small"
-                        onClick={() => handleDeleteCondition(row)}
+                        onClick={() => setDeleteConditionRow(row)}
                         disabled={submitting}
                       >
                         <DeleteOutlineIcon fontSize="small" />
@@ -1447,7 +1451,27 @@ export default function LeaveRulesTab() {
             </Typography>
           </Box>
         </FormDialog>
+
+        <FormDialog
+          open={Boolean(deleteConditionRow)}
+          title="確認刪除條件規則"
+          submitLabel="刪除"
+          cancelLabel="取消"
+          maxWidth="xs"
+          submitting={submitting}
+          onClose={() => {
+            if (!submitting) setDeleteConditionRow(null);
+          }}
+          onSubmit={handleDeleteCondition}
+        >
+          <Typography
+            sx={{ fontSize: "15px", color: "#374151", lineHeight: 1.7 }}
+          >
+            確認刪除「{deleteConditionRow?.condition_value || ""}」的條件規則？
+          </Typography>
+        </FormDialog>
       </FormDialog>
+
       <FormDialog
         open={Boolean(deleteRow)}
         title="確認刪除"
