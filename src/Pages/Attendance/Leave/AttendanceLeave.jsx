@@ -33,6 +33,7 @@ import {
   apiCreateLeaveRequest,
   apiLeaveEntitlementInstances,
   apiLeaveRequestFormMeta,
+  apiLeaveRuleSettings,
   apiLeaveTypes,
 } from "../../../API/attendance";
 import { getCurrentEmployeeId } from "../../../API/account";
@@ -259,6 +260,57 @@ export default function AttendanceLeave() {
     );
   }, [availableLeaveTypes, selectedLeaveTypeId]);
 
+  useEffect(() => {
+    let active = true;
+
+    async function loadRuleSettings() {
+      if (!selectedBaseLeaveTypeId) {
+        setSelectedRuleSettings({});
+        return;
+      }
+
+      try {
+        const response = await apiLeaveRuleSettings(
+          Number(selectedBaseLeaveTypeId),
+        );
+
+        if (!active) {
+          return;
+        }
+
+        const payload =
+          response?.data?.data || response?.data || response || {};
+        const settingRows = Array.isArray(payload?.settings)
+          ? payload.settings
+          : [];
+
+        const nextSettings = {};
+
+        settingRows.forEach((item) => {
+          const key = safeText(item?.setting_key, "");
+
+          if (key) {
+            nextSettings[key] = item?.setting_value ?? "";
+          }
+        });
+
+        setSelectedRuleSettings(nextSettings);
+      } catch (error) {
+        console.error("Failed to load leave rule settings:", error);
+
+        if (active) {
+          setSelectedRuleSettings({});
+        }
+      }
+    }
+
+    loadRuleSettings();
+
+    return () => {
+      active = false;
+    };
+  }, [selectedBaseLeaveTypeId]);
+
   const selectedIsSpecialLeave = useMemo(() => {
     return isSpecialLeaveType(selectedLeaveType);
   }, [selectedLeaveType]);
@@ -300,6 +352,22 @@ export default function AttendanceLeave() {
       selectedEntitlementInstance,
     );
   }, [selectedEntitlementInstance, selectedIsSpecialLeave, selectedLeaveType]);
+
+  const prerequisiteLeaveTypeName = useMemo(() => {
+    const prerequisiteLeaveTypeId = Number(
+      selectedRuleSettings?.prerequisite_leave_type_id || 0,
+    );
+
+    if (prerequisiteLeaveTypeId <= 0) {
+      return "";
+    }
+
+    const prerequisiteType = leaveTypes.find(
+      (item) => Number(item.value || 0) === prerequisiteLeaveTypeId,
+    );
+
+    return prerequisiteType?.label || "";
+  }, [leaveTypes, selectedRuleSettings]);
 
   const shouldDisableLeaveDate = (dateValue) => {
     if (!dateValue || !dayjs(dateValue).isValid()) {
@@ -888,6 +956,8 @@ export default function AttendanceLeave() {
                     employeeId={employeeId}
                     entitlementInstance={selectedEntitlementInstance}
                     isSpecialLeave={selectedIsSpecialLeave}
+                    ruleSettings={selectedRuleSettings}
+                    prerequisiteLeaveTypeName={prerequisiteLeaveTypeName}
                   />
                 ))}
               </Box>

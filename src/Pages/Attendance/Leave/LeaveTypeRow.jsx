@@ -3,7 +3,6 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import { selectMenuProps } from "../../../Utils/Attendance/SharedForm";
 import {
   formatBalanceMap,
-  getLeaveMinimumText,
   safeText,
 } from "./LeaveUtils";
 
@@ -134,18 +133,6 @@ export default function LeaveTypeRow({
             }}
           >
             {balanceText}
-          </Typography>
-
-          <Typography
-            sx={{
-              fontSize: "12px",
-              color: "#6b7280",
-              lineHeight: 1.5,
-              mt: "4px",
-              wordBreak: "break-word",
-            }}
-          >
-            {getLeaveMinimumText(selectedType?.raw)}
           </Typography>
         </Box>
       </Box>

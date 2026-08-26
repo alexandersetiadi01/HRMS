@@ -18,7 +18,9 @@ import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 
 import {
   apiCreateLeaveRule,
+  apiCreateLeaveType,
   apiDeleteLeaveRule,
+  apiDeleteLeaveType,
   apiCreateLeaveRuleCondition,
   apiDeleteLeaveRuleCondition,
   apiLeaveRuleConditions,
@@ -41,6 +43,13 @@ import {
 const INITIAL_FILTERS = {
   leave_type_id: "",
   status: "",
+};
+
+const INITIAL_NEW_SPECIAL_TYPE_FORM = {
+  leave_code: "",
+  leave_name: "",
+  paid_type: "不支薪",
+  is_unlimited_balance: "0",
 };
 
 const INITIAL_FORM = {
@@ -153,6 +162,10 @@ export default function LeaveRulesTab() {
   const [detailRow, setDetailRow] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editingRow, setEditingRow] = useState(null);
+  const [createMode, setCreateMode] = useState("existing");
+  const [newSpecialTypeForm, setNewSpecialTypeForm] = useState(
+    INITIAL_NEW_SPECIAL_TYPE_FORM,
+  );
   const [form, setForm] = useState(INITIAL_FORM);
   const [formErrorText, setFormErrorText] = useState("");
   const [deleteRow, setDeleteRow] = useState(null);
@@ -201,7 +214,14 @@ export default function LeaveRulesTab() {
   }, [rows, specialTypes]);
 
   const displayRows = useMemo(() => {
+    const specialTypeIds = new Set(
+      specialTypes.map((type) => Number(type.leave_type_id || 0)),
+    );
+
     return rows
+      .filter((row) =>
+        specialTypeIds.has(Number(row.leave_type_id || 0)),
+      )
       .map((row) => ({
         ...row,
         require_attachment_text:
@@ -226,7 +246,7 @@ export default function LeaveRulesTab() {
 
         return true;
       });
-  }, [rows, appliedFilters]);
+  }, [rows, specialTypes, appliedFilters]);
 
   const loadData = useCallback(async () => {
     const [ruleResponse, typeResponse] = await Promise.all([
@@ -304,6 +324,8 @@ export default function LeaveRulesTab() {
 
   const handleOpenCreate = () => {
     setEditingRow(null);
+    setCreateMode(availableCreateTypes.length > 0 ? "existing" : "new");
+    setNewSpecialTypeForm(INITIAL_NEW_SPECIAL_TYPE_FORM);
     setForm(INITIAL_FORM);
     setFormErrorText("");
     setFormOpen(true);
@@ -338,6 +360,8 @@ export default function LeaveRulesTab() {
 
     setFormOpen(false);
     setEditingRow(null);
+    setCreateMode("existing");
+    setNewSpecialTypeForm(INITIAL_NEW_SPECIAL_TYPE_FORM);
     setForm(INITIAL_FORM);
     setFormErrorText("");
   };
@@ -349,55 +373,122 @@ export default function LeaveRulesTab() {
     }));
   };
 
+  const handleNewSpecialTypeChange = (field, value) => {
+    setNewSpecialTypeForm((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  };
+
   const handleSubmit = async () => {
-    if (!form.leave_type_id) {
+    const creatingNewType = !editingRow && createMode === "new";
+    const leaveCode = newSpecialTypeForm.leave_code.trim();
+    const leaveName = newSpecialTypeForm.leave_name.trim();
+
+    if (!editingRow && createMode === "existing" && !form.leave_type_id) {
       setFormErrorText("請選擇特殊假別。");
       return;
     }
 
-    const payload = {
-      leave_type_id: Number(form.leave_type_id),
-      require_attachment: Number(form.require_attachment),
-      require_event_date: Number(form.require_event_date),
-      require_relation_type: Number(form.require_relation_type),
-      require_request_year: Number(form.require_request_year),
-      require_start_end_dt: Number(form.require_start_end_dt),
-      must_be_continuous: Number(form.must_be_continuous),
-      allow_split: Number(form.allow_split),
-      exclude_non_working_days: Number(form.exclude_non_working_days),
-      use_balance_control: Number(form.use_balance_control),
-      valid_window_mode: form.valid_window_mode,
-      entitlement_mode: form.entitlement_mode,
-      salary_pay_type: form.salary_pay_type,
-      status: form.status,
-    };
+    if (creatingNewType && !leaveCode) {
+      setFormErrorText("請輸入假別代碼。");
+      return;
+    }
+
+    if (creatingNewType && !leaveName) {
+      setFormErrorText("請輸入假別名稱。");
+      return;
+    }
 
     setSubmitting(true);
     setFormErrorText("");
 
+    let createdLeaveTypeId = 0;
+    let ruleCreated = false;
+
     try {
+      let leaveTypeId = Number(form.leave_type_id || 0);
+
+      if (creatingNewType) {
+        const typeResponse = await apiCreateLeaveType({
+          leave_code: leaveCode,
+          leave_name: leaveName,
+          leave_category: "特殊",
+          paid_type: newSpecialTypeForm.paid_type,
+          is_unlimited_balance:
+            newSpecialTypeForm.is_unlimited_balance === "1" ? 1 : 0,
+        });
+
+        const createdType = typeResponse?.data ?? typeResponse;
+        createdLeaveTypeId = Number(createdType?.leave_type_id || 0);
+
+        if (createdLeaveTypeId <= 0) {
+          throw new Error("新增特殊假別後未取得假別編號。");
+        }
+
+        leaveTypeId = createdLeaveTypeId;
+      }
+
+      const payload = {
+        leave_type_id: leaveTypeId,
+        require_attachment: Number(form.require_attachment),
+        require_event_date: Number(form.require_event_date),
+        require_relation_type: Number(form.require_relation_type),
+        require_request_year: Number(form.require_request_year),
+        require_start_end_dt: Number(form.require_start_end_dt),
+        must_be_continuous: Number(form.must_be_continuous),
+        allow_split: Number(form.allow_split),
+        exclude_non_working_days: Number(form.exclude_non_working_days),
+        use_balance_control: Number(form.use_balance_control),
+        valid_window_mode: form.valid_window_mode,
+        entitlement_mode: form.entitlement_mode,
+        salary_pay_type: form.salary_pay_type,
+        status: form.status,
+      };
+
       if (editingRow) {
         await apiUpdateLeaveRule(editingRow.leave_rule_id, payload);
       } else {
         await apiCreateLeaveRule(payload);
+        ruleCreated = true;
       }
 
       const editing = Boolean(editingRow);
 
       setFormOpen(false);
       setEditingRow(null);
+      setCreateMode("existing");
+      setNewSpecialTypeForm(INITIAL_NEW_SPECIAL_TYPE_FORM);
       setForm(INITIAL_FORM);
       await loadData();
 
       setSuccessDialog({
         open: true,
         title: editing ? "更新成功" : "新增成功",
-        message: editing ? "假別規則已成功更新。" : "假別規則已成功新增。",
+        message: editing
+          ? "假別規則已成功更新。"
+          : creatingNewType
+            ? "特殊假別及假別規則已成功新增。"
+            : "假別規則已成功新增。",
       });
     } catch (error) {
       console.error(error);
+
+      if (
+        creatingNewType &&
+        createdLeaveTypeId > 0 &&
+        !ruleCreated
+      ) {
+        try {
+          await apiDeleteLeaveType(createdLeaveTypeId);
+        } catch (rollbackError) {
+          console.error("Rollback special leave type failed:", rollbackError);
+        }
+      }
+
       setFormErrorText(
         error?.response?.data?.message ||
+          error?.message ||
           (editingRow ? "更新假別規則失敗。" : "新增假別規則失敗。"),
       );
     } finally {
@@ -746,7 +837,6 @@ export default function LeaveRulesTab() {
           variant="contained"
           startIcon={<AddIcon />}
           onClick={handleOpenCreate}
-          disabled={availableCreateTypes.length === 0}
           sx={{ alignSelf: { xs: "stretch", sm: "flex-start" } }}
         >
           新增規則
@@ -942,10 +1032,49 @@ export default function LeaveRulesTab() {
             gap: "14px",
           }}
         >
-          <Box>
-            <Typography sx={{ mb: "6px", fontSize: "15px", fontWeight: 500 }}>
-              特殊假別
-            </Typography>
+          {!editingRow ? (
+            <Box sx={{ gridColumn: { sm: "1 / -1" } }}>
+              <Typography sx={{ mb: "6px", fontSize: "15px", fontWeight: 500 }}>
+                建立方式
+              </Typography>
+
+              <SelectField
+                value={createMode}
+                onChange={(value) => {
+                  setCreateMode(value);
+                  setForm((current) => ({
+                    ...current,
+                    leave_type_id: "",
+                  }));
+                  setNewSpecialTypeForm(INITIAL_NEW_SPECIAL_TYPE_FORM);
+                  setFormErrorText("");
+                }}
+                options={[
+                  ...(availableCreateTypes.length > 0
+                    ? [
+                        {
+                          value: "existing",
+                          label: "使用既有特殊假別",
+                        },
+                      ]
+                    : []),
+                  {
+                    value: "new",
+                    label: "建立新的特殊假別",
+                  },
+                ]}
+                fullWidth
+                height="38px"
+                disabled={submitting}
+              />
+            </Box>
+          ) : null}
+
+          {editingRow || createMode === "existing" ? (
+            <Box>
+              <Typography sx={{ mb: "6px", fontSize: "15px", fontWeight: 500 }}>
+                特殊假別
+              </Typography>
             <SelectField
               value={form.leave_type_id}
               onChange={(value) => handleFormChange("leave_type_id", value)}
@@ -967,6 +1096,77 @@ export default function LeaveRulesTab() {
               disabled={submitting || Boolean(editingRow)}
             />
           </Box>
+          ) : (
+            <>
+              <Box>
+                <Typography sx={{ mb: "6px", fontSize: "15px", fontWeight: 500 }}>
+                  假別代碼
+                </Typography>
+
+                <TextField
+                  value={newSpecialTypeForm.leave_code}
+                  onChange={(event) =>
+                    handleNewSpecialTypeChange("leave_code", event.target.value)
+                  }
+                  placeholder="請輸入假別代碼"
+                  fullWidth
+                  size="small"
+                  disabled={submitting}
+                />
+              </Box>
+
+              <Box>
+                <Typography sx={{ mb: "6px", fontSize: "15px", fontWeight: 500 }}>
+                  假別名稱
+                </Typography>
+
+                <TextField
+                  value={newSpecialTypeForm.leave_name}
+                  onChange={(event) =>
+                    handleNewSpecialTypeChange("leave_name", event.target.value)
+                  }
+                  placeholder="請輸入假別名稱"
+                  fullWidth
+                  size="small"
+                  disabled={submitting}
+                />
+              </Box>
+
+              <Box>
+                <Typography sx={{ mb: "6px", fontSize: "15px", fontWeight: 500 }}>
+                  支薪方式
+                </Typography>
+
+                <SelectField
+                  value={newSpecialTypeForm.paid_type}
+                  onChange={(value) =>
+                    handleNewSpecialTypeChange("paid_type", value)
+                  }
+                  options={PAID_TYPE_OPTIONS}
+                  fullWidth
+                  height="38px"
+                  disabled={submitting}
+                />
+              </Box>
+
+              <Box>
+                <Typography sx={{ mb: "6px", fontSize: "15px", fontWeight: 500 }}>
+                  無餘額限制
+                </Typography>
+
+                <SelectField
+                  value={newSpecialTypeForm.is_unlimited_balance}
+                  onChange={(value) =>
+                    handleNewSpecialTypeChange("is_unlimited_balance", value)
+                  }
+                  options={YES_NO_OPTIONS}
+                  fullWidth
+                  height="38px"
+                  disabled={submitting}
+                />
+              </Box>
+            </>
+          )}
 
           <Box>
             <Typography sx={{ mb: "6px", fontSize: "15px", fontWeight: 500 }}>
@@ -1088,7 +1288,6 @@ export default function LeaveRulesTab() {
               gap: "14px",
             }}
           >
-
             {Number(settingsRow.require_relation_type || 0) !== 1 &&
             ["固定天數", "以天為單位"].includes(
               settingsRow.entitlement_mode,
