@@ -1,11 +1,14 @@
 import { Box } from "@mui/material";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import ForgetTapping from "./ForgetTapping";
 import Leave from "./Leave";
 import SpecialLeave from "./SpecialLeave";
 import Overtime from "./Overtime";
 import BusinessTrip from "./BusinessTrip";
 import { MobileSectionTitle } from "./SharedFields";
+
+const APPLICATION_RECORD_BASE = "/attendance/form-record/agent";
 
 const TAB_ITEMS = [
   { key: "forget-tapping", label: "忘打卡申請" },
@@ -15,8 +18,28 @@ const TAB_ITEMS = [
   { key: "business-trip", label: "公出/出差" },
 ];
 
+function getActiveTab(pathname) {
+  const relativePath = pathname
+    .replace(APPLICATION_RECORD_BASE, "")
+    .replace(/^\/+|\/+$/g, "");
+
+  return TAB_ITEMS.some((item) => item.key === relativePath)
+    ? relativePath
+    : "forget-tapping";
+}
+
 export default function ApplicationRecord() {
-  const [activeTab, setActiveTab] = useState("forget-tapping");
+  const location = useLocation();
+  const navigate = useNavigate();
+  const activeTab = getActiveTab(location.pathname);
+
+  useEffect(() => {
+    const expectedPath = `${APPLICATION_RECORD_BASE}/${activeTab}`;
+
+    if (location.pathname !== expectedPath) {
+      navigate(expectedPath, { replace: true });
+    }
+  }, [activeTab, location.pathname, navigate]);
 
   const activeTabLabel = useMemo(() => {
     return TAB_ITEMS.find((item) => item.key === activeTab)?.label || "";
@@ -59,7 +82,9 @@ export default function ApplicationRecord() {
           return (
             <Box
               key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
+              onClick={() =>
+                navigate(`${APPLICATION_RECORD_BASE}/${tab.key}`)
+              }
               sx={{
                 minWidth: "150px",
                 height: "40px",

@@ -7,7 +7,6 @@ import {
 } from "./Options";
 import {
   ActionButtons,
-  FilterRow,
   SelectField,
   YearMonthField,
 } from "./SharedFields";
@@ -282,15 +281,21 @@ export default function ForgetTapping() {
 
   return (
     <Box>
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "14px",
-          mb: "14px",
-        }}
-      >
-        <FilterRow>
+      <Box sx={{ mb: "14px", pb: "10px", borderBottom: "1px solid #d1d5db" }}>
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "1fr",
+              sm: "repeat(2, minmax(0, 1fr))",
+              md: isEmployeeOnly
+                ? "repeat(2, minmax(0, 1fr))"
+                : "repeat(4, minmax(0, 1fr))",
+            },
+            gap: "14px",
+            alignItems: "end",
+          }}
+        >
           <YearMonthField
             required
             year={year}
@@ -299,6 +304,9 @@ export default function ForgetTapping() {
             month={month}
             onMonthChange={setMonth}
             monthOptions={monthOptions}
+            fullWidth
+            height="38px"
+            disabled={loading || metaLoading}
           />
 
           {!isEmployeeOnly ? (
@@ -311,6 +319,8 @@ export default function ForgetTapping() {
               }}
               options={unitOptions}
               displayEmpty
+              fullWidth
+              height="38px"
               disabled={metaLoading}
             />
           ) : null}
@@ -322,22 +332,30 @@ export default function ForgetTapping() {
               onChange={setEmployee}
               options={employeeOptionsByUnit}
               displayEmpty
+              fullWidth
+              height="38px"
               disabled={metaLoading}
             />
           ) : null}
-        </FilterRow>
 
-        <FilterRow withDivider>
           <SelectField
             label="狀態"
             value={status}
             onChange={setStatus}
             options={STATUS_OPTIONS}
-            minWidth="240px"
+            fullWidth
+            height="38px"
+            disabled={loading}
           />
+        </Box>
 
-          <ActionButtons onClear={handleClear} onSearch={handleSearch} />
-        </FilterRow>
+        <Box sx={{ mt: "14px", display: "flex", justifyContent: "flex-end" }}>
+          <ActionButtons
+            onClear={handleClear}
+            onSearch={handleSearch}
+            disabled={loading || metaLoading}
+          />
+        </Box>
       </Box>
 
       {errorText ? (

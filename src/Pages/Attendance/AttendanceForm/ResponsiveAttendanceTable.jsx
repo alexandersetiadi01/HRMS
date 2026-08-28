@@ -154,6 +154,7 @@ export default function ResponsiveAttendanceTable({
   rowsPerPage = 10,
   mergeColumns = [],
   fitToContainer = false,
+  onRowClick,
 }) {
   const [page, setPage] = useState(1);
 
@@ -366,6 +367,11 @@ export default function ResponsiveAttendanceTable({
               visibleRows.map((row, index) => (
                 <Box
                   key={getRowKey ? getRowKey(row, index) : index}
+                  onClick={
+                    onRowClick
+                      ? () => onRowClick(row, index)
+                      : undefined
+                  }
                   sx={{
                     display: "grid",
                     gridTemplateColumns: desktopGridTemplate,
@@ -373,6 +379,7 @@ export default function ResponsiveAttendanceTable({
                     py: "14px",
                     borderBottom: "1px solid #d1d5db",
                     alignItems: "start",
+                    cursor: onRowClick ? "pointer" : "default",
                   }}
                 >
                   {columns.map((column) => {
@@ -456,11 +463,17 @@ export default function ResponsiveAttendanceTable({
               return (
                 <Box
                   key={getRowKey ? getRowKey(row, index) : index}
+                  onClick={
+                    onRowClick
+                      ? () => onRowClick(row, index)
+                      : undefined
+                  }
                   sx={{
                     border: "1px solid #d1d5db",
                     borderRadius: "8px",
                     bgcolor: "#ffffff",
                     overflow: "hidden",
+                    cursor: onRowClick ? "pointer" : "default",
                   }}
                 >
                   {cardTitle ? (

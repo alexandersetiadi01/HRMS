@@ -1,4 +1,11 @@
-import { Box, Button, MenuItem, Select, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  MenuItem,
+  Select,
+  TextField,
+  Typography,
+} from "@mui/material";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import {
   ACTION_BUTTON_SX,
@@ -133,15 +140,19 @@ export function YearMonthField({
   onMonthChange,
   monthOptions,
   required = false,
+  fullWidth = false,
+  height = "38px",
+  disabled = false,
 }) {
   return (
     <Box
       sx={{
         display: "flex",
-        flexDirection: { xs: "column", sm: "row" },
-        alignItems: { xs: "stretch", sm: "center" },
-        gap: { xs: "8px", sm: "10px" },
-        width: { xs: "100%", sm: "auto" },
+        flexDirection: "column",
+        alignItems: "stretch",
+        gap: "6px",
+        width: fullWidth ? "100%" : { xs: "100%", sm: "auto" },
+        minWidth: 0,
       }}
     >
       <Typography
@@ -162,20 +173,24 @@ export function YearMonthField({
 
       <Box
         sx={{
-          display: "flex",
+          display: "grid",
+          gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)",
           alignItems: "center",
           gap: "10px",
-          width: { xs: "100%", sm: "auto" },
+          width: "100%",
+          minHeight: height,
         }}
       >
         <Select
           size="small"
           value={year}
           onChange={(event) => onYearChange(event.target.value)}
+          disabled={disabled}
           sx={{
-            minWidth: { xs: 0, md: "74px" },
-            width: { xs: "100%", sm: "85px" },
+            minWidth: 0,
+            width: "100%",
             ...COMMON_SELECT_SX,
+            height,
           }}
         >
           {yearOptions.map((item) => (
@@ -185,26 +200,74 @@ export function YearMonthField({
           ))}
         </Select>
 
-        <Typography sx={{ fontSize: "18px", color: "#6b7280" }}>/</Typography>
+        <Typography
+          sx={{
+            fontSize: "18px",
+            color: "#6b7280",
+            lineHeight: height,
+          }}
+        >
+          /
+        </Typography>
 
         <Select
           size="small"
           value={month}
           onChange={(event) => onMonthChange(event.target.value)}
+          disabled={disabled}
           sx={{
-            minWidth: { xs: 0, sm: "76px" },
-            width: { xs: "100%", sm: "76px" },
+            minWidth: 0,
+            width: "100%",
             ...COMMON_SELECT_SX,
+            height,
           }}
         >
           {monthOptions.map((item) => (
             <MenuItem key={`month-${item}`} value={item}>
-              {item}
+              {String(item).padStart(2, "0")}
             </MenuItem>
           ))}
         </Select>
       </Box>
     </Box>
+  );
+}
+
+export function SearchField({
+  value,
+  onChange,
+  onSearch,
+  placeholder = "搜尋",
+  disabled = false,
+  width = "180px",
+  fullWidth = false,
+  height = "32px",
+}) {
+  return (
+    <TextField
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      placeholder={placeholder}
+      size="small"
+      disabled={disabled}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" && onSearch) {
+          onSearch();
+        }
+      }}
+      sx={{
+        width: fullWidth ? "100%" : { xs: "100%", sm: width },
+        "& .MuiOutlinedInput-root": {
+          height,
+          bgcolor: "#fff",
+        },
+        "& .MuiOutlinedInput-input": {
+          py: "6px",
+          px: "10px",
+          fontSize: "14px",
+        },
+      }}
+    />
   );
 }
 

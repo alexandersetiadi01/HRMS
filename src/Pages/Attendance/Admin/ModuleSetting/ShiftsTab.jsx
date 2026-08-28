@@ -3,7 +3,9 @@ import {
   Alert,
   Box,
   Button,
+  Checkbox,
   CircularProgress,
+  FormControlLabel,
   IconButton,
   Switch,
   TextField,
@@ -12,6 +14,7 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import CalendarViewWeekOutlinedIcon from "@mui/icons-material/CalendarViewWeekOutlined";
+import ContentCopyOutlinedIcon from "@mui/icons-material/ContentCopyOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 
@@ -61,6 +64,11 @@ const WEEKDAY_ROWS = [
   { weekday_type: "saturday", label: "星期六", seq_no: 6 },
   { weekday_type: "sunday", label: "星期日", seq_no: 7 },
 ];
+
+const WEEKDAY_OPTIONS = WEEKDAY_ROWS.map((day) => ({
+  value: day.weekday_type,
+  label: day.label,
+}));
 
 function createInitialShiftDays() {
   return WEEKDAY_ROWS.map((day) => ({
@@ -116,6 +124,9 @@ export default function ShiftsTab() {
   const [shiftDays, setShiftDays] = useState(createInitialShiftDays);
   const [shiftDaysLoading, setShiftDaysLoading] = useState(false);
   const [shiftDaysErrorText, setShiftDaysErrorText] = useState("");
+  const [copyPanelOpen, setCopyPanelOpen] = useState(false);
+  const [copySourceDay, setCopySourceDay] = useState("");
+  const [copyTargetDays, setCopyTargetDays] = useState([]);
   const [actionRow, setActionRow] = useState(null);
   const [actionType, setActionType] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -324,6 +335,9 @@ export default function ShiftsTab() {
     setShiftDaysRow(row);
     setShiftDays(createInitialShiftDays());
     setShiftDaysErrorText("");
+    setCopyPanelOpen(false);
+    setCopySourceDay("");
+    setCopyTargetDays([]);
     setShiftDaysLoading(true);
 
     try {
@@ -378,6 +392,9 @@ export default function ShiftsTab() {
     setShiftDaysRow(null);
     setShiftDays(createInitialShiftDays());
     setShiftDaysErrorText("");
+    setCopyPanelOpen(false);
+    setCopySourceDay("");
+    setCopyTargetDays([]);
   };
 
   const handleShiftDayChange = (weekdayType, field, value) => {
@@ -400,6 +417,79 @@ export default function ShiftsTab() {
           : day,
       ),
     );
+  };
+
+    const handleCopySourceChange = (value) => {
+    setCopySourceDay(value);
+    setCopyTargetDays((current) =>
+      current.filter((weekdayType) => weekdayType !== value),
+    );
+  };
+
+  const handleCopyTargetChange = (weekdayType, checked) => {
+    setCopyTargetDays((current) => {
+      if (checked) {
+        return current.includes(weekdayType)
+          ? current
+          : [...current, weekdayType];
+      }
+
+      return current.filter((item) => item !== weekdayType);
+    });
+  };
+
+  const handleSelectAllCopyTargets = (checked) => {
+    if (!checked) {
+      setCopyTargetDays([]);
+      return;
+    }
+
+    setCopyTargetDays(
+      WEEKDAY_ROWS
+        .filter((day) => day.weekday_type !== copySourceDay)
+        .map((day) => day.weekday_type),
+    );
+  };
+
+  const handleApplyShiftDayCopy = () => {
+    if (!copySourceDay) {
+      setShiftDaysErrorText("請選擇要複製的來源日。");
+      return;
+    }
+
+    if (copyTargetDays.length === 0) {
+      setShiftDaysErrorText("請至少選擇一個套用日期。");
+      return;
+    }
+
+    const sourceDay = shiftDays.find(
+      (day) => day.weekday_type === copySourceDay,
+    );
+
+    if (!sourceDay) {
+      setShiftDaysErrorText("找不到來源日設定。");
+      return;
+    }
+
+    setShiftDays((current) =>
+      current.map((day) =>
+        copyTargetDays.includes(day.weekday_type)
+          ? {
+              ...day,
+              is_workday: sourceDay.is_workday,
+              work_start: sourceDay.work_start,
+              work_end: sourceDay.work_end,
+              rest_start: sourceDay.rest_start,
+              rest_end: sourceDay.rest_end,
+              break_minutes: sourceDay.break_minutes,
+            }
+          : day,
+      ),
+    );
+
+    setShiftDaysErrorText("");
+    setCopyPanelOpen(false);
+    setCopyTargetDays([]);
   };
 
   const handleSaveShiftDays = async () => {
@@ -911,6 +1001,189 @@ export default function ShiftsTab() {
           </Box>
         ) : (
           <Box sx={{ display: "grid", gap: "12px" }}>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "flex-end",
+              }}
+            >
+              <Button
+                variant="outlined"
+                startIcon={<ContentCopyOutlinedIcon />}
+                onClick={() =>
+                  setCopyPanelOpen((current) => !current)
+                }
+                disabled={submitting}
+              >
+                複製日設定
+              </Button>
+            </Box>
+
+            {copyPanelOpen ? (
+              <Box
+                sx={{
+                  p: "14px",
+                  border: "1px solid #d1d5db",
+                  borderRadius: "8px",
+                  bgcolor: "#f9fafb",
+                }}
+              >
+                <Box
+                  sx={{
+                    display: "grid",
+                    gridTemplateColumns: {
+                      xs: "1fr",
+                      md: "220px minmax(0, 1fr)",
+                    },
+                    gap: "16px",
+                    alignItems: "start",
+                  }}
+                >
+                  <Box>
+                    <Typography
+                      sx={{
+                        mb: "6px",
+                        fontSize: "14px",
+                        fontWeight: 600,
+                        color: "#374151",
+                      }}
+                    >
+                      來源日
+                    </Typography>
+
+                    <SelectField
+                      value={copySourceDay}
+                      onChange={handleCopySourceChange}
+                      options={WEEKDAY_OPTIONS}
+                      displayEmpty
+                      fullWidth
+                      height="38px"
+                      disabled={submitting}
+                    />
+                  </Box>
+
+                  <Box>
+                    <Typography
+                      sx={{
+                        mb: "4px",
+                        fontSize: "14px",
+                        fontWeight: 600,
+                        color: "#374151",
+                      }}
+                    >
+                      套用至
+                    </Typography>
+
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={
+                            Boolean(copySourceDay) &&
+                            copyTargetDays.length ===
+                              WEEKDAY_ROWS.length - 1
+                          }
+                          indeterminate={
+                            copyTargetDays.length > 0 &&
+                            copyTargetDays.length <
+                              WEEKDAY_ROWS.length - 1
+                          }
+                          onChange={(event) =>
+                            handleSelectAllCopyTargets(
+                              event.target.checked,
+                            )
+                          }
+                          disabled={
+                            submitting || !copySourceDay
+                          }
+                        />
+                      }
+                      label="全選其他日期"
+                    />
+
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: "2px 12px",
+                      }}
+                    >
+                      {WEEKDAY_ROWS.map((day) => {
+                        const source =
+                          day.weekday_type === copySourceDay;
+
+                        return (
+                          <FormControlLabel
+                            key={day.weekday_type}
+                            control={
+                              <Checkbox
+                                checked={copyTargetDays.includes(
+                                  day.weekday_type,
+                                )}
+                                onChange={(event) =>
+                                  handleCopyTargetChange(
+                                    day.weekday_type,
+                                    event.target.checked,
+                                  )
+                                }
+                                disabled={
+                                  submitting ||
+                                  !copySourceDay ||
+                                  source
+                                }
+                              />
+                            }
+                            label={day.label}
+                          />
+                        );
+                      })}
+                    </Box>
+                  </Box>
+                </Box>
+
+                <Box
+                  sx={{
+                    mt: "12px",
+                    display: "flex",
+                    alignItems: {
+                      xs: "stretch",
+                      sm: "center",
+                    },
+                    justifyContent: "space-between",
+                    flexDirection: {
+                      xs: "column",
+                      sm: "row",
+                    },
+                    gap: "10px",
+                  }}
+                >
+                  <Typography
+                    sx={{
+                      fontSize: "13px",
+                      color: "#6b7280",
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    套用後會覆蓋所選日期目前的設定；需點選「儲存」後才會正式更新。
+                  </Typography>
+
+                  <Button
+                    variant="contained"
+                    onClick={handleApplyShiftDayCopy}
+                    disabled={
+                      submitting ||
+                      !copySourceDay ||
+                      copyTargetDays.length === 0
+                    }
+                    sx={{
+                      flex: "0 0 auto",
+                    }}
+                  >
+                    套用設定
+                  </Button>
+                </Box>
+              </Box>
+            ) : null}
+
             {shiftDays.map((day) => {
               const workday = day.is_workday === "1";
 

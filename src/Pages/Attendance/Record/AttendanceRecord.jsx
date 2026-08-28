@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   Typography,
@@ -23,7 +24,11 @@ import {
 import AttendanceRecordTable from "./AttendanceRecordTable";
 import AttendanceAbnormalTable from "./AttendanceAbnormalTable";
 import Breadcrumb from "../../../Utils/Breadcrumb";
-import { apiAttendanceRecords } from "../../../API/attendance";
+import {
+  apiAttendanceRecords,
+  apiLeaveRequests,
+  apiMissedPunchRequests,
+} from "../../../API/attendance";
 
 const DEFAULT_LOCATION_OPTIONS = ["全部"];
 const DEFAULT_METHOD_OPTIONS = ["全部"];
@@ -32,16 +37,8 @@ const ABNORMAL_REASON_OPTIONS = ["全部", "遲到", "早退", "忘打卡"];
 const RECORD_TYPE_MAP = {
   上下班: "punch",
   請假: "leave",
-  外出: "punch",
+  "公出/出差": "leave",
 };
-
-const ABNORMAL_DATA = [
-  {
-    date: "2026/03/04",
-    reason: "遲到6分鐘",
-    formRecord: "",
-  },
-];
 
 function safeText(value, fallback = "-") {
   if (value === null || value === undefined) {
@@ -88,14 +85,10 @@ function formatDateTime(value) {
   return `${year}/${month}/${day} ${hours}:${minutes}`;
 }
 
-function getLeaveType(detail = {}) {
-  return (
-    detail?.leave_type ||
-    detail?.type ||
-    detail?.raw?.leave_type ||
-    detail?.raw?.type ||
-    "-"
-  );
+function isBusinessTripLeaveType(value) {
+  const text = String(value || "").trim();
+
+  return text === "公出" || text === "出差";
 }
 
 function formatHours(value) {
@@ -217,6 +210,233 @@ function normalizePunchItems(items = [], currentLocation = "全部", currentMeth
   };
 }
 
+function getResponseItems(response) {
+  const payload = response?.data?.data || response?.data || response || {};
+
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  return Array.isArray(payload?.items) ? payload.items : [];
+}
+
+function getDateKey(value) {
+  const raw = String(value || "").trim();
+
+  if (!raw) {
+    return "";
+  }
+
+  const match = raw.match(/^(\d{4})[-/](\d{2})[-/](\d{2})/);
+
+  if (match) {
+    return `${match[1]}-${match[2]}-${match[3]}`;
+  }
+
+  const date = new Date(raw);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function formatRequestStatus(value) {
+  const raw = String(value || "").trim();
+  const normalized = raw.toLowerCase();
+
+  const map = {
+    pending: "待簽核",
+    approved: "已核准",
+    rejected: "已駁回",
+    cancelled: "已取消",
+    canceled: "已取消",
+    draft: "草稿",
+  };
+
+  return map[normalized] || raw || "-";
+}
+
+function getLeaveRequestDateKeys(item = {}) {
+  const startKey = getDateKey(
+    item.start_datetime ||
+      item.start_time ||
+      item.request_date ||
+      item.created_at,
+  );
+  const endKey = getDateKey(
+    item.end_datetime ||
+      item.end_time ||
+      item.start_datetime ||
+      item.start_time ||
+      item.request_date ||
+      item.created_at,
+  );
+
+  if (!startKey) {
+    return [];
+  }
+
+  if (!endKey || endKey === startKey) {
+    return [startKey];
+  }
+
+  const start = new Date(`${startKey}T00:00:00`);
+  const end = new Date(`${endKey}T00:00:00`);
+
+  if (
+    Number.isNaN(start.getTime()) ||
+    Number.isNaN(end.getTime()) ||
+    end < start
+  ) {
+    return [startKey];
+  }
+
+  const keys = [];
+  const cursor = new Date(start);
+
+  while (cursor <= end) {
+    const year = cursor.getFullYear();
+    const month = String(cursor.getMonth() + 1).padStart(2, "0");
+    const day = String(cursor.getDate()).padStart(2, "0");
+
+    keys.push(`${year}-${month}-${day}`);
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  return keys;
+}
+
+function buildAbnormalRows(
+  attendanceItems = [],
+  missedPunchItems = [],
+  leaveItems = [],
+  reasonFilter = "全部",
+  onlyWithoutForm = false,
+) {
+  const formRecordMap = new Map();
+
+  const addFormRecord = (dateKey, label) => {
+    if (!dateKey || !label) {
+      return;
+    }
+
+    if (!formRecordMap.has(dateKey)) {
+      formRecordMap.set(dateKey, new Set());
+    }
+
+    formRecordMap.get(dateKey).add(label);
+  };
+
+  missedPunchItems.forEach((item) => {
+    const dateKey = getDateKey(
+      item.request_datetime ||
+        item.request_date ||
+        item.created_at,
+    );
+
+    if (!dateKey) {
+      return;
+    }
+
+    addFormRecord(
+      dateKey,
+      `忘打卡申請（${formatRequestStatus(item.request_status)}）`,
+    );
+  });
+
+  leaveItems.forEach((item) => {
+    const status = formatRequestStatus(item.request_status);
+
+    getLeaveRequestDateKeys(item).forEach((dateKey) => {
+      addFormRecord(dateKey, `請假（${status}）`);
+    });
+  });
+
+  const rows = [];
+
+  attendanceItems.forEach((item, index) => {
+    const dateKey = getDateKey(
+      item.attendance_date ||
+        item.attendance_date_display ||
+        item.work_date,
+    );
+
+    if (!dateKey) {
+      return;
+    }
+
+    const formRecord = Array.from(formRecordMap.get(dateKey) || []).join("、");
+    const lateMinutes = Number(item.late_minutes || 0);
+    const earlyLeaveMinutes = Number(item.early_leave_minutes || 0);
+
+    const attendanceStatus = String(
+      item.status ||
+        item.attendance_status ||
+        item.status_code ||
+        "",
+    )
+      .trim()
+      .toLowerCase();
+
+    if (Number.isFinite(lateMinutes) && lateMinutes > 0) {
+      rows.push({
+        id: `${dateKey}-late-${index}`,
+        date: dateKey.replace(/-/g, "/"),
+        reasonType: "遲到",
+        reason: `遲到${Math.round(lateMinutes)}分鐘`,
+        formRecord,
+      });
+    }
+
+    if (Number.isFinite(earlyLeaveMinutes) && earlyLeaveMinutes > 0) {
+      rows.push({
+        id: `${dateKey}-early-${index}`,
+        date: dateKey.replace(/-/g, "/"),
+        reasonType: "早退",
+        reason: `早退${Math.round(earlyLeaveMinutes)}分鐘`,
+        formRecord,
+      });
+    }
+
+    const missingClockIn =
+      attendanceStatus === "missing_clock_in" ||
+      (!item.clock_in_time && !!item.clock_out_time);
+
+    const missingClockOut =
+      attendanceStatus === "missing_clock_out" ||
+      (!!item.clock_in_time && !item.clock_out_time);
+
+    if (missingClockIn || missingClockOut) {
+      rows.push({
+        id: `${dateKey}-missed-punch-${index}`,
+        date: dateKey.replace(/-/g, "/"),
+        reasonType: "忘打卡",
+        reason: "忘打卡",
+        formRecord,
+      });
+    }
+  });
+
+  return rows
+    .filter(
+      (row) =>
+        reasonFilter === "全部" ||
+        row.reasonType === reasonFilter,
+    )
+    .filter(
+      (row) =>
+        !onlyWithoutForm ||
+        !String(row.formRecord || "").trim(),
+    )
+    .sort((a, b) => String(b.date).localeCompare(String(a.date)));
+}
+
 function normalizeLeaveItems(items = []) {
   const rows = (Array.isArray(items) ? items : []).map((item, index) => {
     const detail = item?.detail || item || {};
@@ -291,6 +511,7 @@ function DetailRow({ label, value }) {
 }
 
 export default function AttendanceRecord() {
+  const navigate = useNavigate();
   const [tab, setTab] = useState(0);
   const [recordType, setRecordType] = useState("上下班");
   const [startDate, setStartDate] = useState("");
@@ -301,11 +522,15 @@ export default function AttendanceRecord() {
   const [methodOptions, setMethodOptions] = useState(DEFAULT_METHOD_OPTIONS);
   const [recordRows, setRecordRows] = useState([]);
   const [recordLoading, setRecordLoading] = useState(false);
+  const [abnormalRows, setAbnormalRows] = useState([]);
+  const [abnormalLoading, setAbnormalLoading] = useState(false);
   const [abnormalReason, setAbnormalReason] = useState("全部");
   const [showOnlyPending, setShowOnlyPending] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
 
-  const isLeaveMode = recordType === "請假";
+  const isLeaveMode =
+    recordType === "請假" ||
+    recordType === "公出/出差";
 
   const fetchRecordData = async ({
     nextRecordType = recordType,
@@ -327,9 +552,25 @@ export default function AttendanceRecord() {
       const items = Array.isArray(payload?.items) ? payload.items : [];
 
       const normalized =
-        nextRecordType === "請假"
+        nextRecordType === "請假" ||
+        nextRecordType === "公出/出差"
           ? normalizeLeaveItems(items)
           : normalizePunchItems(items, nextLocation, nextMethod);
+
+      if (
+        nextRecordType === "請假" ||
+        nextRecordType === "公出/出差"
+      ) {
+        normalized.rows = normalized.rows.filter((row) => {
+          const isBusinessTrip = isBusinessTripLeaveType(
+            row.leaveType,
+          );
+
+          return nextRecordType === "公出/出差"
+            ? isBusinessTrip
+            : !isBusinessTrip;
+        });
+      }
 
       setRecordRows(normalized.rows);
       setLocationOptions(normalized.locationOptions || DEFAULT_LOCATION_OPTIONS);
@@ -359,6 +600,80 @@ export default function AttendanceRecord() {
 
     fetchRecordData();
   }, [tab, recordType]);
+
+  const fetchAbnormalData = async ({
+    nextStartDate = startDate,
+    nextEndDate = endDate,
+    nextReason = abnormalReason,
+    nextShowOnlyPending = showOnlyPending,
+  } = {}) => {
+    try {
+      setAbnormalLoading(true);
+
+      const [attendanceResponse, missedPunchResponse, leaveResponse] =
+        await Promise.all([
+          apiAttendanceRecords({
+            record_type: "punch",
+            date_from: nextStartDate || undefined,
+            date_to: nextEndDate || undefined,
+          }),
+          apiMissedPunchRequests({
+            date_from: nextStartDate || undefined,
+            date_to: nextEndDate || undefined,
+          }),
+          apiLeaveRequests({
+            date_from: nextStartDate || undefined,
+            date_to: nextEndDate || undefined,
+          }),
+        ]);
+
+      setAbnormalRows(
+        buildAbnormalRows(
+          getResponseItems(attendanceResponse),
+          getResponseItems(missedPunchResponse),
+          getResponseItems(leaveResponse),
+          nextReason,
+          nextShowOnlyPending,
+        ),
+      );
+    } catch (error) {
+      console.error("Failed to fetch attendance abnormal records:", error);
+      setAbnormalRows([]);
+    } finally {
+      setAbnormalLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (tab !== 1) {
+      return;
+    }
+
+    fetchAbnormalData();
+  }, [tab]);
+
+  const handleSearchAbnormal = () => {
+    fetchAbnormalData();
+  };
+
+  const handleResetAbnormal = () => {
+    const resetStartDate = "";
+    const resetEndDate = "";
+    const resetReason = "全部";
+    const resetShowOnlyPending = false;
+
+    setStartDate(resetStartDate);
+    setEndDate(resetEndDate);
+    setAbnormalReason(resetReason);
+    setShowOnlyPending(resetShowOnlyPending);
+
+    fetchAbnormalData({
+      nextStartDate: resetStartDate,
+      nextEndDate: resetEndDate,
+      nextReason: resetReason,
+      nextShowOnlyPending: resetShowOnlyPending,
+    });
+  };
 
   const handleSearchRecord = () => {
     fetchRecordData();
@@ -431,7 +746,7 @@ export default function AttendanceRecord() {
               },
             }}
           >
-            <Tab label="上下班/請假/外出" />
+            <Tab label="上下班/請假/公出/出差" />
             <Tab label="異常" />
           </Tabs>
 
@@ -456,7 +771,7 @@ export default function AttendanceRecord() {
                         value={recordType}
                         onChange={(e) => setRecordType(e.target.value)}
                       >
-                        {["上下班", "請假", "外出"].map((item) => (
+                        {["上下班", "請假", "公出/出差"].map((item) => (
                           <FormControlLabel
                             key={item}
                             value={item}
@@ -475,7 +790,6 @@ export default function AttendanceRecord() {
                                   recordType === item ? "#1976d2" : "#374151",
                               },
                             }}
-                            disabled = {item === "外出"}
                           />
                         ))}
                       </RadioGroup>
@@ -588,6 +902,7 @@ export default function AttendanceRecord() {
 
                       <Button
                         variant="contained"
+                        onClick={() => navigate("/attendance/missed-punch")}
                         sx={{
                           minWidth: "100px",
                           height: "36px",
@@ -617,7 +932,7 @@ export default function AttendanceRecord() {
                           gap: 0.5,
                         }}
                       >
-                        {["上下班", "請假", "外出"].map((item) => (
+                        {["上下班", "請假", "公出/出差"].map((item) => (
                           <FormControlLabel
                             key={item}
                             value={item}
@@ -847,6 +1162,8 @@ export default function AttendanceRecord() {
 
                       <Button
                         variant="contained"
+                        onClick={handleSearchAbnormal}
+                        disabled={abnormalLoading}
                         sx={{
                           minWidth: "64px",
                           height: "40px",
@@ -859,6 +1176,8 @@ export default function AttendanceRecord() {
 
                       <Button
                         variant="outlined"
+                        onClick={handleResetAbnormal}
+                        disabled={abnormalLoading}
                         sx={{
                           minWidth: "64px",
                           height: "40px",
@@ -888,6 +1207,7 @@ export default function AttendanceRecord() {
                     <Stack direction="row" justifyContent="flex-end" spacing={1}>
                       <Button
                         variant="contained"
+                        onClick={() => navigate("/attendance/leave")}
                         sx={{
                           minWidth: "64px",
                           height: "36px",
@@ -899,6 +1219,7 @@ export default function AttendanceRecord() {
                       </Button>
                       <Button
                         variant="contained"
+                        onClick={() => navigate("/attendance/missed-punch")}
                         sx={{
                           minWidth: "100px",
                           height: "36px",
@@ -1012,6 +1333,8 @@ export default function AttendanceRecord() {
                       <Button
                         variant="contained"
                         fullWidth
+                        onClick={handleSearchAbnormal}
+                        disabled={abnormalLoading}
                         sx={{
                           height: "40px",
                           bgcolor: "#1976d2",
@@ -1024,6 +1347,8 @@ export default function AttendanceRecord() {
                       <Button
                         variant="outlined"
                         fullWidth
+                        onClick={handleResetAbnormal}
+                        disabled={abnormalLoading}
                         sx={{
                           height: "40px",
                         }}
@@ -1036,6 +1361,7 @@ export default function AttendanceRecord() {
                       <Button
                         variant="contained"
                         fullWidth
+                        onClick={() => navigate("/attendance/leave")}
                         sx={{
                           height: "36px",
                           bgcolor: "#0f1f57",
@@ -1047,6 +1373,7 @@ export default function AttendanceRecord() {
                       <Button
                         variant="contained"
                         fullWidth
+                        onClick={() => navigate("/attendance/missed-punch")}
                         sx={{
                           height: "36px",
                           bgcolor: "#0f1f57",
@@ -1178,7 +1505,10 @@ export default function AttendanceRecord() {
                 </Stack>
               </>
             ) : (
-              <AttendanceAbnormalTable rows={ABNORMAL_DATA} />
+              <AttendanceAbnormalTable
+                rows={abnormalRows}
+                loading={abnormalLoading}
+              />
             )}
           </Box>
         </Paper>

@@ -124,7 +124,7 @@ export default function AppRoutes() {
         <Route path="/attendance/leave" element={<AttendanceLeave />} />
         <Route path="/attendance/overtime" element={<AttendanceOvertime />} />
         <Route
-          path="/attendance/form-record"
+          path="/attendance/form-record/*"
           element={<AttendanceFormPage />}
         />
         <Route
@@ -176,7 +176,7 @@ export default function AppRoutes() {
           }
         />
         <Route
-          path="/attendance/admin/record-maintenance"
+          path="/attendance/admin/record-maintenance/*"
           element={
             <RequireAttendancePermission permission="attendance_punch_maintenance">
               <AttendanceRecordMaintenance />
@@ -192,7 +192,7 @@ export default function AppRoutes() {
           }
         />
         <Route
-          path="/attendance/admin/leave-hours-management"
+          path="/attendance/admin/leave-hours-management/*"
           element={
             <RequireAttendancePermission permission="attendance_leave_balance_manage">
               <LeaveHoursManagement />

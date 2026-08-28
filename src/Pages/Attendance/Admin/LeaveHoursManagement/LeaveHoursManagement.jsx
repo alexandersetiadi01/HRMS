@@ -1,16 +1,43 @@
-import { useState } from "react";
+import { useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Box, Paper, Tab, Tabs, Typography } from "@mui/material";
 import Breadcrumb from "../../../../Utils/Breadcrumb";
 import EntitlementRequestsTab from "./EntitlementRequestsTab";
 import LeaveBalancesTab from "./LeaveBalancesTab";
+
+const LEAVE_HOURS_BASE = "/attendance/admin/leave-hours-management";
 
 const TABS = [
   { value: "requests", label: "特殊假別申請" },
   { value: "balances", label: "剩餘假別時數" },
 ];
 
+function getActiveTab(pathname) {
+  const relativePath = pathname
+    .replace(LEAVE_HOURS_BASE, "")
+    .replace(/^\/+|\/+$/g, "");
+
+  return TABS.some((tab) => tab.value === relativePath)
+    ? relativePath
+    : "requests";
+}
+
 export default function LeaveHoursManagement() {
-  const [activeTab, setActiveTab] = useState("requests");
+  const location = useLocation();
+  const navigate = useNavigate();
+  const activeTab = getActiveTab(location.pathname);
+
+  useEffect(() => {
+    const expectedPath = `${LEAVE_HOURS_BASE}/${activeTab}`;
+
+    if (location.pathname !== expectedPath) {
+      navigate(expectedPath, { replace: true });
+    }
+  }, [activeTab, location.pathname, navigate]);
+
+  const handleTabChange = (_event, value) => {
+    navigate(`${LEAVE_HOURS_BASE}/${value}`);
+  };
 
   return (
     <Box sx={{ px: { xs: 1.5, sm: 2, md: 3 }, py: { xs: 2, sm: 2.5, md: 3 } }}>
@@ -44,7 +71,7 @@ export default function LeaveHoursManagement() {
         <Box sx={{ overflowX: "auto", borderBottom: "1px solid #e5e7eb" }}>
           <Tabs
             value={activeTab}
-            onChange={(_event, value) => setActiveTab(value)}
+            onChange={handleTabChange}
             variant="scrollable"
             scrollButtons="auto"
             allowScrollButtonsMobile

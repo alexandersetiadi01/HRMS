@@ -1,4 +1,9 @@
-import { useEffect, useState, useSyncExternalStore } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import {
   Alert,
   Box,
@@ -30,12 +35,16 @@ export default function FormDialog({
   submitLabel = "儲存",
   cancelLabel = "取消",
   maxWidth = "sm",
+  scrollToTopSignal = "",
+  hideSubmit = false,
   onClose,
   onSubmit,
 }) {
   const [apiErrorText, setApiErrorText] = useState(
     getGlobalDialogApiError(),
   );
+
+  const dialogContentRef = useRef(null);
 
   const globalLoading = useSyncExternalStore(
     subscribeGlobalLoading,
@@ -59,6 +68,22 @@ export default function FormDialog({
       unregisterGlobalFormDialog();
     };
   }, [open]);
+
+  useEffect(() => {
+    if (
+      !open ||
+      (!apiErrorText && !scrollToTopSignal)
+    ) {
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      dialogContentRef.current?.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+    });
+  }, [open, apiErrorText, scrollToTopSignal]);
 
   return (
     <Dialog
@@ -95,7 +120,10 @@ export default function FormDialog({
         </IconButton>
       </DialogTitle>
 
-      <DialogContent dividers>
+      <DialogContent
+        ref={dialogContentRef}
+        dividers
+      >
         <Box
           sx={{
             display: "flex",
@@ -149,13 +177,15 @@ export default function FormDialog({
           </Button>
         ) : null}
 
-        <Button
-          variant="contained"
-          onClick={onSubmit}
-          disabled={submitting}
-        >
-          {submitting ? "處理中..." : submitLabel}
-        </Button>
+        {!hideSubmit && onSubmit ? (
+          <Button
+            variant="contained"
+            onClick={onSubmit}
+            disabled={submitting}
+          >
+            {submitting ? "處理中..." : submitLabel}
+          </Button>
+        ) : null}
       </DialogActions>
     </Dialog>
   );

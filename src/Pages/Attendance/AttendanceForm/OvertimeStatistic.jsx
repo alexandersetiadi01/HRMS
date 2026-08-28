@@ -1,24 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  Box,
-  Button,
-  IconButton,
-  MenuItem,
-  Select,
-  TextField,
-  Tooltip,
-  Typography,
-} from "@mui/material";
+import { Box, IconButton, TextField, Tooltip, Typography } from "@mui/material";
 import HelpIcon from "@mui/icons-material/Help";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import { apiOvertimeStatistics } from "../../../API/attendance";
 import {
-  ACTION_BUTTON_SX,
-  COMMON_SELECT_SX,
-} from "./ApplicationRecord/Options";
-import {
-  FilterActions,
+  ActionButtons,
   MobileSectionTitle,
+  SelectField,
 } from "./ApplicationRecord/SharedFields";
 import ResponsiveAttendanceTable from "./ResponsiveAttendanceTable";
 
@@ -313,311 +301,188 @@ export default function OvertimeStatistic() {
     <Box>
       <MobileSectionTitle>加班紀錄 / 加班統計</MobileSectionTitle>
 
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "14px",
-          mb: "14px",
-        }}
-      >
+      <Box sx={{ mb: "14px", pb: "10px", borderBottom: "1px solid #d1d5db" }}>
         <Box
           sx={{
-            display: "flex",
-            alignItems: { xs: "stretch", sm: "center" },
-            gap: "10px",
-            flexWrap: "wrap",
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "1fr",
+              sm: "repeat(2, minmax(0, 1fr))",
+              md: "repeat(3, minmax(0, 1fr))",
+            },
+            gap: "14px",
+            alignItems: "end",
           }}
         >
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: { xs: "column", sm: "row" },
-              alignItems: { xs: "stretch", sm: "center" },
-              gap: { xs: "8px", sm: "10px" },
-              width: { xs: "100%", sm: "auto" },
-            }}
-          >
-            <Typography
-              sx={{ fontSize: "15px", color: "#111827", fontWeight: 500 }}
-            >
+          <Box sx={{ minWidth: 0 }}>
+            <Typography sx={{ mb: "6px", fontSize: "15px", fontWeight: 500 }}>
               查詢日期
             </Typography>
 
-            <TextField
-              size="small"
-              type="date"
-              value={toInputDate(startDate)}
-              onChange={(event) =>
-                setStartDate(event.target.value.replaceAll("-", "/"))
-              }
-              inputRef={startDateRef}
+            <Box
               sx={{
-                width: { xs: "100%", sm: "150px" },
-                "& .MuiInputBase-root": {
-                  height: "32px",
-                  fontSize: "15px",
-                  bgcolor: "#ffffff",
-                },
-                "& input::-webkit-calendar-picker-indicator": {
-                  opacity: 0,
-                  position: "absolute",
-                  right: 0,
-                  width: "100%",
-                  height: "100%",
-                  cursor: "pointer",
-                },
-              }}
-              InputProps={{
-                endAdornment: (
-                  <IconButton
-                    size="small"
-                    onClick={() => openNativeDatePicker(startDateRef)}
-                    sx={{
-                      mr: "-4px",
-                      p: "4px",
-                    }}
-                  >
-                    <CalendarTodayIcon
-                      sx={{ fontSize: "18px", color: "#6b7280" }}
-                    />
-                  </IconButton>
-                ),
-              }}
-            />
-
-            <Typography
-              sx={{
-                fontSize: "16px",
-                color: "#111827",
-                textAlign: { xs: "center", sm: "left" },
-                width: { xs: "100%", sm: "auto" },
-                my: { xs: "4px", sm: 0 },
+                display: "grid",
+                gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr) auto",
+                alignItems: "center",
+                gap: "8px",
+                minWidth: 0,
               }}
             >
-              ~
-            </Typography>
-
-            <TextField
-              size="small"
-              type="date"
-              value={toInputDate(endDate)}
-              onChange={(event) =>
-                setEndDate(event.target.value.replaceAll("-", "/"))
-              }
-              inputRef={endDateRef}
-              sx={{
-                width: { xs: "100%", sm: "150px" },
-                "& .MuiInputBase-root": {
-                  height: "32px",
-                  fontSize: "15px",
-                  bgcolor: "#ffffff",
-                },
-                "& input::-webkit-calendar-picker-indicator": {
-                  opacity: 0,
-                  position: "absolute",
-                  right: 0,
-                  width: "100%",
-                  height: "100%",
-                  cursor: "pointer",
-                },
-              }}
-              InputProps={{
-                endAdornment: (
-                  <IconButton
-                    size="small"
-                    onClick={() => openNativeDatePicker(endDateRef)}
-                    sx={{
-                      mr: "-4px",
-                      p: "4px",
-                    }}
-                  >
-                    <CalendarTodayIcon
-                      sx={{ fontSize: "18px", color: "#6b7280" }}
-                    />
-                  </IconButton>
-                ),
-              }}
-            />
-
-            <Tooltip
-              title={
-                <Typography sx={{ fontSize: "14px", color: "#111827" }}>
-                  查詢區間不得超過 180 天
-                </Typography>
-              }
-              arrow
-              placement="right"
-              componentsProps={{
-                tooltip: {
-                  sx: {
-                    bgcolor: "#ffffff",
-                    color: "#111827",
-                    border: "1px solid #d1d5db",
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
-                    px: "12px",
-                    py: "8px",
-                  },
-                },
-                arrow: {
-                  sx: {
-                    color: "#ffffff",
-                    "&:before": {
-                      border: "1px solid #d1d5db",
-                    },
-                  },
-                },
-              }}
-            >
-              <HelpIcon
+              <TextField
+                size="small"
+                type="date"
+                value={toInputDate(startDate)}
+                onChange={(event) =>
+                  setStartDate(event.target.value.replaceAll("-", "/"))
+                }
+                inputRef={startDateRef}
+                disabled={loading}
                 sx={{
-                  fontSize: "20px",
-                  color: "#6b7bb5",
-                  cursor: "pointer",
-                  alignSelf: { xs: "flex-start", sm: "center" },
+                  minWidth: 0,
+                  width: "100%",
+                  "& .MuiInputBase-root": {
+                    height: "38px",
+                    fontSize: "15px",
+                    bgcolor: "#ffffff",
+                  },
+                  "& input::-webkit-calendar-picker-indicator": {
+                    opacity: 0,
+                    position: "absolute",
+                    right: 0,
+                    width: "100%",
+                    height: "100%",
+                    cursor: "pointer",
+                  },
+                }}
+                InputProps={{
+                  endAdornment: (
+                    <IconButton
+                      size="small"
+                      onClick={() => openNativeDatePicker(startDateRef)}
+                      disabled={loading}
+                      sx={{ mr: "-4px", p: "4px" }}
+                    >
+                      <CalendarTodayIcon
+                        sx={{ fontSize: "18px", color: "#6b7280" }}
+                      />
+                    </IconButton>
+                  ),
                 }}
               />
-            </Tooltip>
+
+              <Typography sx={{ fontSize: "16px", color: "#111827" }}>
+                ~
+              </Typography>
+
+              <TextField
+                size="small"
+                type="date"
+                value={toInputDate(endDate)}
+                onChange={(event) =>
+                  setEndDate(event.target.value.replaceAll("-", "/"))
+                }
+                inputRef={endDateRef}
+                disabled={loading}
+                sx={{
+                  minWidth: 0,
+                  width: "100%",
+                  "& .MuiInputBase-root": {
+                    height: "38px",
+                    fontSize: "15px",
+                    bgcolor: "#ffffff",
+                  },
+                  "& input::-webkit-calendar-picker-indicator": {
+                    opacity: 0,
+                    position: "absolute",
+                    right: 0,
+                    width: "100%",
+                    height: "100%",
+                    cursor: "pointer",
+                  },
+                }}
+                InputProps={{
+                  endAdornment: (
+                    <IconButton
+                      size="small"
+                      onClick={() => openNativeDatePicker(endDateRef)}
+                      disabled={loading}
+                      sx={{ mr: "-4px", p: "4px" }}
+                    >
+                      <CalendarTodayIcon
+                        sx={{ fontSize: "18px", color: "#6b7280" }}
+                      />
+                    </IconButton>
+                  ),
+                }}
+              />
+
+              <Tooltip
+                title={
+                  <Typography sx={{ fontSize: "14px", color: "#111827" }}>
+                    查詢區間不得超過 180 天
+                  </Typography>
+                }
+                arrow
+                placement="right"
+                componentsProps={{
+                  tooltip: {
+                    sx: {
+                      bgcolor: "#ffffff",
+                      color: "#111827",
+                      border: "1px solid #d1d5db",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
+                      px: "12px",
+                      py: "8px",
+                    },
+                  },
+                  arrow: {
+                    sx: {
+                      color: "#ffffff",
+                      "&:before": {
+                        border: "1px solid #d1d5db",
+                      },
+                    },
+                  },
+                }}
+              >
+                <HelpIcon
+                  sx={{
+                    fontSize: "20px",
+                    color: "#6b7bb5",
+                    cursor: "pointer",
+                  }}
+                />
+              </Tooltip>
+            </Box>
           </Box>
 
-          <FilterActions>
-            <Button
-              variant="outlined"
-              onClick={handleSearch}
-              sx={ACTION_BUTTON_SX}
-            >
-              搜尋
-            </Button>
+          <SelectField
+            label="加班類型"
+            value={overtimeType}
+            onChange={setOvertimeType}
+            options={OVERTIME_TYPE_OPTIONS}
+            fullWidth
+            height="38px"
+            disabled={loading}
+          />
 
-            <Button
-              variant="outlined"
-              onClick={handleClear}
-              sx={ACTION_BUTTON_SX}
-            >
-              清空
-            </Button>
-          </FilterActions>
+          <SelectField
+            label="給付方式"
+            value={paymentType}
+            onChange={setPaymentType}
+            options={PAYMENT_OPTIONS}
+            fullWidth
+            height="38px"
+            disabled={loading}
+          />
         </Box>
 
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: { xs: "stretch", sm: "center" },
-            gap: "28px",
-            flexWrap: "wrap",
-          }}
-        >
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: { xs: "column", sm: "row" },
-              alignItems: { xs: "stretch", sm: "center" },
-              gap: { xs: "8px", sm: "10px" },
-              width: { xs: "100%", sm: "auto" },
-            }}
-          >
-            <Typography
-              sx={{ fontSize: "15px", color: "#111827", fontWeight: 500 }}
-            >
-              加班類型
-            </Typography>
-
-            <Select
-              size="small"
-              value={overtimeType}
-              onChange={(event) => setOvertimeType(event.target.value)}
-              MenuProps={{
-                PaperProps: {
-                  sx: {
-                    mt: "2px",
-                    borderRadius: "2px",
-                    boxShadow: "none",
-                    border: "1px solid #cfcfcf",
-                    maxHeight: 220,
-                    "& .MuiMenuItem-root": {
-                      minHeight: "36px",
-                      fontSize: "15px",
-                      color: "#374151",
-                    },
-                    "& .Mui-selected": {
-                      bgcolor: "#dbe5f1 !important",
-                      color: "#111827",
-                    },
-                    "& .MuiMenuItem-root:hover": {
-                      bgcolor: "#eef3f8",
-                    },
-                  },
-                },
-              }}
-              sx={{
-                minWidth: { xs: "100%", sm: "204px" },
-                width: { xs: "100%", sm: "auto" },
-                ...COMMON_SELECT_SX,
-              }}
-            >
-              {OVERTIME_TYPE_OPTIONS.map((item) => (
-                <MenuItem key={item.value} value={item.value}>
-                  {item.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </Box>
-
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: { xs: "column", sm: "row" },
-              alignItems: { xs: "stretch", sm: "center" },
-              gap: { xs: "8px", sm: "10px" },
-              width: { xs: "100%", sm: "auto" },
-            }}
-          >
-            <Typography
-              sx={{ fontSize: "15px", color: "#111827", fontWeight: 500 }}
-            >
-              給付方式
-            </Typography>
-
-            <Select
-              size="small"
-              value={paymentType}
-              onChange={(event) => setPaymentType(event.target.value)}
-              MenuProps={{
-                PaperProps: {
-                  sx: {
-                    mt: "2px",
-                    borderRadius: "2px",
-                    boxShadow: "none",
-                    border: "1px solid #cfcfcf",
-                    maxHeight: 220,
-                    "& .MuiMenuItem-root": {
-                      minHeight: "36px",
-                      fontSize: "15px",
-                      color: "#374151",
-                    },
-                    "& .Mui-selected": {
-                      bgcolor: "#dbe5f1 !important",
-                      color: "#111827",
-                    },
-                    "& .MuiMenuItem-root:hover": {
-                      bgcolor: "#eef3f8",
-                    },
-                  },
-                },
-              }}
-              sx={{
-                minWidth: { xs: "100%", sm: "204px" },
-                width: { xs: "100%", sm: "auto" },
-                ...COMMON_SELECT_SX,
-              }}
-            >
-              {PAYMENT_OPTIONS.map((item) => (
-                <MenuItem key={item.value} value={item.value}>
-                  {item.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </Box>
+        <Box sx={{ mt: "14px", display: "flex", justifyContent: "flex-end" }}>
+          <ActionButtons
+            onClear={handleClear}
+            onSearch={handleSearch}
+            disabled={loading}
+          />
         </Box>
       </Box>
 

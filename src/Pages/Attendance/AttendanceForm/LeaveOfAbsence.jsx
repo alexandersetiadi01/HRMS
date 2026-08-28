@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { Box, TextField, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import {
   apiGetPendingApprovalActor,
   apiLeaveRecordList,
 } from "../../../API/attendance";
 import {
   ActionButtons,
-  FilterRow,
   SelectField,
   YearMonthField,
 } from "./ApplicationRecord/SharedFields";
@@ -44,19 +43,6 @@ const STATUS_OPTIONS = [
   { value: "已核准", label: "已核准" },
   { value: "已駁回", label: "已駁回" },
 ];
-
-const SEARCH_INPUT_SX = {
-  width: { xs: "100%", sm: "180px" },
-  "& .MuiOutlinedInput-root": {
-    height: "32px",
-    bgcolor: "#fff",
-  },
-  "& .MuiOutlinedInput-input": {
-    py: "6px",
-    px: "10px",
-    fontSize: "14px",
-  },
-};
 
 export default function LeaveOfAbsence() {
   const taiwanNow = useMemo(() => getCurrentTaiwanYearMonth(), []);
@@ -224,16 +210,19 @@ export default function LeaveOfAbsence() {
 
   return (
     <Box>
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "12px",
-          pb: "10px",
-          borderBottom: "1px solid #d1d5db",
-        }}
-      >
-        <FilterRow>
+      <Box sx={{ pb: "10px", borderBottom: "1px solid #d1d5db" }}>
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "1fr",
+              sm: "repeat(2, minmax(0, 1fr))",
+              md: "repeat(3, minmax(0, 1fr))",
+            },
+            gap: "14px",
+            alignItems: "end",
+          }}
+        >
           <YearMonthField
             year={year}
             onYearChange={setYear}
@@ -241,52 +230,97 @@ export default function LeaveOfAbsence() {
             month={month}
             onMonthChange={setMonth}
             monthOptions={monthOptions}
-          />
-        </FilterRow>
-
-        <FilterRow>
-          <SelectField
-            label="假別"
-            value={leaveType}
-            onChange={setLeaveType}
-            options={leaveTypeOptions}
-            minWidth="180px"
+            fullWidth
+            height="38px"
+            disabled={loading}
           />
 
-          <SelectField
-            label="狀態"
-            value={status}
-            onChange={setStatus}
-            options={STATUS_OPTIONS}
-            minWidth="180px"
-          />
+          <Box sx={{ minWidth: 0 }}>
+            <Typography sx={{ mb: "6px", fontSize: "15px", fontWeight: 500 }}>
+              假別
+            </Typography>
+
+            <SelectField
+              value={leaveType}
+              onChange={setLeaveType}
+              options={leaveTypeOptions}
+              fullWidth
+              height="38px"
+              disabled={loading}
+            />
+          </Box>
+
+          <Box sx={{ minWidth: 0 }}>
+            <Typography sx={{ mb: "6px", fontSize: "15px", fontWeight: 500 }}>
+              狀態
+            </Typography>
+
+            <SelectField
+              value={status}
+              onChange={setStatus}
+              options={STATUS_OPTIONS}
+              fullWidth
+              height="38px"
+              disabled={loading}
+            />
+          </Box>
 
           <Box
             sx={{
-              ml: { xs: 0, sm: "auto" },
-              width: { xs: "100%", sm: "auto" },
-              display: "flex",
-              alignItems: "center",
-              justifyContent: { xs: "stretch", sm: "flex-end" },
-              gap: "10px",
-              flexWrap: "wrap",
+              minWidth: 0,
+              gridColumn: {
+                xs: "1 / -1",
+                md: "1 / span 2",
+              },
             }}
           >
-            <TextField
+            <Typography sx={{ mb: "6px", fontSize: "15px", fontWeight: 500 }}>
+              搜尋
+            </Typography>
+
+            <Box
+              component="input"
               value={searchText}
               onChange={(event) => setSearchText(event.target.value)}
-              placeholder="搜尋"
-              size="small"
-              sx={SEARCH_INPUT_SX}
               onKeyDown={(event) => {
                 if (event.key === "Enter") {
                   handleSearch();
                 }
               }}
+              placeholder="搜尋"
+              disabled={loading}
+              sx={{
+                boxSizing: "border-box",
+                width: "100%",
+                height: "38px",
+                px: "12px",
+                border: "1px solid #c4c4c4",
+                borderRadius: "4px",
+                bgcolor: "#fff",
+                color: "#111827",
+                fontFamily: "inherit",
+                fontSize: "14px",
+                outline: "none",
+                "&:focus": {
+                  borderColor: "#1976d2",
+                  borderWidth: "2px",
+                },
+                "&:disabled": {
+                  bgcolor: "#f3f4f6",
+                  color: "#9ca3af",
+                },
+              }}
             />
-            <ActionButtons onClear={handleClear} onSearch={handleSearch} />
           </Box>
-        </FilterRow>
+        </Box>
+
+        <Box sx={{ mt: "14px", display: "flex", justifyContent: "flex-end" }}>
+          <ActionButtons
+            onClear={handleClear}
+            onSearch={handleSearch}
+            disabled={loading}
+          />
+        </Box>
       </Box>
 
       <Box sx={{ pt: "14px", overflowX: "auto" }}>

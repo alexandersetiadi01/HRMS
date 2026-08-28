@@ -1,280 +1,283 @@
-import { useMemo, useState } from "react";
-import { Box, Button, MenuItem, Select, Typography } from "@mui/material";
+import { useEffect, useMemo, useState } from "react";
+import { Alert, Box, CircularProgress, Typography } from "@mui/material";
+
+import { apiLeaveRequests } from "../../../API/attendance";
+import { getCurrentEmployeeId } from "../../../API/account";
 import {
-  ACTION_BUTTON_SX,
-  COMMON_SELECT_SX,
-} from "./ApplicationRecord/Options";
-import {
-  FilterActions,
+  ActionButtons,
   MobileSectionTitle,
+  SelectField,
 } from "./ApplicationRecord/SharedFields";
 import ResponsiveAttendanceTable from "./ResponsiveAttendanceTable";
 
 const TYPE_OPTIONS = [
   { value: "all", label: "全部" },
-  { value: "public-outing", label: "公出" },
-  { value: "business-trip", label: "出差" },
+  { value: "公出", label: "公出" },
+  { value: "出差", label: "出差" },
 ];
 
 const STATUS_OPTIONS = [
   { value: "all", label: "全部" },
-  { value: "signing", label: "簽核中" },
-  { value: "returned", label: "已駁回" },
-  { value: "approved", label: "已核准" },
-  { value: "cancel-signing", label: "撤銷簽核中" },
-  { value: "cancelled", label: "已撤銷" },
+  { value: "待審核", label: "待審核" },
+  { value: "已核准", label: "已核准" },
+  { value: "已駁回", label: "已駁回" },
+  { value: "已取消", label: "已取消" },
 ];
 
 const TABLE_COLUMNS = [
-  { key: "applyDate", label: "申請日期", width: "11%" },
-  { key: "unit", label: "單位", width: "16%" },
-  { key: "applicant", label: "申請人", width: "16%" },
+  { key: "apply_date", label: "申請日期", width: "1fr" },
   {
-    key: "dateTime",
+    key: "date_time",
     label: "日期/時間",
-    width: "18%",
+    width: "1.8fr",
     desktopWhiteSpace: "pre-line",
     mobileWhiteSpace: "pre-line",
   },
-  { key: "total", label: "總計", width: "16%" },
-  { key: "type", label: "類型", width: "12%" },
-  { key: "status", label: "狀態", width: "11%" },
+  { key: "total", label: "總計", width: "0.9fr" },
+  { key: "type", label: "類型", width: "0.8fr" },
+  { key: "reason", label: "事由", width: "1.5fr" },
+  { key: "status", label: "狀態", width: "0.9fr" },
 ];
 
-const MOCK_ROWS = [
-  {
-    id: 1,
-    applyDate: "2026/04/03",
-    unit: "業務部",
-    applicant: "許明城",
-    dateTime: "2026/04/05 09:00 -\n2026/04/05 12:00",
-    total: "3 小時",
-    type: "公出",
-    status: "已核准",
-  },
-];
+function getItems(response) {
+  const payload = response?.data ?? response;
+
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.items)) return payload.items;
+
+  return [];
+}
+
+function formatDate(value) {
+  const raw = String(value || "").trim();
+
+  if (!raw) return "-";
+
+  return raw.slice(0, 10).replace(/-/g, "/");
+}
+
+function formatDateTime(value) {
+  const raw = String(value || "").trim();
+
+  if (!raw) return "-";
+
+  return raw.slice(0, 16).replace(/-/g, "/");
+}
+
+function formatHours(value) {
+  const hours = Number(value || 0);
+
+  if (!Number.isFinite(hours) || hours <= 0) return "-";
+
+  return `${Number(hours.toFixed(2))} 小時`;
+}
 
 export default function BusinessTripRecord() {
   const now = useMemo(() => new Date(), []);
   const currentYear = String(now.getFullYear());
+  const employeeId = Number(getCurrentEmployeeId() || 0);
 
   const yearOptions = useMemo(() => {
     const baseYear = now.getFullYear();
-    return Array.from({ length: 5 }, (_, index) =>
-      String(baseYear - 2 + index)
-    );
+
+    return Array.from({ length: 5 }, (_, index) => {
+      const value = String(baseYear - 3 + index);
+
+      return {
+        value,
+        label: value,
+      };
+    });
   }, [now]);
 
   const [year, setYear] = useState(currentYear);
   const [type, setType] = useState("all");
   const [status, setStatus] = useState("all");
+  const [appliedYear, setAppliedYear] = useState(currentYear);
+  const [appliedType, setAppliedType] = useState("all");
+  const [appliedStatus, setAppliedStatus] = useState("all");
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [errorText, setErrorText] = useState("");
+
+  const loadData = async (nextYear, nextStatus) => {
+    setLoading(true);
+    setErrorText("");
+
+    try {
+      const response = await apiLeaveRequests({
+        employee_id: employeeId || undefined,
+        request_status: nextStatus === "all" ? undefined : nextStatus,
+        date_from: `${nextYear}-01-01`,
+        date_to: `${nextYear}-12-31`,
+      });
+
+      setRows(
+        getItems(response).filter((row) =>
+          ["公出", "出差"].includes(String(row.leave_name || "").trim()),
+        ),
+      );
+    } catch (error) {
+      console.error(error);
+      setRows([]);
+      setErrorText(
+        error?.response?.data?.message ||
+          error?.response?.data?.data?.message ||
+          "無法載入公出/出差申請紀錄。",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData(appliedYear, appliedStatus);
+  }, [employeeId, appliedYear, appliedStatus]);
 
   const filteredRows = useMemo(() => {
-    return MOCK_ROWS.filter((row) => {
-      const typeMap = {
-        "public-outing": "公出",
-        "business-trip": "出差",
-      };
+    return rows
+      .filter(
+        (row) =>
+          appliedType === "all" || String(row.leave_name || "") === appliedType,
+      )
+      .map((row) => ({
+        ...row,
+        apply_date: formatDate(row.submitted_at || row.created_at),
+        date_time: `${formatDateTime(row.start_datetime)} -\n${formatDateTime(
+          row.end_datetime,
+        )}`,
+        total: formatHours(row.requested_hours),
+        type: row.leave_name || "-",
+        reason: row.reason || "-",
+        status: row.request_status || "-",
+      }));
+  }, [rows, appliedType]);
 
-      const statusMap = {
-        signing: "簽核中",
-        returned: "已駁回",
-        approved: "已核准",
-        "cancel-signing": "撤銷簽核中",
-        cancelled: "已撤銷",
-      };
-
-      const typeMatch = type === "all" || row.type === typeMap[type];
-      const statusMatch = status === "all" || row.status === statusMap[status];
-
-      return typeMatch && statusMatch;
-    });
-  }, [type, status]);
+  const handleSearch = () => {
+    setAppliedYear(year);
+    setAppliedType(type);
+    setAppliedStatus(status);
+  };
 
   const handleClear = () => {
     setYear(currentYear);
     setType("all");
     setStatus("all");
+    setAppliedYear(currentYear);
+    setAppliedType("all");
+    setAppliedStatus("all");
   };
 
   return (
     <Box>
       <MobileSectionTitle>公出/出差</MobileSectionTitle>
 
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: { xs: "stretch", sm: "center" },
-          gap: "18px",
-          flexWrap: "wrap",
-          mb: "16px",
-        }}
-      >
+      <Box sx={{ pb: "10px", borderBottom: "1px solid #d1d5db" }}>
         <Box
           sx={{
-            display: "flex",
-            flexDirection: { xs: "column", sm: "row" },
-            alignItems: { xs: "stretch", sm: "center" },
-            gap: { xs: "8px", sm: "8px" },
-            width: { xs: "100%", sm: "auto" },
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "1fr",
+              sm: "repeat(2, minmax(0, 1fr))",
+              md: "repeat(3, minmax(0, 1fr))",
+            },
+            gap: "14px",
+            alignItems: "end",
           }}
         >
-          <Typography
-            sx={{ fontSize: "15px", color: "#111827", fontWeight: 500 }}
-          >
-            <Box component="span" sx={{ color: "#ef4444", mr: "2px" }}>
-              *
-            </Box>
-            年度
-          </Typography>
+          <Box sx={{ minWidth: 0 }}>
+            <Typography sx={{ mb: "6px", fontSize: "15px", fontWeight: 500 }}>
+              年度
+            </Typography>
 
-          <Select
-            size="small"
-            value={year}
-            onChange={(event) => setYear(event.target.value)}
-            sx={{
-              minWidth: { xs: "100%", sm: "92px" },
-              width: { xs: "100%", sm: "auto" },
-              ...COMMON_SELECT_SX,
-            }}
-          >
-            {yearOptions.map((item) => (
-              <MenuItem key={item} value={item}>
-                {item}
-              </MenuItem>
-            ))}
-          </Select>
+            <SelectField
+              value={year}
+              onChange={setYear}
+              options={yearOptions}
+              fullWidth
+              height="38px"
+              disabled={loading}
+            />
+          </Box>
+
+          <Box sx={{ minWidth: 0 }}>
+            <Typography sx={{ mb: "6px", fontSize: "15px", fontWeight: 500 }}>
+              類型
+            </Typography>
+
+            <SelectField
+              value={type}
+              onChange={setType}
+              options={TYPE_OPTIONS}
+              fullWidth
+              height="38px"
+              disabled={loading}
+            />
+          </Box>
+
+          <Box sx={{ minWidth: 0 }}>
+            <Typography sx={{ mb: "6px", fontSize: "15px", fontWeight: 500 }}>
+              狀態
+            </Typography>
+
+            <SelectField
+              value={status}
+              onChange={setStatus}
+              options={STATUS_OPTIONS}
+              fullWidth
+              height="38px"
+              disabled={loading}
+            />
+          </Box>
         </Box>
 
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: { xs: "column", sm: "row" },
-            alignItems: { xs: "stretch", sm: "center" },
-            gap: { xs: "8px", sm: "8px" },
-            width: { xs: "100%", sm: "auto" },
-          }}
-        >
-          <Typography
-            sx={{ fontSize: "15px", color: "#111827", fontWeight: 500 }}
-          >
-            類型
-          </Typography>
-
-          <Select
-            size="small"
-            value={type}
-            onChange={(event) => setType(event.target.value)}
-            MenuProps={{
-              PaperProps: {
-                sx: {
-                  mt: "2px",
-                  borderRadius: "2px",
-                  boxShadow: "none",
-                  border: "1px solid #cfcfcf",
-                  maxHeight: 220,
-                  "& .MuiMenuItem-root": {
-                    minHeight: "36px",
-                    fontSize: "15px",
-                    color: "#374151",
-                  },
-                  "& .Mui-selected": {
-                    bgcolor: "#dbe5f1 !important",
-                    color: "#111827",
-                  },
-                  "& .MuiMenuItem-root:hover": {
-                    bgcolor: "#eef3f8",
-                  },
-                },
-              },
-            }}
-            sx={{
-              minWidth: { xs: "100%", sm: "190px" },
-              width: { xs: "100%", sm: "auto" },
-              ...COMMON_SELECT_SX,
-            }}
-          >
-            {TYPE_OPTIONS.map((item) => (
-              <MenuItem key={item.value} value={item.value}>
-                {item.label}
-              </MenuItem>
-            ))}
-          </Select>
+        <Box sx={{ mt: "14px", display: "flex", justifyContent: "flex-end" }}>
+          <ActionButtons
+            onClear={handleClear}
+            onSearch={handleSearch}
+            disabled={loading}
+          />
         </Box>
-
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: { xs: "column", sm: "row" },
-            alignItems: { xs: "stretch", sm: "center" },
-            gap: { xs: "8px", sm: "8px" },
-            width: { xs: "100%", sm: "auto" },
-          }}
-        >
-          <Typography
-            sx={{ fontSize: "15px", color: "#111827", fontWeight: 500 }}
-          >
-            狀態
-          </Typography>
-
-          <Select
-            size="small"
-            value={status}
-            onChange={(event) => setStatus(event.target.value)}
-            MenuProps={{
-              PaperProps: {
-                sx: {
-                  mt: "2px",
-                  borderRadius: "2px",
-                  boxShadow: "none",
-                  border: "1px solid #cfcfcf",
-                  maxHeight: 260,
-                  "& .MuiMenuItem-root": {
-                    minHeight: "36px",
-                    fontSize: "15px",
-                    color: "#374151",
-                  },
-                  "& .Mui-selected": {
-                    bgcolor: "#dbe5f1 !important",
-                    color: "#111827",
-                  },
-                  "& .MuiMenuItem-root:hover": {
-                    bgcolor: "#eef3f8",
-                  },
-                },
-              },
-            }}
-            sx={{
-              minWidth: { xs: "100%", sm: "190px" },
-              width: { xs: "100%", sm: "auto" },
-              ...COMMON_SELECT_SX,
-            }}
-          >
-            {STATUS_OPTIONS.map((item) => (
-              <MenuItem key={item.value} value={item.value}>
-                {item.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </Box>
-
-        <FilterActions>
-          <Button variant="outlined" sx={ACTION_BUTTON_SX}>
-            搜尋
-          </Button>
-
-          <Button variant="outlined" onClick={handleClear} sx={ACTION_BUTTON_SX}>
-            清空
-          </Button>
-        </FilterActions>
       </Box>
 
-      <ResponsiveAttendanceTable
-        columns={TABLE_COLUMNS}
-        rows={filteredRows}
-        mobileCardTitleKey="applyDate"
-        getRowKey={(row) => row.id}
-      />
+      <Box sx={{ height: "14px" }} />
+
+      {errorText ? (
+        <Alert severity="error" sx={{ mb: "14px" }}>
+          {errorText}
+        </Alert>
+      ) : null}
+
+      <Box sx={{ position: "relative" }}>
+        {loading ? (
+          <Box
+            sx={{
+              position: "absolute",
+              inset: 0,
+              zIndex: 2,
+              minHeight: "140px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              bgcolor: "rgba(255, 255, 255, 0.72)",
+            }}
+          >
+            <CircularProgress size={32} />
+          </Box>
+        ) : null}
+
+        <ResponsiveAttendanceTable
+          columns={TABLE_COLUMNS}
+          rows={filteredRows}
+          mobileCardTitleKey="apply_date"
+          getRowKey={(row) => row.leave_request_id}
+          emptyText="查無公出/出差申請紀錄"
+          fitToContainer
+          pagination
+          rowsPerPage={10}
+        />
+      </Box>
     </Box>
   );
 }

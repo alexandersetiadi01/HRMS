@@ -27,6 +27,7 @@ import {
   SelectField,
 } from "../AttendanceForm/ApplicationRecord/SharedFields";
 import PendingApprovalDetailDialog from "./PendingApprovalDetailDialog";
+import ResponsiveAttendanceTable from "../AttendanceForm/ResponsiveAttendanceTable";
 import Breadcrumb from "../../../Utils/Breadcrumb";
 
 const FORM_TYPE_OPTIONS = [
@@ -34,12 +35,9 @@ const FORM_TYPE_OPTIONS = [
   { value: "missed_punch", label: "忘打卡", disabled: false },
   { value: "leave", label: "請假", disabled: false },
   { value: "leave_entitlement", label: "特殊假額度申請", disabled: false },
-  { value: "leave_cancel", label: "請假撤銷", disabled: true },
   { value: "overtime", label: "加班", disabled: false },
-  { value: "overtime_cancel", label: "加班撤銷", disabled: true },
   { value: "outing", label: "公出", disabled: false },
   { value: "business_trip", label: "出差", disabled: false },
-  { value: "business_trip_cancel", label: "公出/出差撤銷", disabled: true },
 ];
 
 const BATCH_BUTTON_SX = {
@@ -241,9 +239,7 @@ function getReasonFromRaw(raw) {
 }
 
 function getContentFromRaw(type, raw) {
-  if (
-    ["leave", "outing", "business_trip", "overtime"].includes(type)
-  ) {
+  if (["leave", "outing", "business_trip", "overtime"].includes(type)) {
     return formatDateTimeRange(raw?.start_datetime, raw?.end_datetime);
   }
 
@@ -577,9 +573,67 @@ export default function AttendancePendingApproval() {
 
   const canRejectRow = (row) => !!row;
 
+  const renderTableValue = (row, column) => {
+    const rowKey = getRowKey(row);
+
+    if (column.key === "actions") {
+      return (
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "2px",
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Tooltip title="查看">
+            <IconButton
+              size="small"
+              sx={ACTION_ICON_BUTTON_SX}
+              onClick={() => handleOpenDetail(row)}
+            >
+              <VisibilityOutlinedIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+
+          {canDeleteRow(row) ? (
+            <Tooltip title="刪除">
+              <IconButton
+                size="small"
+                sx={ACTION_ICON_BUTTON_SX}
+                onClick={() => handleRequestDelete(row)}
+              >
+                <DeleteOutlineOutlinedIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          ) : null}
+        </Box>
+      );
+    }
+
+    if (column.key === "selection") {
+      return (
+        <Box onClick={(e) => e.stopPropagation()}>
+          <Checkbox
+            checked={selectedIds.includes(rowKey)}
+            onChange={(e) => handleCheckOne(rowKey, e.target.checked)}
+          />
+        </Box>
+      );
+    }
+
+    return row[column.key] || "-";
+  };
+
   return (
     <Box>
-      <Breadcrumb rootLabel="首頁" rootTo="/attendance" currentLabel="待審核表單" mb="14px" />
+      <Breadcrumb
+        rootLabel="首頁"
+        rootTo="/attendance"
+        currentLabel="待審核表單"
+        mb="14px"
+      />
 
       <Typography sx={{ fontSize: "18px", fontWeight: 700, mb: "10px" }}>
         待審核表單
@@ -678,150 +732,48 @@ export default function AttendancePendingApproval() {
           </Button>
         </Box>
 
-        <Box sx={{ overflowX: "auto" }}>
-          <Box sx={{ minWidth: "1160px" }}>
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns:
-                  "100px 220px 220px 240px 1fr 72px 48px",
-                minHeight: "62px",
-                alignItems: "center",
-                bgcolor: "#d4d4d4",
-                px: "12px",
-                columnGap: "8px",
-              }}
-            >
-              <Typography sx={{ fontSize: "15px", fontWeight: 700 }}>
-                申請日期
-              </Typography>
-              <Typography sx={{ fontSize: "15px", fontWeight: 700 }}>
-                申請人
-              </Typography>
-              <Typography sx={{ fontSize: "15px", fontWeight: 700 }}>
-                表單類型
-              </Typography>
-              <Typography sx={{ fontSize: "15px", fontWeight: 700 }}>
-                內容
-              </Typography>
-              <Typography sx={{ fontSize: "15px", fontWeight: 700 }}>
-                事由
-              </Typography>
-              <Typography sx={{ fontSize: "15px", fontWeight: 700 }}>
-                操作
-              </Typography>
-
-              <Checkbox
-                checked={isAllChecked}
-                indeterminate={isIndeterminate}
-                onChange={(e) => handleCheckAll(e.target.checked)}
-              />
-            </Box>
-
-            {filteredData.length === 0 ? (
-              <Box
-                sx={{
-                  minHeight: "62px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  px: "12px",
-                  borderBottom: "1px solid #d1d5db",
-                }}
-              >
-                <Typography sx={{ fontSize: "15px", color: "#111827" }}>
-                  查無資料
-                </Typography>
-              </Box>
-            ) : (
-              filteredData.map((row) => {
-                const rowKey = getRowKey(row);
-                const showDelete = canDeleteRow(row);
-
-                return (
-                  <Box
-                    key={rowKey}
-                    sx={{
-                      display: "grid",
-                      gridTemplateColumns:
-                        "100px 220px 220px 240px 1fr 72px 48px",
-                      minHeight: "62px",
-                      alignItems: "center",
-                      px: "12px",
-                      py: "8px",
-                      borderBottom: "1px solid #d1d5db",
-                      cursor: "pointer",
-                      columnGap: "8px",
-                    }}
-                    onClick={() => handleOpenDetail(row)}
-                  >
-                    <Typography sx={{ fontSize: "15px" }}>
-                      {row.date}
-                    </Typography>
-                    <Typography sx={{ fontSize: "15px" }}>
-                      {row.applicant}
-                    </Typography>
-                    <Typography sx={{ fontSize: "15px" }}>
-                      {row.formType}
-                    </Typography>
-                    <Typography
-                      sx={{
-                        fontSize: "15px",
-                        wordBreak: "break-word",
-                        whiteSpace: "normal",
-                      }}
-                    >
-                      {row.content || "-"}
-                    </Typography>
-                    <Typography
-                      sx={{
-                        fontSize: "15px",
-                        wordBreak: "break-word",
-                        whiteSpace: "normal",
-                      }}
-                    >
-                      {row.reason || "-"}
-                    </Typography>
-
-                    <Box
-                      sx={{ display: "flex", alignItems: "center", gap: "2px" }}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <Tooltip title="查看">
-                        <IconButton
-                          size="small"
-                          sx={ACTION_ICON_BUTTON_SX}
-                          onClick={() => handleOpenDetail(row)}
-                        >
-                          <VisibilityOutlinedIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-
-                      {showDelete ? (
-                        <Tooltip title="刪除">
-                          <IconButton
-                            size="small"
-                            sx={ACTION_ICON_BUTTON_SX}
-                            onClick={() => handleRequestDelete(row)}
-                          >
-                            <DeleteOutlineOutlinedIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      ) : null}
-                    </Box>
-
-                    <Checkbox
-                      checked={selectedIds.includes(rowKey)}
-                      onChange={(e) =>
-                        handleCheckOne(rowKey, e.target.checked)
-                      }
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  </Box>
-                );
-              })
-            )}
-          </Box>
+        <Box sx={{ width: "100%", minWidth: 0 }}>
+          <ResponsiveAttendanceTable
+            columns={[
+              { key: "date", label: "申請日期", width: "1fr" },
+              { key: "applicant", label: "申請人", width: "1.2fr" },
+              { key: "formType", label: "表單類型", width: "1.2fr" },
+              {
+                key: "content",
+                label: "內容",
+                width: "1.7fr",
+                desktopWhiteSpace: "normal",
+                mobileWhiteSpace: "normal",
+              },
+              {
+                key: "reason",
+                label: "事由",
+                width: "1.4fr",
+                desktopWhiteSpace: "normal",
+                mobileWhiteSpace: "normal",
+              },
+              { key: "actions", label: "操作", width: "0.65fr" },
+              {
+                key: "selection",
+                label: (
+                  <Checkbox
+                    checked={isAllChecked}
+                    indeterminate={isIndeterminate}
+                    onChange={(e) => handleCheckAll(e.target.checked)}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                ),
+                width: "0.45fr",
+              },
+            ]}
+            rows={filteredData}
+            getRowKey={(row) => getRowKey(row)}
+            mobileCardTitleKey="formType"
+            renderValue={renderTableValue}
+            onRowClick={handleOpenDetail}
+            emptyText="查無資料"
+            fitToContainer
+          />
         </Box>
       </Box>
 

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
+  Autocomplete,
   Box,
   Button,
   CircularProgress,
@@ -15,6 +16,7 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 
 import {
+  apiAttendancePersonnelBasicCreate,
   apiAttendancePersonnelBasicDetail,
   apiAttendancePersonnelBasicJobChange,
   apiAttendancePersonnelBasicList,
@@ -29,11 +31,130 @@ import {
   SelectField,
 } from "../../AttendanceForm/ApplicationRecord/SharedFields";
 
+const GENDER_OPTIONS = ["男", "女"];
+
+const MARITAL_STATUS_OPTIONS = [
+  "未婚",
+  "已婚",
+  "離婚",
+  "喪偶",
+  "其他",
+];
+
+const COUNTRY_CODES = `
+AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ
+BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ
+CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ
+DE DJ DK DM DO DZ
+EC EE EG EH ER ES ET
+FI FJ FK FM FO FR
+GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY
+HK HM HN HR HT HU
+ID IE IL IM IN IO IQ IR IS IT
+JE JM JO JP
+KE KG KH KI KM KN KP KR KW KY KZ
+LA LB LC LI LK LR LS LT LU LV LY
+MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ
+NA NC NE NF NG NI NL NO NP NR NU NZ
+OM
+PA PE PF PG PH PK PL PM PN PR PS PT PW PY
+QA
+RE RO RS RU RW
+SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ
+TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ
+UA UG UM US UY UZ
+VA VC VE VG VI VN VU
+WF WS
+YE YT
+ZA ZM ZW
+`
+  .trim()
+  .split(/\s+/);
+
+const COUNTRY_DISPLAY_NAMES = new Intl.DisplayNames(
+  ["zh-Hant"],
+  { type: "region" },
+);
+
+const COUNTRY_OPTIONS = COUNTRY_CODES
+  .map((code) => ({
+    code,
+    label: COUNTRY_DISPLAY_NAMES.of(code) || code,
+  }))
+  .sort((a, b) =>
+    a.label.localeCompare(b.label, "zh-Hant"),
+  );
+
+function getCountryOption(value) {
+  const text = String(value || "").trim();
+
+  if (!text) return null;
+
+  return (
+    COUNTRY_OPTIONS.find(
+      (option) => option.label === text,
+    ) || {
+      code: "",
+      label: text,
+    }
+  );
+}
+
 const INITIAL_FILTERS = {
   unit_id: "",
   employee_id: "",
   status: "",
   search: "",
+};
+
+const INITIAL_CREATE_DATA = {
+  employee: {
+    employee_no: "",
+    display_name: "",
+    last_name: "",
+    first_name: "",
+    english_name: "",
+    email: "",
+    gender: "",
+    nationality: "",
+    birth_date: "",
+    marital_status: "",
+    hire_date: "",
+    employee_status: "啟用",
+  },
+  job: {
+    supervisor_employee_id: "",
+    unit_id: "",
+    position_id: "",
+    effective_date: "",
+    employee_type: "",
+    remarks: "",
+  },
+  contact: {
+    mobile_phone: "",
+    home_phone: "",
+    extension_no: "",
+    work_mobile: "",
+    personal_email: "",
+    emergency_contact_name: "",
+    emergency_relationship: "",
+    emergency_home_phone: "",
+    emergency_mobile_phone: "",
+    postal_address: "",
+    contact_address: "",
+  },
+  military: {
+    military_status: "",
+    service_type: "",
+    service_period: "",
+    entry_date: "",
+    remarks: "",
+  },
+  account: {
+    username: "",
+    password: "",
+    confirm_password: "",
+  },
 };
 
 const TABLE_COLUMNS = [
@@ -140,6 +261,9 @@ export default function PersonnelBasicPage() {
   const [editData, setEditData] = useState(null);
   const [editErrorText, setEditErrorText] = useState("");
   const [saving, setSaving] = useState(false);
+  const [createData, setCreateData] = useState(null);
+  const [createErrorText, setCreateErrorText] = useState("");
+  const [creating, setCreating] = useState(false);
   const [jobChangeData, setJobChangeData] = useState(null);
   const [jobChangeErrorText, setJobChangeErrorText] = useState("");
   const [jobSaving, setJobSaving] = useState(false);
@@ -282,6 +406,11 @@ export default function PersonnelBasicPage() {
         contact: data?.contact || {},
         military: data?.military || {},
         job: data?.job || {},
+        account: {
+          ...(data?.account || {}),
+          new_password: "",
+          confirm_password: "",
+        },
       });
     } catch (error) {
       console.error(error);
@@ -290,6 +419,97 @@ export default function PersonnelBasicPage() {
       );
     } finally {
       setDetailLoading(false);
+    }
+  };
+
+  const handleOpenCreate = () => {
+    setCreateErrorText("");
+    setCreateData({
+      employee: { ...INITIAL_CREATE_DATA.employee },
+      job: { ...INITIAL_CREATE_DATA.job },
+      contact: { ...INITIAL_CREATE_DATA.contact },
+      military: { ...INITIAL_CREATE_DATA.military },
+      account: { ...INITIAL_CREATE_DATA.account },
+    });
+  };
+
+  const handleCreateChange = (section, field, value) => {
+    setCreateData((current) => ({
+      ...current,
+      [section]: {
+        ...(current?.[section] || {}),
+        [field]: value,
+      },
+    }));
+  };
+
+  const handleSaveCreate = async () => {
+    if (
+      !String(createData?.employee?.employee_no || "").trim() ||
+      !String(createData?.employee?.display_name || "").trim()
+    ) {
+      setCreateErrorText("員工編號及姓名為必填。");
+      return;
+    }
+
+    if (!String(createData?.employee?.email || "").trim()) {
+      setCreateErrorText("Email 為必填。");
+      return;
+    }
+
+    if (!String(createData?.job?.effective_date || "").trim()) {
+      setCreateErrorText("任職資料的生效日為必填。");
+      return;
+    }
+
+    if (!String(createData?.account?.username || "").trim()) {
+      setCreateErrorText("HRMS 帳號的使用者名稱為必填。");
+      return;
+    }
+
+    if (!String(createData?.account?.password || "")) {
+      setCreateErrorText("HRMS 帳號的密碼為必填。");
+      return;
+    }
+
+    if (
+      createData?.account?.password !==
+      createData?.account?.confirm_password
+    ) {
+      setCreateErrorText("密碼與確認密碼不一致。");
+      return;
+    }
+
+    setCreating(true);
+    setCreateErrorText("");
+
+    try {
+      await apiAttendancePersonnelBasicCreate({
+        employee: createData.employee,
+        job: createData.job,
+        contact: createData.contact,
+        military: createData.military,
+        account: {
+          username: createData.account.username,
+          password: createData.account.password,
+        },
+      });
+
+      setCreateData(null);
+      await loadData(filters);
+
+      setSuccessDialog({
+        open: true,
+        title: "建立成功",
+        message: "員工及 HRMS 帳號已建立。",
+      });
+    } catch (error) {
+      console.error(error);
+      setCreateErrorText(
+        getErrorMessage(error, "建立員工失敗。"),
+      );
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -316,6 +536,15 @@ export default function PersonnelBasicPage() {
       return;
     }
 
+    if (
+      editData?.account?.new_password &&
+      editData?.account?.new_password !==
+        editData?.account?.confirm_password
+    ) {
+      setEditErrorText("新密碼與確認新密碼不一致。");
+      return;
+    }
+
     setSaving(true);
     setEditErrorText("");
 
@@ -324,6 +553,9 @@ export default function PersonnelBasicPage() {
         employee: editData.employee,
         contact: editData.contact,
         military: editData.military,
+        account: {
+          new_password: editData?.account?.new_password || "",
+        },
       });
 
       setEditData(null);
@@ -603,8 +835,23 @@ export default function PersonnelBasicPage() {
             mb: "24px",
             display: "flex",
             justifyContent: { xs: "stretch", sm: "flex-end" },
+            alignItems: { xs: "stretch", sm: "center" },
+            flexDirection: { xs: "column", sm: "row" },
+            gap: "10px",
           }}
         >
+          <Button
+            variant="contained"
+            onClick={handleOpenCreate}
+            disabled={loading}
+            sx={{
+              height: "38px",
+              whiteSpace: "nowrap",
+            }}
+          >
+            新增員工
+          </Button>
+
           <ActionButtons
             onClear={handleClear}
             onSearch={handleSearch}
@@ -641,6 +888,833 @@ export default function PersonnelBasicPage() {
           />
         )}
       </Paper>
+
+      <FormDialog
+        open={Boolean(createData)}
+        title="新增員工"
+        submitLabel="建立員工"
+        cancelLabel="取消"
+        maxWidth="md"
+        submitting={creating}
+        scrollToTopSignal={createErrorText}
+        onClose={() => {
+          if (creating) return;
+          setCreateData(null);
+          setCreateErrorText("");
+        }}
+        onSubmit={handleSaveCreate}
+      >
+        {createErrorText ? (
+          <Alert severity="error">
+            {createErrorText}
+          </Alert>
+        ) : null}
+
+        <DetailSection title="基本資料">
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "repeat(2, minmax(0, 1fr))",
+              },
+              gap: "14px",
+            }}
+          >
+            <TextField
+              label="員工編號"
+              size="small"
+              required
+              value={createData?.employee?.employee_no || ""}
+              onChange={(event) =>
+                handleCreateChange(
+                  "employee",
+                  "employee_no",
+                  event.target.value,
+                )
+              }
+            />
+
+            <TextField
+              label="姓名"
+              size="small"
+              required
+              value={createData?.employee?.display_name || ""}
+              onChange={(event) =>
+                handleCreateChange(
+                  "employee",
+                  "display_name",
+                  event.target.value,
+                )
+              }
+            />
+
+            <TextField
+              label="姓"
+              size="small"
+              value={createData?.employee?.last_name || ""}
+              onChange={(event) =>
+                handleCreateChange(
+                  "employee",
+                  "last_name",
+                  event.target.value,
+                )
+              }
+            />
+
+            <TextField
+              label="名"
+              size="small"
+              value={createData?.employee?.first_name || ""}
+              onChange={(event) =>
+                handleCreateChange(
+                  "employee",
+                  "first_name",
+                  event.target.value,
+                )
+              }
+            />
+
+            <TextField
+              label="英文姓名"
+              size="small"
+              value={createData?.employee?.english_name || ""}
+              onChange={(event) =>
+                handleCreateChange(
+                  "employee",
+                  "english_name",
+                  event.target.value,
+                )
+              }
+            />
+
+            <TextField
+              label="Email"
+              type="email"
+              size="small"
+              required
+              value={createData?.employee?.email || ""}
+              onChange={(event) =>
+                handleCreateChange(
+                  "employee",
+                  "email",
+                  event.target.value,
+                )
+              }
+            />
+
+            <TextField
+              select
+              label="性別"
+              size="small"
+              value={createData?.employee?.gender || ""}
+              onChange={(event) =>
+                handleCreateChange(
+                  "employee",
+                  "gender",
+                  event.target.value,
+                )
+              }
+            >
+              <MenuItem value="">-- 請選擇 --</MenuItem>
+
+              {GENDER_OPTIONS.map((option) => (
+                <MenuItem key={option} value={option}>
+                  {option}
+                </MenuItem>
+              ))}
+            </TextField>
+
+            <Autocomplete
+              options={COUNTRY_OPTIONS}
+              value={getCountryOption(
+                createData?.employee?.nationality,
+              )}
+              onChange={(_, option) =>
+                handleCreateChange(
+                  "employee",
+                  "nationality",
+                  option?.label || "",
+                )
+              }
+              getOptionLabel={(option) =>
+                typeof option === "string"
+                  ? option
+                  : option?.label || ""
+              }
+              isOptionEqualToValue={(option, value) =>
+                option.code === value?.code &&
+                option.label === value?.label
+              }
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="國籍"
+                  size="small"
+                  placeholder="搜尋國家"
+                />
+              )}
+            />
+
+            <TextField
+              label="生日"
+              type="date"
+              size="small"
+              value={createData?.employee?.birth_date || ""}
+              onChange={(event) =>
+                handleCreateChange(
+                  "employee",
+                  "birth_date",
+                  event.target.value,
+                )
+              }
+              slotProps={{
+                inputLabel: { shrink: true },
+              }}
+            />
+
+            <TextField
+              select
+              label="婚姻狀態"
+              size="small"
+              value={createData?.employee?.marital_status || ""}
+              onChange={(event) =>
+                handleCreateChange(
+                  "employee",
+                  "marital_status",
+                  event.target.value,
+                )
+              }
+            >
+              <MenuItem value="">-- 請選擇 --</MenuItem>
+
+              {MARITAL_STATUS_OPTIONS.map((option) => (
+                <MenuItem key={option} value={option}>
+                  {option}
+                </MenuItem>
+              ))}
+            </TextField>
+
+            <TextField
+              label="到職日"
+              type="date"
+              size="small"
+              value={createData?.employee?.hire_date || ""}
+              onChange={(event) =>
+                handleCreateChange(
+                  "employee",
+                  "hire_date",
+                  event.target.value,
+                )
+              }
+              slotProps={{
+                inputLabel: { shrink: true },
+              }}
+            />
+
+            <TextField
+              select
+              label="狀態"
+              size="small"
+              value={
+                createData?.employee?.employee_status ||
+                "啟用"
+              }
+              onChange={(event) =>
+                handleCreateChange(
+                  "employee",
+                  "employee_status",
+                  event.target.value,
+                )
+              }
+            >
+              <MenuItem value="啟用">啟用</MenuItem>
+              <MenuItem value="停用">停用</MenuItem>
+            </TextField>
+          </Box>
+        </DetailSection>
+
+        <DetailSection title="任職資料">
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "repeat(2, minmax(0, 1fr))",
+              },
+              gap: "14px",
+            }}
+          >
+            <TextField
+              select
+              label="主管"
+              size="small"
+              value={
+                createData?.job?.supervisor_employee_id ||
+                ""
+              }
+              onChange={(event) =>
+                handleCreateChange(
+                  "job",
+                  "supervisor_employee_id",
+                  event.target.value,
+                )
+              }
+            >
+              <MenuItem value="">-- 請選擇 --</MenuItem>
+
+              {meta.employees.map((item) => (
+                <MenuItem
+                  key={item.employee_id}
+                  value={item.employee_id}
+                >
+                  {employeeLabel(item)}
+                </MenuItem>
+              ))}
+            </TextField>
+
+            <TextField
+              select
+              label="單位"
+              size="small"
+              value={createData?.job?.unit_id || ""}
+              onChange={(event) =>
+                handleCreateChange(
+                  "job",
+                  "unit_id",
+                  event.target.value,
+                )
+              }
+            >
+              <MenuItem value="">-- 請選擇 --</MenuItem>
+
+              {meta.units.map((item) => (
+                <MenuItem
+                  key={item.unit_id}
+                  value={item.unit_id}
+                >
+                  {item.unit_code && item.unit_name
+                    ? `${item.unit_code} - ${item.unit_name}`
+                    : item.unit_name || item.unit_code}
+                </MenuItem>
+              ))}
+            </TextField>
+
+            <TextField
+              select
+              label="職位"
+              size="small"
+              value={createData?.job?.position_id || ""}
+              onChange={(event) =>
+                handleCreateChange(
+                  "job",
+                  "position_id",
+                  event.target.value,
+                )
+              }
+            >
+              <MenuItem value="">-- 請選擇 --</MenuItem>
+
+              {meta.positions.map((item) => (
+                <MenuItem
+                  key={item.position_id}
+                  value={item.position_id}
+                >
+                  {item.position_code && item.position_name
+                    ? `${item.position_code} - ${item.position_name}`
+                    : item.position_name ||
+                      item.position_code}
+                </MenuItem>
+              ))}
+            </TextField>
+
+            <TextField
+              label="生效日"
+              type="date"
+              size="small"
+              required
+              value={
+                createData?.job?.effective_date || ""
+              }
+              onChange={(event) =>
+                handleCreateChange(
+                  "job",
+                  "effective_date",
+                  event.target.value,
+                )
+              }
+              slotProps={{
+                inputLabel: { shrink: true },
+              }}
+            />
+
+            <TextField
+              select
+              label="員工類型"
+              size="small"
+              value={createData?.job?.employee_type || ""}
+              onChange={(event) =>
+                handleCreateChange(
+                  "job",
+                  "employee_type",
+                  event.target.value,
+                )
+              }
+            >
+              <MenuItem value="">-- 請選擇 --</MenuItem>
+              <MenuItem value="正職">正職</MenuItem>
+              <MenuItem value="兼職">兼職</MenuItem>
+              <MenuItem value="約聘">約聘</MenuItem>
+              <MenuItem value="派遣">派遣</MenuItem>
+              <MenuItem value="實習">實習</MenuItem>
+              <MenuItem value="工讀">工讀</MenuItem>
+            </TextField>
+
+            <TextField
+              label="備註"
+              size="small"
+              multiline
+              minRows={2}
+              value={createData?.job?.remarks || ""}
+              onChange={(event) =>
+                handleCreateChange(
+                  "job",
+                  "remarks",
+                  event.target.value,
+                )
+              }
+              sx={{
+                gridColumn: { sm: "1 / -1" },
+              }}
+            />
+          </Box>
+        </DetailSection>
+
+        <DetailSection title="聯絡資料">
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "repeat(2, minmax(0, 1fr))",
+              },
+              gap: "14px",
+            }}
+          >
+            <TextField
+              label="手機"
+              size="small"
+              value={
+                createData?.contact?.mobile_phone || ""
+              }
+              onChange={(event) =>
+                handleCreateChange(
+                  "contact",
+                  "mobile_phone",
+                  event.target.value,
+                )
+              }
+            />
+
+            <TextField
+              label="住家電話"
+              size="small"
+              value={
+                createData?.contact?.home_phone || ""
+              }
+              onChange={(event) =>
+                handleCreateChange(
+                  "contact",
+                  "home_phone",
+                  event.target.value,
+                )
+              }
+            />
+
+            <TextField
+              label="分機"
+              size="small"
+              value={
+                createData?.contact?.extension_no || ""
+              }
+              onChange={(event) =>
+                handleCreateChange(
+                  "contact",
+                  "extension_no",
+                  event.target.value,
+                )
+              }
+            />
+
+            <TextField
+              label="公務手機"
+              size="small"
+              value={
+                createData?.contact?.work_mobile || ""
+              }
+              onChange={(event) =>
+                handleCreateChange(
+                  "contact",
+                  "work_mobile",
+                  event.target.value,
+                )
+              }
+            />
+
+            <TextField
+              label="個人 Email"
+              type="email"
+              size="small"
+              value={
+                createData?.contact?.personal_email || ""
+              }
+              onChange={(event) =>
+                handleCreateChange(
+                  "contact",
+                  "personal_email",
+                  event.target.value,
+                )
+              }
+            />
+
+            <TextField
+              label="緊急聯絡人"
+              size="small"
+              value={
+                createData?.contact
+                  ?.emergency_contact_name || ""
+              }
+              onChange={(event) =>
+                handleCreateChange(
+                  "contact",
+                  "emergency_contact_name",
+                  event.target.value,
+                )
+              }
+            />
+
+            <TextField
+              label="緊急聯絡人關係"
+              size="small"
+              value={
+                createData?.contact
+                  ?.emergency_relationship || ""
+              }
+              onChange={(event) =>
+                handleCreateChange(
+                  "contact",
+                  "emergency_relationship",
+                  event.target.value,
+                )
+              }
+            />
+
+            <TextField
+              label="緊急聯絡人住家電話"
+              size="small"
+              value={
+                createData?.contact
+                  ?.emergency_home_phone || ""
+              }
+              onChange={(event) =>
+                handleCreateChange(
+                  "contact",
+                  "emergency_home_phone",
+                  event.target.value,
+                )
+              }
+            />
+
+            <TextField
+              label="緊急聯絡人手機"
+              size="small"
+              value={
+                createData?.contact
+                  ?.emergency_mobile_phone || ""
+              }
+              onChange={(event) =>
+                handleCreateChange(
+                  "contact",
+                  "emergency_mobile_phone",
+                  event.target.value,
+                )
+              }
+            />
+
+            <Box
+              sx={{
+                gridColumn: { sm: "1 / -1" },
+              }}
+            >
+              <Box
+                sx={{
+                  mb: "6px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "flex-end",
+                }}
+              >
+                <Button
+                  size="small"
+                  variant="text"
+                  disabled={
+                    !String(
+                      createData?.contact
+                        ?.contact_address || "",
+                    ).trim()
+                  }
+                  onClick={() =>
+                    handleCreateChange(
+                      "contact",
+                      "postal_address",
+                      createData?.contact
+                        ?.contact_address || "",
+                    )
+                  }
+                >
+                  同聯絡地址
+                </Button>
+              </Box>
+
+              <TextField
+                fullWidth
+                label="郵寄地址"
+                size="small"
+                multiline
+                minRows={2}
+                value={
+                  createData?.contact?.postal_address || ""
+                }
+                onChange={(event) =>
+                  handleCreateChange(
+                    "contact",
+                    "postal_address",
+                    event.target.value,
+                  )
+                }
+              />
+            </Box>
+
+            <Box
+              sx={{
+                gridColumn: { sm: "1 / -1" },
+              }}
+            >
+              <Box
+                sx={{
+                  mb: "6px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "flex-end",
+                }}
+              >
+                <Button
+                  size="small"
+                  variant="text"
+                  disabled={
+                    !String(
+                      createData?.contact
+                        ?.postal_address || "",
+                    ).trim()
+                  }
+                  onClick={() =>
+                    handleCreateChange(
+                      "contact",
+                      "contact_address",
+                      createData?.contact
+                        ?.postal_address || "",
+                    )
+                  }
+                >
+                  同郵寄地址
+                </Button>
+              </Box>
+
+              <TextField
+                fullWidth
+                label="聯絡地址"
+                size="small"
+                multiline
+                minRows={2}
+                value={
+                  createData?.contact
+                    ?.contact_address || ""
+                }
+                onChange={(event) =>
+                  handleCreateChange(
+                    "contact",
+                    "contact_address",
+                    event.target.value,
+                  )
+                }
+              />
+            </Box>
+          </Box>
+        </DetailSection>
+
+        <DetailSection title="兵役資料">
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "repeat(2, minmax(0, 1fr))",
+              },
+              gap: "14px",
+            }}
+          >
+            <TextField
+              label="兵役狀態"
+              size="small"
+              value={
+                createData?.military?.military_status || ""
+              }
+              onChange={(event) =>
+                handleCreateChange(
+                  "military",
+                  "military_status",
+                  event.target.value,
+                )
+              }
+            />
+
+            <TextField
+              label="役別"
+              size="small"
+              value={
+                createData?.military?.service_type || ""
+              }
+              onChange={(event) =>
+                handleCreateChange(
+                  "military",
+                  "service_type",
+                  event.target.value,
+                )
+              }
+            />
+
+            <TextField
+              label="兵役期間"
+              size="small"
+              value={
+                createData?.military?.service_period || ""
+              }
+              onChange={(event) =>
+                handleCreateChange(
+                  "military",
+                  "service_period",
+                  event.target.value,
+                )
+              }
+            />
+
+            <TextField
+              label="入境時間"
+              type="date"
+              size="small"
+              value={
+                createData?.military?.entry_date || ""
+              }
+              onChange={(event) =>
+                handleCreateChange(
+                  "military",
+                  "entry_date",
+                  event.target.value,
+                )
+              }
+              slotProps={{
+                inputLabel: { shrink: true },
+              }}
+            />
+
+            <TextField
+              label="備註"
+              size="small"
+              multiline
+              minRows={2}
+              value={
+                createData?.military?.remarks || ""
+              }
+              onChange={(event) =>
+                handleCreateChange(
+                  "military",
+                  "remarks",
+                  event.target.value,
+                )
+              }
+              sx={{
+                gridColumn: { sm: "1 / -1" },
+              }}
+            />
+          </Box>
+        </DetailSection>
+
+        <DetailSection title="HRMS 帳號">
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "repeat(2, minmax(0, 1fr))",
+              },
+              gap: "14px",
+            }}
+          >
+            <TextField
+              label="使用者名稱"
+              size="small"
+              required
+              value={
+                createData?.account?.username || ""
+              }
+              onChange={(event) =>
+                handleCreateChange(
+                  "account",
+                  "username",
+                  event.target.value,
+                )
+              }
+            />
+
+            <Box />
+
+            <TextField
+              label="密碼"
+              type="password"
+              size="small"
+              required
+              value={
+                createData?.account?.password || ""
+              }
+              onChange={(event) =>
+                handleCreateChange(
+                  "account",
+                  "password",
+                  event.target.value,
+                )
+              }
+            />
+
+            <TextField
+              label="確認密碼"
+              type="password"
+              size="small"
+              required
+              value={
+                createData?.account
+                  ?.confirm_password || ""
+              }
+              onChange={(event) =>
+                handleCreateChange(
+                  "account",
+                  "confirm_password",
+                  event.target.value,
+                )
+              }
+            />
+          </Box>
+        </DetailSection>
+      </FormDialog>
 
       <FormDialog
         open={Boolean(detailData)}
@@ -743,6 +1817,7 @@ export default function PersonnelBasicPage() {
         cancelLabel="取消"
         maxWidth="md"
         submitting={saving}
+        scrollToTopSignal={editErrorText}
         onClose={() => {
           if (saving) return;
           setEditData(null);
@@ -822,21 +1897,56 @@ export default function PersonnelBasicPage() {
             />
 
             <TextField
+              select
               label="性別"
               size="small"
               value={editData?.employee?.gender || ""}
               onChange={(event) =>
-                handleEditChange("employee", "gender", event.target.value)
+                handleEditChange(
+                  "employee",
+                  "gender",
+                  event.target.value,
+                )
               }
-            />
+            >
+              <MenuItem value="">-- 請選擇 --</MenuItem>
 
-            <TextField
-              label="國籍"
-              size="small"
-              value={editData?.employee?.nationality || ""}
-              onChange={(event) =>
-                handleEditChange("employee", "nationality", event.target.value)
+              {GENDER_OPTIONS.map((option) => (
+                <MenuItem key={option} value={option}>
+                  {option}
+                </MenuItem>
+              ))}
+            </TextField>
+
+            <Autocomplete
+              options={COUNTRY_OPTIONS}
+              value={getCountryOption(
+                editData?.employee?.nationality,
+              )}
+              onChange={(_, option) =>
+                handleEditChange(
+                  "employee",
+                  "nationality",
+                  option?.label || "",
+                )
               }
+              getOptionLabel={(option) =>
+                typeof option === "string"
+                  ? option
+                  : option?.label || ""
+              }
+              isOptionEqualToValue={(option, value) =>
+                option.code === value?.code &&
+                option.label === value?.label
+              }
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="國籍"
+                  size="small"
+                  placeholder="搜尋國家"
+                />
+              )}
             />
 
             <TextField
@@ -851,13 +1961,26 @@ export default function PersonnelBasicPage() {
             />
 
             <TextField
+              select
               label="婚姻狀態"
               size="small"
               value={editData?.employee?.marital_status || ""}
               onChange={(event) =>
-                handleEditChange("employee", "marital_status", event.target.value)
+                handleEditChange(
+                  "employee",
+                  "marital_status",
+                  event.target.value,
+                )
               }
-            />
+            >
+              <MenuItem value="">-- 請選擇 --</MenuItem>
+
+              {MARITAL_STATUS_OPTIONS.map((option) => (
+                <MenuItem key={option} value={option}>
+                  {option}
+                </MenuItem>
+              ))}
+            </TextField>
 
             <TextField
               label="到職日"
@@ -1175,29 +2298,103 @@ export default function PersonnelBasicPage() {
             <TextField label="緊急聯絡人住家電話" size="small" value={editData?.contact?.emergency_home_phone || ""} onChange={(event) => handleEditChange("contact", "emergency_home_phone", event.target.value)} />
             <TextField label="緊急聯絡人手機" size="small" value={editData?.contact?.emergency_mobile_phone || ""} onChange={(event) => handleEditChange("contact", "emergency_mobile_phone", event.target.value)} />
 
-            <TextField
-              label="郵寄地址"
-              size="small"
-              multiline
-              minRows={2}
-              value={editData?.contact?.postal_address || ""}
-              onChange={(event) =>
-                handleEditChange("contact", "postal_address", event.target.value)
-              }
-              sx={{ gridColumn: { sm: "1 / -1" } }}
-            />
+            <Box sx={{ gridColumn: { sm: "1 / -1" } }}>
+              <Box
+                sx={{
+                  mb: "6px",
+                  display: "flex",
+                  justifyContent: "flex-end",
+                }}
+              >
+                <Button
+                  size="small"
+                  variant="text"
+                  disabled={
+                    !String(
+                      editData?.contact?.contact_address ||
+                        "",
+                    ).trim()
+                  }
+                  onClick={() =>
+                    handleEditChange(
+                      "contact",
+                      "postal_address",
+                      editData?.contact?.contact_address ||
+                        "",
+                    )
+                  }
+                >
+                  同聯絡地址
+                </Button>
+              </Box>
 
-            <TextField
-              label="聯絡地址"
-              size="small"
-              multiline
-              minRows={2}
-              value={editData?.contact?.contact_address || ""}
-              onChange={(event) =>
-                handleEditChange("contact", "contact_address", event.target.value)
-              }
-              sx={{ gridColumn: { sm: "1 / -1" } }}
-            />
+              <TextField
+                fullWidth
+                label="郵寄地址"
+                size="small"
+                multiline
+                minRows={2}
+                value={
+                  editData?.contact?.postal_address || ""
+                }
+                onChange={(event) =>
+                  handleEditChange(
+                    "contact",
+                    "postal_address",
+                    event.target.value,
+                  )
+                }
+              />
+            </Box>
+
+            <Box sx={{ gridColumn: { sm: "1 / -1" } }}>
+              <Box
+                sx={{
+                  mb: "6px",
+                  display: "flex",
+                  justifyContent: "flex-end",
+                }}
+              >
+                <Button
+                  size="small"
+                  variant="text"
+                  disabled={
+                    !String(
+                      editData?.contact?.postal_address ||
+                        "",
+                    ).trim()
+                  }
+                  onClick={() =>
+                    handleEditChange(
+                      "contact",
+                      "contact_address",
+                      editData?.contact?.postal_address ||
+                        "",
+                    )
+                  }
+                >
+                  同郵寄地址
+                </Button>
+              </Box>
+
+              <TextField
+                fullWidth
+                label="聯絡地址"
+                size="small"
+                multiline
+                minRows={2}
+                value={
+                  editData?.contact?.contact_address || ""
+                }
+                onChange={(event) =>
+                  handleEditChange(
+                    "contact",
+                    "contact_address",
+                    event.target.value,
+                  )
+                }
+              />
+            </Box>
           </Box>
         </DetailSection>
 
@@ -1234,6 +2431,62 @@ export default function PersonnelBasicPage() {
                 handleEditChange("military", "remarks", event.target.value)
               }
               sx={{ gridColumn: { sm: "1 / -1" } }}
+            />
+          </Box>
+        </DetailSection>
+                <DetailSection title="HRMS 帳號">
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "repeat(2, minmax(0, 1fr))",
+              },
+              gap: "14px",
+            }}
+          >
+            <TextField
+              label="使用者名稱"
+              size="small"
+              value={editData?.account?.username || ""}
+              slotProps={{
+                input: { readOnly: true },
+              }}
+            />
+
+            <Box />
+
+            <TextField
+              label="新密碼"
+              type="password"
+              size="small"
+              value={
+                editData?.account?.new_password || ""
+              }
+              onChange={(event) =>
+                handleEditChange(
+                  "account",
+                  "new_password",
+                  event.target.value,
+                )
+              }
+              helperText="如不需變更密碼，請留空。"
+            />
+
+            <TextField
+              label="確認新密碼"
+              type="password"
+              size="small"
+              value={
+                editData?.account?.confirm_password || ""
+              }
+              onChange={(event) =>
+                handleEditChange(
+                  "account",
+                  "confirm_password",
+                  event.target.value,
+                )
+              }
             />
           </Box>
         </DetailSection>

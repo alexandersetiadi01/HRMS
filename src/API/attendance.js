@@ -803,6 +803,15 @@ export async function apiAttendancePersonnelBasicList(params = {}) {
   return res.data;
 }
 
+export async function apiAttendancePersonnelBasicCreate(payload = {}) {
+  const res = await http.post(
+    "/attendance/personnel-basic",
+    payload,
+  );
+
+  return res.data;
+}
+
 export async function apiAttendancePersonnelBasicDetail(employeeId) {
   const res = await http.get(
     `/attendance/personnel-basic/${employeeId}`,

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Box, Paper, Tab, Tabs, Typography } from "@mui/material";
 import Breadcrumb from "../../../../Utils/Breadcrumb";
 
@@ -7,6 +8,8 @@ import BulkPunchTab from "./BulkPunchTab";
 import AttendanceAnomaliesTab from "./AttendanceAnomaliesTab";
 import AbsenceTab from "./AbsenceTab";
 
+const RECORD_MAINTENANCE_BASE = "/attendance/admin/record-maintenance";
+
 const TABS = [
   { value: "records", label: "打卡紀錄" },
   { value: "bulk", label: "批次打卡" },
@@ -14,8 +17,32 @@ const TABS = [
   { value: "absence", label: "曠職" },
 ];
 
+function getActiveTab(pathname) {
+  const relativePath = pathname
+    .replace(RECORD_MAINTENANCE_BASE, "")
+    .replace(/^\/+|\/+$/g, "");
+
+  return TABS.some((tab) => tab.value === relativePath)
+    ? relativePath
+    : "records";
+}
+
 export default function AttendanceRecordMaintenance() {
-  const [activeTab, setActiveTab] = useState("records");
+  const location = useLocation();
+  const navigate = useNavigate();
+  const activeTab = getActiveTab(location.pathname);
+
+  useEffect(() => {
+    const expectedPath = `${RECORD_MAINTENANCE_BASE}/${activeTab}`;
+
+    if (location.pathname !== expectedPath) {
+      navigate(expectedPath, { replace: true });
+    }
+  }, [activeTab, location.pathname, navigate]);
+
+  const handleTabChange = (_event, value) => {
+    navigate(`${RECORD_MAINTENANCE_BASE}/${value}`);
+  };
 
   return (
     <Box sx={{ px: { xs: 1.5, sm: 2, md: 3 }, py: { xs: 2, sm: 2.5, md: 3 } }}>
@@ -49,7 +76,7 @@ export default function AttendanceRecordMaintenance() {
         <Box sx={{ overflowX: "auto", borderBottom: "1px solid #e5e7eb" }}>
           <Tabs
             value={activeTab}
-            onChange={(_event, value) => setActiveTab(value)}
+            onChange={handleTabChange}
             variant="scrollable"
             scrollButtons="auto"
             allowScrollButtonsMobile

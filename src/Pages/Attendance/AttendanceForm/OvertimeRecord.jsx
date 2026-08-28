@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { Box, TextField, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import {
   apiGetPendingApprovalActor,
   apiOvertimeApplicationRecords,
 } from "../../../API/attendance";
 import {
   ActionButtons,
-  FilterRow,
+  SearchField,
   SelectField,
   YearMonthField,
 } from "./ApplicationRecord/SharedFields";
@@ -44,19 +44,6 @@ const STATUS_OPTIONS = [
   { value: "approved", label: "已核准" },
   { value: "rejected", label: "已駁回" },
 ];
-
-const SEARCH_INPUT_SX = {
-  width: { xs: "100%", sm: "180px" },
-  "& .MuiOutlinedInput-root": {
-    height: "32px",
-    bgcolor: "#fff",
-  },
-  "& .MuiOutlinedInput-input": {
-    py: "6px",
-    px: "10px",
-    fontSize: "14px",
-  },
-};
 
 export default function OvertimeRecord() {
   const taiwanNow = useMemo(() => getCurrentTaiwanYearMonth(), []);
@@ -162,50 +149,65 @@ export default function OvertimeRecord() {
 
   return (
     <Box>
-      <FilterRow withDivider>
-        <YearMonthField
-          year={year}
-          onYearChange={setYear}
-          yearOptions={yearOptions}
-          month={month}
-          onMonthChange={setMonth}
-          monthOptions={monthOptions}
-        />
-
-        <SelectField
-          label="狀態"
-          value={status}
-          onChange={setStatus}
-          options={STATUS_OPTIONS}
-          minWidth="180px"
-        />
-
+      <Box sx={{ pb: "10px", borderBottom: "1px solid #d1d5db" }}>
         <Box
           sx={{
-            ml: { xs: 0, sm: "auto" },
-            width: { xs: "100%", sm: "auto" },
-            display: "flex",
-            alignItems: "center",
-            justifyContent: { xs: "stretch", sm: "flex-end" },
-            gap: "10px",
-            flexWrap: "wrap",
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "1fr",
+              sm: "repeat(2, minmax(0, 1fr))",
+              md: "repeat(3, minmax(0, 1fr))",
+            },
+            gap: "14px",
+            alignItems: "end",
           }}
         >
-          <TextField
-            value={searchText}
-            onChange={(event) => setSearchText(event.target.value)}
-            placeholder="搜尋"
-            size="small"
-            sx={SEARCH_INPUT_SX}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                handleSearch();
-              }
-            }}
+          <YearMonthField
+            year={year}
+            onYearChange={setYear}
+            yearOptions={yearOptions}
+            month={month}
+            onMonthChange={setMonth}
+            monthOptions={monthOptions}
+            fullWidth
+            height="38px"
+            disabled={loading}
           />
-          <ActionButtons onClear={handleClear} onSearch={handleSearch} />
+
+          <SelectField
+            label="狀態"
+            value={status}
+            onChange={setStatus}
+            options={STATUS_OPTIONS}
+            fullWidth
+            height="38px"
+            disabled={loading}
+          />
+
+          <Box sx={{ minWidth: 0 }}>
+            <Typography sx={{ mb: "6px", fontSize: "15px", fontWeight: 500 }}>
+              搜尋
+            </Typography>
+
+            <SearchField
+              value={searchText}
+              onChange={setSearchText}
+              onSearch={handleSearch}
+              fullWidth
+              height="38px"
+              disabled={loading}
+            />
+          </Box>
         </Box>
-      </FilterRow>
+
+        <Box sx={{ mt: "14px", display: "flex", justifyContent: "flex-end" }}>
+          <ActionButtons
+            onClear={handleClear}
+            onSearch={handleSearch}
+            disabled={loading}
+          />
+        </Box>
+      </Box>
 
       <Box sx={{ pt: "14px", overflowX: "hidden" }}>
         <Box sx={{ width: "100%" }}>

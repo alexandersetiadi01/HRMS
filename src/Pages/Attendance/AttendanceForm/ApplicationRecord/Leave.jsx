@@ -4,7 +4,6 @@ import ResponsiveAttendanceTable from "../ResponsiveAttendanceTable";
 import { getApplicationRecordYearOptions } from "./Options";
 import {
   ActionButtons,
-  FilterRow,
   SelectField,
 } from "./SharedFields";
 import {
@@ -276,22 +275,30 @@ export default function Leave() {
 
   return (
     <Box>
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "14px",
-          mb: "14px",
-        }}
-      >
-        <FilterRow>
+      <Box sx={{ mb: "14px", pb: "10px", borderBottom: "1px solid #d1d5db" }}>
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "1fr",
+              sm: "repeat(2, minmax(0, 1fr))",
+              md: isEmployeeOnly
+                ? "repeat(2, minmax(0, 1fr))"
+                : "repeat(4, minmax(0, 1fr))",
+            },
+            gap: "14px",
+            alignItems: "end",
+          }}
+        >
           <SelectField
             label={YEAR_OPTIONS_LABEL}
             required
             value={year}
             onChange={setYear}
             options={yearSelectOptions}
-            minWidth="82px"
+            fullWidth
+            height="38px"
+            disabled={loading || metaLoading}
           />
 
           {!isEmployeeOnly ? (
@@ -304,6 +311,8 @@ export default function Leave() {
               }}
               options={unitOptions}
               displayEmpty
+              fullWidth
+              height="38px"
               disabled={metaLoading}
             />
           ) : null}
@@ -315,22 +324,30 @@ export default function Leave() {
               onChange={setEmployee}
               options={employeeOptionsByUnit}
               displayEmpty
+              fullWidth
+              height="38px"
               disabled={metaLoading}
             />
           ) : null}
-        </FilterRow>
 
-        <FilterRow withDivider>
           <SelectField
             label="狀態"
             value={status}
             onChange={setStatus}
             options={STATUS_OPTIONS}
-            minWidth="200px"
+            fullWidth
+            height="38px"
+            disabled={loading}
           />
+        </Box>
 
-          <ActionButtons onClear={handleClear} onSearch={handleSearch} />
-        </FilterRow>
+        <Box sx={{ mt: "14px", display: "flex", justifyContent: "flex-end" }}>
+          <ActionButtons
+            onClear={handleClear}
+            onSearch={handleSearch}
+            disabled={loading || metaLoading}
+          />
+        </Box>
       </Box>
 
       {errorText ? (

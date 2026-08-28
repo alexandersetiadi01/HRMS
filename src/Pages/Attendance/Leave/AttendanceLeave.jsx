@@ -92,6 +92,7 @@ export default function AttendanceLeave() {
   const [leaveTypes, setLeaveTypes] = useState([]);
   const [entitlementInstances, setEntitlementInstances] = useState([]);
   const [formMeta, setFormMeta] = useState({});
+  const [selectedRuleSettings, setSelectedRuleSettings] = useState({});
   const [pageLoading, setPageLoading] = useState(true);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [pageError, setPageError] = useState("");

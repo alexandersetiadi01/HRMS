@@ -7,7 +7,7 @@ import {
   TableBody,
 } from "@mui/material";
 
-export default function AttendanceAbnormalTable({ rows }) {
+export default function AttendanceAbnormalTable({ rows, loading = false }) {
   return (
     <Box
       sx={{
@@ -67,35 +67,57 @@ export default function AttendanceAbnormalTable({ rows }) {
         </TableHead>
 
         <TableBody>
-          {rows.map((row, i) => (
-            <TableRow key={i}>
+          {loading ? (
+            <TableRow>
               <TableCell
-                sx={{
-                  whiteSpace: "normal",
-                  lineHeight: 1.4,
-                }}
+                colSpan={3}
+                align="center"
+                sx={{ color: "#6b7280" }}
               >
-                {row.date.slice(2)}
-              </TableCell>
-              <TableCell
-                sx={{
-                  whiteSpace: "normal",
-                  lineHeight: 1.4,
-                }}
-              >
-                {row.reason}
-              </TableCell>
-              <TableCell
-                sx={{
-                  whiteSpace: "normal",
-                  lineHeight: 1.4,
-                  color: row.formRecord ? "#111827" : "#6b7280",
-                }}
-              >
-                {row.formRecord || "-"}
+                載入中...
               </TableCell>
             </TableRow>
-          ))}
+          ) : rows.length === 0 ? (
+            <TableRow>
+              <TableCell
+                colSpan={3}
+                align="center"
+                sx={{ color: "#6b7280" }}
+              >
+                查無資料
+              </TableCell>
+            </TableRow>
+          ) : (
+            rows.map((row) => (
+              <TableRow key={row.id}>
+                <TableCell
+                  sx={{
+                    whiteSpace: "normal",
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {String(row.date || "-").slice(2)}
+                </TableCell>
+                <TableCell
+                  sx={{
+                    whiteSpace: "normal",
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {row.reason}
+                </TableCell>
+                <TableCell
+                  sx={{
+                    whiteSpace: "normal",
+                    lineHeight: 1.4,
+                    color: row.formRecord ? "#111827" : "#6b7280",
+                  }}
+                >
+                  {row.formRecord || "-"}
+                </TableCell>
+              </TableRow>
+            ))
+          )}
         </TableBody>
       </Table>
     </Box>
