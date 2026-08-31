@@ -36,6 +36,7 @@ import {
 } from "../../../API/attendance";
 import { getCurrentEmployeeId } from "../../../API/account";
 import ProxyRequestEmployeeField from "../AttendanceForm/ProxyRequestEmployeeField";
+import SuccessDialog from "../../../Components/SuccessDialog";
 import {
   buildDateTimeString,
   calculateOvertimeSummary,
@@ -115,7 +116,8 @@ export default function AttendanceOvertime() {
   const [metaLoading, setMetaLoading] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [errorText, setErrorText] = useState("");
-  const [successText, setSuccessText] = useState("");
+  const [successOpen, setSuccessOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -479,7 +481,6 @@ export default function AttendanceOvertime() {
 
   const handleSubmit = async () => {
     setErrorText("");
-    setSuccessText("");
 
     if (!selectedDateKey) {
       setErrorText("請選擇日期。");
@@ -552,11 +553,12 @@ export default function AttendanceOvertime() {
       const payload = response?.data?.data || response?.data || response || {};
       const requestedText = payload?.requested_text || "";
 
-      setSuccessText(
+      setSuccessMessage(
         requestedText
           ? `加班申請已送出，申請時數為 ${requestedText}。`
           : "加班申請已送出。",
       );
+      setSuccessOpen(true);
 
       setReason("");
       const defaultStart = getShiftEndDefaultTime(selectedDay, meta);
@@ -618,12 +620,6 @@ export default function AttendanceOvertime() {
         {errorText ? (
           <Alert severity="error" sx={{ mb: "16px" }}>
             {errorText}
-          </Alert>
-        ) : null}
-
-        {successText ? (
-          <Alert severity="success" sx={{ mb: "16px" }}>
-            {successText}
           </Alert>
         ) : null}
 
@@ -1139,12 +1135,18 @@ export default function AttendanceOvertime() {
               setReason("");
               setPayType("補休");
               setErrorText("");
-              setSuccessText("");
             }}
           >
             取消
           </Button>
         </Box>
+
+        <SuccessDialog
+          open={successOpen}
+          title="申請成功"
+          message={successMessage || "加班申請已送出。"}
+          onClose={() => setSuccessOpen(false)}
+        />
       </Box>
     </LocalizationProvider>
   );

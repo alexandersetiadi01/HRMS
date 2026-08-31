@@ -60,6 +60,7 @@ import {
   safeText,
 } from "./LeaveUtils";
 import ProxyRequestEmployeeField from "../AttendanceForm/ProxyRequestEmployeeField";
+import SuccessDialog from "../../../Components/SuccessDialog";
 import LeaveTypeRow from "./LeaveTypeRow";
 import LeaveSpecialDialog from "./LeaveSpecialDialog";
 
@@ -97,7 +98,8 @@ export default function AttendanceLeave() {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [pageError, setPageError] = useState("");
   const [submitError, setSubmitError] = useState("");
-  const [submitSuccess, setSubmitSuccess] = useState("");
+  const [successOpen, setSuccessOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
   const [specialOpen, setSpecialOpen] = useState(false);
   const [specialReason, setSpecialReason] = useState("");
@@ -520,7 +522,6 @@ export default function AttendanceLeave() {
 
   const handleSubmit = async () => {
     setSubmitError("");
-    setSubmitSuccess("");
 
     const selectedRowForSubmit = leaveRows[0] || {};
     const leaveTypeId = safeText(selectedRowForSubmit.leaveType, "");
@@ -597,11 +598,12 @@ export default function AttendanceLeave() {
       const requestedHours =
         payload?.requested_hours ?? payload?.request?.requested_hours ?? "";
 
-      setSubmitSuccess(
+      setSuccessMessage(
         requestedHours !== ""
           ? `請假申請已送出，申請時數為 ${formatHoursText(requestedHours)}。`
           : "請假申請已送出。",
       );
+      setSuccessOpen(true);
 
       setReason("");
       setStartDate(today);
@@ -683,12 +685,6 @@ export default function AttendanceLeave() {
         {submitError ? (
           <Alert severity="error" sx={{ mb: "16px" }}>
             {submitError}
-          </Alert>
-        ) : null}
-
-        {submitSuccess ? (
-          <Alert severity="success" sx={{ mb: "16px" }}>
-            {submitSuccess}
           </Alert>
         ) : null}
 
@@ -1256,6 +1252,12 @@ export default function AttendanceLeave() {
           specialLeaveTypes={SPECIAL_LEAVE_TYPES}
         />
       </Box>
+      <SuccessDialog
+        open={successOpen}
+        title="申請成功"
+        message={successMessage || "請假申請已送出。"}
+        onClose={() => setSuccessOpen(false)}
+      />
     </LocalizationProvider>
   );
 }

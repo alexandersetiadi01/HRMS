@@ -35,6 +35,7 @@ import {
 } from "../../API/attendance";
 import { getCurrentEmployeeId } from "../../API/account";
 import ProxyRequestEmployeeField from "./AttendanceForm/ProxyRequestEmployeeField";
+import SuccessDialog from "../../Components/SuccessDialog";
 import {
   buildDateTimeString,
   getTaiwanTodayDayjs,
@@ -81,7 +82,7 @@ export default function AttendanceMissedPunch() {
   const [pageLoading, setPageLoading] = useState(true);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [errorText, setErrorText] = useState("");
-  const [successText, setSuccessText] = useState("");
+  const [successOpen, setSuccessOpen] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -179,7 +180,6 @@ export default function AttendanceMissedPunch() {
 
   const handleConfirm = async () => {
     setErrorText("");
-    setSuccessText("");
 
     if (!date || !dayjs(date).isValid()) {
       setErrorText("請選擇日期。");
@@ -224,11 +224,7 @@ export default function AttendanceMissedPunch() {
         reason,
       });
 
-      setSuccessText("忘打卡申請已送出。");
-
-      setTimeout(() => {
-        handleClose();
-      }, 600);
+      setSuccessOpen(true);
     } catch (error) {
       console.error("Failed to create missed punch request:", error);
       setErrorText(getErrorMessage(error));
@@ -341,12 +337,6 @@ export default function AttendanceMissedPunch() {
           {errorText ? (
             <Alert severity="error" sx={{ mb: "16px" }}>
               {errorText}
-            </Alert>
-          ) : null}
-
-          {successText ? (
-            <Alert severity="success" sx={{ mb: "16px" }}>
-              {successText}
             </Alert>
           ) : null}
 
@@ -579,6 +569,16 @@ export default function AttendanceMissedPunch() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <SuccessDialog
+        open={successOpen}
+        title="申請成功"
+        message="忘打卡申請已送出。"
+        onClose={() => {
+          setSuccessOpen(false);
+          handleClose();
+        }}
+      />
     </LocalizationProvider>
   );
 }

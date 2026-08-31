@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dayjs from "dayjs";
 import {
   Box,
@@ -34,7 +34,7 @@ import {
 } from "../../../API/attendance";
 import { getCurrentEmployeeId } from "../../../API/account";
 import SpecialLeaveDatePicker from "./SpecialLeaveDatePicker";
-import { SuccessDialog } from "./SpecialLeaveDialogs";
+import SuccessDialog from "../../../Components/SuccessDialog";
 import {
   YEAR_OPTIONS,
   calculateEntitlementHours,
@@ -83,6 +83,7 @@ export default function AttendanceSpecialLeave() {
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successOpen, setSuccessOpen] = useState(false);
+  const dialogContentRef = useRef(null);
 
   const [approvedAlertOpen, setApprovedAlertOpen] = useState(false);
 
@@ -300,6 +301,15 @@ export default function AttendanceSpecialLeave() {
     return String(currentYear);
   }
 
+  const scrollToError = useCallback(() => {
+    window.requestAnimationFrame(() => {
+      dialogContentRef.current?.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+    });
+  }, []);
+
   function validateBeforeSubmit() {
     if (!reason.trim()) {
       return "請填寫事由。";
@@ -378,6 +388,7 @@ export default function AttendanceSpecialLeave() {
 
     if (validationMessage) {
       setErrorMessage(validationMessage);
+      scrollToError();
       return;
     }
 
@@ -397,6 +408,7 @@ export default function AttendanceSpecialLeave() {
       setSuccessOpen(true);
     } catch (error) {
       setErrorMessage(getBackendErrorMessage(error));
+      scrollToError();
     } finally {
       setSubmitting(false);
     }
@@ -451,6 +463,7 @@ export default function AttendanceSpecialLeave() {
           </DialogTitle>
 
           <DialogContent
+            ref={dialogContentRef}
             dividers
             sx={{
               px: { xs: "20px", sm: "36px", md: "44px" },
@@ -1183,6 +1196,8 @@ export default function AttendanceSpecialLeave() {
 
         <SuccessDialog
           open={successOpen}
+          title="申請成功"
+          message="特殊假別申請已送出。"
           onClose={() => {
             setSuccessOpen(false);
             navigate("/attendance");

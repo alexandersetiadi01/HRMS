@@ -34,6 +34,7 @@ import {
 } from "../../API/attendance";
 import { getCurrentEmployeeId } from "../../API/account";
 import ProxyRequestEmployeeField from "./AttendanceForm/ProxyRequestEmployeeField";
+import SuccessDialog from "../../Components/SuccessDialog";
 import {
   buildDateTimeString,
   getTaiwanTodayDayjs,
@@ -123,6 +124,8 @@ export default function AttendanceBusinessTrip() {
   const [loadingTypes, setLoadingTypes] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
+  const [successOpen, setSuccessOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
   const holidayDateSet = useMemo(() => {
     return normalizeDateSet(formMeta?.holiday_disabled_dates);
@@ -162,14 +165,6 @@ export default function AttendanceBusinessTrip() {
     );
 
     return String(rule?.rule_value ?? "1") === "1";
-  }, [outingRules]);
-
-  const outingFormDescription = useMemo(() => {
-    const rule = outingRules.find(
-      (item) => String(item?.rule_code || "") === "outing_form_description",
-    );
-
-    return String(rule?.rule_value || "").trim();
   }, [outingRules]);
 
   const businessTripEnabled = useMemo(() => {
@@ -417,10 +412,10 @@ export default function AttendanceBusinessTrip() {
         attachments,
       });
 
-      setMessage({
-        type: "success",
-        text: "申請已送出，等待審核。",
-      });
+      setSuccessMessage(
+        tripType === "出差" ? "出差申請已送出。" : "公出申請已送出。",
+      );
+      setSuccessOpen(true);
 
       setReason("");
       setAgent("");
@@ -492,6 +487,7 @@ export default function AttendanceBusinessTrip() {
                     setTripType(e.target.value);
                     setProxyEmployeeId("");
                   }}
+                  sx={{ columnGap: "16px" }}
                 >
                   <FormControlLabel
                     value="公出"
@@ -520,18 +516,6 @@ export default function AttendanceBusinessTrip() {
                     }}
                   />
                 </RadioGroup>
-
-                {tripType === "公出" && outingFormDescription ? (
-                  <Alert severity="info" sx={{ mt: "10px" }}>
-                    {outingFormDescription}
-                  </Alert>
-                ) : null}
-
-                {tripType === "出差" && businessTripFormDescription ? (
-                  <Alert severity="info" sx={{ mt: "10px" }}>
-                    {businessTripFormDescription}
-                  </Alert>
-                ) : null}
               </Box>
             </Box>
 
@@ -912,6 +896,13 @@ export default function AttendanceBusinessTrip() {
               取消
             </Button>
           </Box>
+
+          <SuccessDialog
+            open={successOpen}
+            title="申請成功"
+            message={successMessage}
+            onClose={() => setSuccessOpen(false)}
+          />
         </Box>
       </LocalizationProvider>
     </>
