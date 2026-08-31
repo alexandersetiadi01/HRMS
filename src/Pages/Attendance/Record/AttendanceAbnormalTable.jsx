@@ -1,13 +1,16 @@
 import {
   Box,
+  IconButton,
   Table,
   TableHead,
   TableRow,
   TableCell,
   TableBody,
+  Tooltip,
 } from "@mui/material";
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 
-export default function AttendanceAbnormalTable({ rows, loading = false }) {
+export default function AttendanceAbnormalTable({ rows, loading = false, onView }) {
   return (
     <Box
       sx={{
@@ -56,12 +59,22 @@ export default function AttendanceAbnormalTable({ rows, loading = false }) {
             <TableCell
               sx={{
                 fontWeight: 700,
-                width: { xs: "40%", md: "auto" },
+                width: { xs: "32%", md: "auto" },
                 whiteSpace: "normal",
                 lineHeight: 1.3,
               }}
             >
               表單申請記錄
+            </TableCell>
+            <TableCell
+              align="center"
+              sx={{
+                fontWeight: 700,
+                width: { xs: "56px", md: "80px" },
+                whiteSpace: "nowrap",
+              }}
+            >
+              操作
             </TableCell>
           </TableRow>
         </TableHead>
@@ -70,7 +83,7 @@ export default function AttendanceAbnormalTable({ rows, loading = false }) {
           {loading ? (
             <TableRow>
               <TableCell
-                colSpan={3}
+                colSpan={4}
                 align="center"
                 sx={{ color: "#6b7280" }}
               >
@@ -80,7 +93,7 @@ export default function AttendanceAbnormalTable({ rows, loading = false }) {
           ) : rows.length === 0 ? (
             <TableRow>
               <TableCell
-                colSpan={3}
+                colSpan={4}
                 align="center"
                 sx={{ color: "#6b7280" }}
               >
@@ -114,6 +127,21 @@ export default function AttendanceAbnormalTable({ rows, loading = false }) {
                   }}
                 >
                   {row.formRecord || "-"}
+                </TableCell>
+
+                <TableCell align="center">
+                  <Tooltip title={row.relatedForms?.length ? "查看" : "無表單紀錄"}>
+                    <span>
+                      <IconButton
+                        size="small"
+                        disabled={!row.relatedForms?.length}
+                        onClick={() => onView?.(row)}
+                        sx={{ color: "#374151" }}
+                      >
+                        <VisibilityOutlinedIcon fontSize="small" />
+                      </IconButton>
+                    </span>
+                  </Tooltip>
                 </TableCell>
               </TableRow>
             ))

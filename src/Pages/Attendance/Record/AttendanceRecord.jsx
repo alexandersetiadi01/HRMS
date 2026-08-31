@@ -91,19 +91,35 @@ function isBusinessTripLeaveType(value) {
   return text === "公出" || text === "出差";
 }
 
-function formatHours(value) {
+function formatHoursMinutes(value) {
   if (value === null || value === undefined || value === "") {
     return "-";
   }
 
-  const num = Number(value);
+  const hoursValue = Number(value);
 
-  if (Number.isNaN(num)) {
+  if (!Number.isFinite(hoursValue)) {
     return String(value);
   }
 
-  // remove .00, keep .5
-  return Number.isInteger(num) ? String(num) : String(parseFloat(num.toFixed(2)));
+  const totalMinutes = Math.max(0, Math.round(hoursValue * 60));
+
+  if (totalMinutes === 0) {
+    return "-";
+  }
+
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  if (hours === 0) {
+    return `${minutes}分`;
+  }
+
+  if (minutes === 0) {
+    return `${hours}時`;
+  }
+
+  return `${hours}時 ${minutes}分`;
 }
 
 function getLeaveHours(detail = {}) {
@@ -116,7 +132,7 @@ function getLeaveHours(detail = {}) {
     detail?.raw?.requested_hours ??
     detail?.raw?.hours;
 
-  return formatHours(value);
+  return formatHoursMinutes(value);
 }
 
 function getLeaveReason(detail = {}) {
@@ -146,7 +162,11 @@ function getLeaveCreatedAt(item = {}) {
   );
 }
 
-function normalizePunchItems(items = [], currentLocation = "全部", currentMethod = "全部") {
+function normalizePunchItems(
+  items = [],
+  currentLocation = "全部",
+  currentMethod = "全部",
+) {
   const nextLocationOptions = new Set(["全部"]);
   const nextMethodOptions = new Set(["全部"]);
 
@@ -179,7 +199,7 @@ function normalizePunchItems(items = [], currentLocation = "全部", currentMeth
         date: safeText(item?.attendance_date_display),
         start: safeText(item?.clock_in_display),
         end: safeText(item?.clock_out_display),
-        paidHours: safeText(item?.payable_hours, "0"),
+        paidHours: formatHoursMinutes(item?.payable_hours),
         lateMinutes: safeText(item?.late_minutes, "0"),
         status: safeText(item?.status_label || item?.status),
         detail: item?.detail || item || {},
@@ -320,8 +340,9 @@ function buildAbnormalRows(
   onlyWithoutForm = false,
 ) {
   const formRecordMap = new Map();
+  const relatedFormMap = new Map();
 
-  const addFormRecord = (dateKey, label) => {
+  const addFormRecord = (dateKey, label, form = null) => {
     if (!dateKey || !label) {
       return;
     }
@@ -331,13 +352,19 @@ function buildAbnormalRows(
     }
 
     formRecordMap.get(dateKey).add(label);
+
+    if (form) {
+      if (!relatedFormMap.has(dateKey)) {
+        relatedFormMap.set(dateKey, []);
+      }
+
+      relatedFormMap.get(dateKey).push(form);
+    }
   };
 
   missedPunchItems.forEach((item) => {
     const dateKey = getDateKey(
-      item.request_datetime ||
-        item.request_date ||
-        item.created_at,
+      item.request_datetime || item.request_date || item.created_at,
     );
 
     if (!dateKey) {
@@ -347,6 +374,12 @@ function buildAbnormalRows(
     addFormRecord(
       dateKey,
       `忘打卡申請（${formatRequestStatus(item.request_status)}）`,
+      {
+        type: "missed_punch",
+        typeLabel: "忘打卡申請",
+        statusLabel: formatRequestStatus(item.request_status),
+        data: item,
+      },
     );
   });
 
@@ -354,7 +387,12 @@ function buildAbnormalRows(
     const status = formatRequestStatus(item.request_status);
 
     getLeaveRequestDateKeys(item).forEach((dateKey) => {
-      addFormRecord(dateKey, `請假（${status}）`);
+      addFormRecord(dateKey, `請假（${status}）`, {
+        type: "leave",
+        typeLabel: "請假",
+        statusLabel: status,
+        data: item,
+      });
     });
   });
 
@@ -362,9 +400,7 @@ function buildAbnormalRows(
 
   attendanceItems.forEach((item, index) => {
     const dateKey = getDateKey(
-      item.attendance_date ||
-        item.attendance_date_display ||
-        item.work_date,
+      item.attendance_date || item.attendance_date_display || item.work_date,
     );
 
     if (!dateKey) {
@@ -372,14 +408,12 @@ function buildAbnormalRows(
     }
 
     const formRecord = Array.from(formRecordMap.get(dateKey) || []).join("、");
+    const relatedForms = relatedFormMap.get(dateKey) || [];
     const lateMinutes = Number(item.late_minutes || 0);
     const earlyLeaveMinutes = Number(item.early_leave_minutes || 0);
 
     const attendanceStatus = String(
-      item.status ||
-        item.attendance_status ||
-        item.status_code ||
-        "",
+      item.status || item.attendance_status || item.status_code || "",
     )
       .trim()
       .toLowerCase();
@@ -391,6 +425,7 @@ function buildAbnormalRows(
         reasonType: "遲到",
         reason: `遲到${Math.round(lateMinutes)}分鐘`,
         formRecord,
+        relatedForms,
       });
     }
 
@@ -401,6 +436,7 @@ function buildAbnormalRows(
         reasonType: "早退",
         reason: `早退${Math.round(earlyLeaveMinutes)}分鐘`,
         formRecord,
+        relatedForms,
       });
     }
 
@@ -424,16 +460,8 @@ function buildAbnormalRows(
   });
 
   return rows
-    .filter(
-      (row) =>
-        reasonFilter === "全部" ||
-        row.reasonType === reasonFilter,
-    )
-    .filter(
-      (row) =>
-        !onlyWithoutForm ||
-        !String(row.formRecord || "").trim(),
-    )
+    .filter((row) => reasonFilter === "全部" || row.reasonType === reasonFilter)
+    .filter((row) => !onlyWithoutForm || !String(row.formRecord || "").trim())
     .sort((a, b) => String(b.date).localeCompare(String(a.date)));
 }
 
@@ -455,7 +483,11 @@ function normalizeLeaveItems(items = []) {
       "";
 
     return {
-      id: item?.id || detail?.leave_request_id || detail?.raw?.leave_request_id || `leave-${index}`,
+      id:
+        item?.id ||
+        detail?.leave_request_id ||
+        detail?.raw?.leave_request_id ||
+        `leave-${index}`,
       mode: "leave",
       date: formatDateOnly(createdAt),
       start: formatDateTime(startAt),
@@ -518,7 +550,9 @@ export default function AttendanceRecord() {
   const [endDate, setEndDate] = useState("");
   const [location, setLocation] = useState("全部");
   const [method, setMethod] = useState("全部");
-  const [locationOptions, setLocationOptions] = useState(DEFAULT_LOCATION_OPTIONS);
+  const [locationOptions, setLocationOptions] = useState(
+    DEFAULT_LOCATION_OPTIONS,
+  );
   const [methodOptions, setMethodOptions] = useState(DEFAULT_METHOD_OPTIONS);
   const [recordRows, setRecordRows] = useState([]);
   const [recordLoading, setRecordLoading] = useState(false);
@@ -527,10 +561,9 @@ export default function AttendanceRecord() {
   const [abnormalReason, setAbnormalReason] = useState("全部");
   const [showOnlyPending, setShowOnlyPending] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
+  const [selectedAbnormalRow, setSelectedAbnormalRow] = useState(null);
 
-  const isLeaveMode =
-    recordType === "請假" ||
-    recordType === "公出/出差";
+  const isLeaveMode = recordType === "請假" || recordType === "公出/出差";
 
   const fetchRecordData = async ({
     nextRecordType = recordType,
@@ -552,19 +585,13 @@ export default function AttendanceRecord() {
       const items = Array.isArray(payload?.items) ? payload.items : [];
 
       const normalized =
-        nextRecordType === "請假" ||
-        nextRecordType === "公出/出差"
+        nextRecordType === "請假" || nextRecordType === "公出/出差"
           ? normalizeLeaveItems(items)
           : normalizePunchItems(items, nextLocation, nextMethod);
 
-      if (
-        nextRecordType === "請假" ||
-        nextRecordType === "公出/出差"
-      ) {
+      if (nextRecordType === "請假" || nextRecordType === "公出/出差") {
         normalized.rows = normalized.rows.filter((row) => {
-          const isBusinessTrip = isBusinessTripLeaveType(
-            row.leaveType,
-          );
+          const isBusinessTrip = isBusinessTripLeaveType(row.leaveType);
 
           return nextRecordType === "公出/出差"
             ? isBusinessTrip
@@ -573,7 +600,9 @@ export default function AttendanceRecord() {
       }
 
       setRecordRows(normalized.rows);
-      setLocationOptions(normalized.locationOptions || DEFAULT_LOCATION_OPTIONS);
+      setLocationOptions(
+        normalized.locationOptions || DEFAULT_LOCATION_OPTIONS,
+      );
       setMethodOptions(normalized.methodOptions || DEFAULT_METHOD_OPTIONS);
 
       if (!(normalized.locationOptions || []).includes(nextLocation)) {
@@ -709,7 +738,12 @@ export default function AttendanceRecord() {
           p: { xs: "0px", md: "24px" },
         }}
       >
-        <Breadcrumb rootLabel="個人專區" rootTo="/attendance" currentLabel="打卡紀錄" mb="14px" />
+        <Breadcrumb
+          rootLabel="個人專區"
+          rootTo="/attendance"
+          currentLabel="打卡紀錄"
+          mb="14px"
+        />
 
         <Typography sx={{ fontSize: "24px", fontWeight: 700, mb: 2 }}>
           打卡紀錄
@@ -762,7 +796,9 @@ export default function AttendanceRecord() {
                       flexWrap="wrap"
                       useFlexGap
                     >
-                      <Typography sx={{ fontSize: "14px", whiteSpace: "nowrap" }}>
+                      <Typography
+                        sx={{ fontSize: "14px", whiteSpace: "nowrap" }}
+                      >
                         *資料類型
                       </Typography>
 
@@ -794,7 +830,9 @@ export default function AttendanceRecord() {
                         ))}
                       </RadioGroup>
 
-                      <Typography sx={{ fontSize: "14px", whiteSpace: "nowrap" }}>
+                      <Typography
+                        sx={{ fontSize: "14px", whiteSpace: "nowrap" }}
+                      >
                         *查詢日期
                       </Typography>
 
@@ -860,7 +898,9 @@ export default function AttendanceRecord() {
                     >
                       {!isLeaveMode && (
                         <>
-                          <Typography sx={{ fontSize: "14px", whiteSpace: "nowrap" }}>
+                          <Typography
+                            sx={{ fontSize: "14px", whiteSpace: "nowrap" }}
+                          >
                             地點
                           </Typography>
 
@@ -878,7 +918,9 @@ export default function AttendanceRecord() {
                             </Select>
                           </FormControl>
 
-                          <Typography sx={{ fontSize: "14px", whiteSpace: "nowrap" }}>
+                          <Typography
+                            sx={{ fontSize: "14px", whiteSpace: "nowrap" }}
+                          >
                             打卡方式
                           </Typography>
 
@@ -958,7 +1000,11 @@ export default function AttendanceRecord() {
                         *查詢日期
                       </Typography>
 
-                      <Stack direction="row" alignItems="center" sx={{ width: "100%" }}>
+                      <Stack
+                        direction="row"
+                        alignItems="center"
+                        sx={{ width: "100%" }}
+                      >
                         <TextField
                           size="small"
                           type="date"
@@ -1102,7 +1148,9 @@ export default function AttendanceRecord() {
                       flexWrap="wrap"
                       useFlexGap
                     >
-                      <Typography sx={{ fontSize: "14px", whiteSpace: "nowrap" }}>
+                      <Typography
+                        sx={{ fontSize: "14px", whiteSpace: "nowrap" }}
+                      >
                         *查詢日期
                       </Typography>
 
@@ -1142,11 +1190,16 @@ export default function AttendanceRecord() {
                       flexWrap="wrap"
                       useFlexGap
                     >
-                      <Typography sx={{ fontSize: "14px", whiteSpace: "nowrap" }}>
+                      <Typography
+                        sx={{ fontSize: "14px", whiteSpace: "nowrap" }}
+                      >
                         *原因
                       </Typography>
 
-                      <FormControl size="small" sx={{ minWidth: "320px", flex: 1 }}>
+                      <FormControl
+                        size="small"
+                        sx={{ minWidth: "320px", flex: 1 }}
+                      >
                         <Select
                           value={abnormalReason}
                           onChange={(e) => setAbnormalReason(e.target.value)}
@@ -1204,7 +1257,11 @@ export default function AttendanceRecord() {
                       }}
                     />
 
-                    <Stack direction="row" justifyContent="flex-end" spacing={1}>
+                    <Stack
+                      direction="row"
+                      justifyContent="flex-end"
+                      spacing={1}
+                    >
                       <Button
                         variant="contained"
                         onClick={() => navigate("/attendance/leave")}
@@ -1240,7 +1297,11 @@ export default function AttendanceRecord() {
                         *查詢日期
                       </Typography>
 
-                      <Stack direction="row" alignItems="center" sx={{ width: "100%" }}>
+                      <Stack
+                        direction="row"
+                        alignItems="center"
+                        sx={{ width: "100%" }}
+                      >
                         <TextField
                           size="small"
                           type="date"
@@ -1508,6 +1569,7 @@ export default function AttendanceRecord() {
               <AttendanceAbnormalTable
                 rows={abnormalRows}
                 loading={abnormalLoading}
+                onView={(row) => setSelectedAbnormalRow(row)}
               />
             )}
           </Box>
@@ -1537,20 +1599,35 @@ export default function AttendanceRecord() {
           ) : (
             <Box>
               <DetailRow label="日期" value={detail?.attendance_date_display} />
-              <DetailRow label="狀態" value={detail?.status_label || detail?.status} />
+              <DetailRow
+                label="狀態"
+                value={detail?.status_label || detail?.status}
+              />
               <DetailRow label="上班時間" value={detail?.clock_in_display} />
-              <DetailRow label="上班地點" value={detail?.clock_in_location_label} />
-              <DetailRow label="上班方式" value={detail?.clock_in_method_label} />
+              <DetailRow
+                label="上班地點"
+                value={detail?.clock_in_location_label}
+              />
+              <DetailRow
+                label="上班方式"
+                value={detail?.clock_in_method_label}
+              />
               <DetailRow label="下班時間" value={detail?.clock_out_display} />
-              <DetailRow label="下班地點" value={detail?.clock_out_location_label} />
-              <DetailRow label="下班方式" value={detail?.clock_out_method_label} />
-              <DetailRow label="工時" value={detail?.worked_hours} />
-              <DetailRow label="請假時數" value={detail?.leave_hours} />
-              <DetailRow label="加班時數" value={detail?.overtime_hours} />
-              <DetailRow label="系統缺勤時數" value={detail?.system_absent_hours} />
-              <DetailRow label="曠職時數" value={detail?.confirmed_absence_hours} />
-              <DetailRow label="尚未處理缺勤" value={detail?.unresolved_absent_hours} />
-              <DetailRow label="計薪時數" value={detail?.payable_hours} />
+              <DetailRow
+                label="下班地點"
+                value={detail?.clock_out_location_label}
+              />
+              <DetailRow
+                label="下班方式"
+                value={detail?.clock_out_method_label}
+              />
+              <DetailRow label="工時" value={formatHoursMinutes(detail?.worked_hours)} />
+              <DetailRow label="請假時數" value={formatHoursMinutes(detail?.leave_hours)} />
+              <DetailRow label="加班時數" value={formatHoursMinutes(detail?.overtime_hours)} />
+              <DetailRow label="系統缺勤時數" value={formatHoursMinutes(detail?.system_absent_hours)} />
+              <DetailRow label="曠職時數" value={formatHoursMinutes(detail?.confirmed_absence_hours)} />
+              <DetailRow label="尚未處理缺勤" value={formatHoursMinutes(detail?.unresolved_absent_hours)} />
+              <DetailRow label="計薪時數" value={formatHoursMinutes(detail?.payable_hours)} />
               <DetailRow label="遲到分鐘" value={detail?.late_minutes} />
               <DetailRow label="早退分鐘" value={detail?.early_leave_minutes} />
             </Box>
@@ -1559,6 +1636,91 @@ export default function AttendanceRecord() {
 
         <DialogActions>
           <Button onClick={() => setSelectedRow(null)}>關閉</Button>
+        </DialogActions>
+      </Dialog>
+
+            <Dialog
+        open={!!selectedAbnormalRow}
+        onClose={() => setSelectedAbnormalRow(null)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle sx={{ fontSize: "20px", fontWeight: 700 }}>
+          表單詳情
+        </DialogTitle>
+
+        <DialogContent dividers>
+          <Stack spacing={3}>
+            {(selectedAbnormalRow?.relatedForms || []).map((form, index) => {
+              const data = form?.data || {};
+
+              return (
+                <Box key={`${form?.type || "form"}-${data?.id || data?.request_id || index}`}>
+                  {index > 0 ? (
+                    <Box sx={{ borderTop: "1px solid #d1d5db", mb: 2 }} />
+                  ) : null}
+
+                  <Typography sx={{ fontSize: "16px", fontWeight: 700, mb: 1 }}>
+                    {form?.typeLabel || "表單"}
+                  </Typography>
+
+                  <DetailRow label="狀態" value={form?.statusLabel} />
+
+                  {form?.type === "missed_punch" ? (
+                    <>
+                      <DetailRow
+                        label="忘打卡類型"
+                        value={
+                          data?.request_punch_type_label ||
+                          (data?.request_punch_type === "in"
+                            ? "上班"
+                            : data?.request_punch_type === "out"
+                              ? "下班"
+                              : data?.request_punch_type)
+                        }
+                      />
+                      <DetailRow
+                        label="打卡時間"
+                        value={formatDateTime(data?.request_datetime)}
+                      />
+                      <DetailRow
+                        label="地點"
+                        value={data?.location_label || data?.location_name}
+                      />
+                      <DetailRow label="地點備註" value={data?.location_note} />
+                      <DetailRow label="事由" value={data?.reason} />
+                    </>
+                  ) : null}
+
+                  {form?.type === "leave" ? (
+                    <>
+                      <DetailRow
+                        label="假別"
+                        value={data?.leave_name || data?.leave_type_name}
+                      />
+                      <DetailRow
+                        label="開始時間"
+                        value={formatDateTime(data?.start_datetime || data?.start_time)}
+                      />
+                      <DetailRow
+                        label="結束時間"
+                        value={formatDateTime(data?.end_datetime || data?.end_time)}
+                      />
+                      <DetailRow
+                        label="申請時數"
+                        value={formatHoursMinutes(data?.requested_hours)}
+                      />
+                      <DetailRow label="事由" value={data?.reason} />
+                    </>
+                  ) : null}
+                </Box>
+              );
+            })}
+          </Stack>
+        </DialogContent>
+
+        <DialogActions>
+          <Button onClick={() => setSelectedAbnormalRow(null)}>關閉</Button>
         </DialogActions>
       </Dialog>
     </>
