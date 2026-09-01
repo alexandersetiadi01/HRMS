@@ -33,13 +33,7 @@ import {
 
 const GENDER_OPTIONS = ["男", "女"];
 
-const MARITAL_STATUS_OPTIONS = [
-  "未婚",
-  "已婚",
-  "離婚",
-  "喪偶",
-  "其他",
-];
+const MARITAL_STATUS_OPTIONS = ["未婚", "已婚", "離婚", "喪偶", "其他"];
 
 const COUNTRY_CODES = `
 AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ
@@ -71,19 +65,14 @@ ZA ZM ZW
   .trim()
   .split(/\s+/);
 
-const COUNTRY_DISPLAY_NAMES = new Intl.DisplayNames(
-  ["zh-Hant"],
-  { type: "region" },
-);
+const COUNTRY_DISPLAY_NAMES = new Intl.DisplayNames(["zh-Hant"], {
+  type: "region",
+});
 
-const COUNTRY_OPTIONS = COUNTRY_CODES
-  .map((code) => ({
-    code,
-    label: COUNTRY_DISPLAY_NAMES.of(code) || code,
-  }))
-  .sort((a, b) =>
-    a.label.localeCompare(b.label, "zh-Hant"),
-  );
+const COUNTRY_OPTIONS = COUNTRY_CODES.map((code) => ({
+  code,
+  label: COUNTRY_DISPLAY_NAMES.of(code) || code,
+})).sort((a, b) => a.label.localeCompare(b.label, "zh-Hant"));
 
 function getCountryOption(value) {
   const text = String(value || "").trim();
@@ -91,9 +80,7 @@ function getCountryOption(value) {
   if (!text) return null;
 
   return (
-    COUNTRY_OPTIONS.find(
-      (option) => option.label === text,
-    ) || {
+    COUNTRY_OPTIONS.find((option) => option.label === text) || {
       code: "",
       label: text,
     }
@@ -154,6 +141,7 @@ const INITIAL_CREATE_DATA = {
     username: "",
     password: "",
     confirm_password: "",
+    role_id: "",
   },
 };
 
@@ -252,6 +240,7 @@ export default function PersonnelBasicPage() {
     units: [],
     positions: [],
     employees: [],
+    roles: [],
   });
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -297,35 +286,37 @@ export default function PersonnelBasicPage() {
     );
   }, [meta.employees, filters.unit_id]);
 
-  const loadData = useCallback(async (nextFilters = filters) => {
-    setLoading(true);
-    setErrorText("");
+  const loadData = useCallback(
+    async (nextFilters = filters) => {
+      setLoading(true);
+      setErrorText("");
 
-    try {
-      const response = await apiAttendancePersonnelBasicList(nextFilters);
-      const data = getData(response, {});
+      try {
+        const response = await apiAttendancePersonnelBasicList(nextFilters);
+        const data = getData(response, {});
 
-      setRows(Array.isArray(data?.items) ? data.items : []);
+        setRows(Array.isArray(data?.items) ? data.items : []);
 
-      setMeta({
-        units: Array.isArray(data?.meta?.units) ? data.meta.units : [],
-        positions: Array.isArray(data?.meta?.positions)
-          ? data.meta.positions
-          : [],
-        employees: Array.isArray(data?.meta?.employees)
-          ? data.meta.employees
-          : [],
-      });
-    } catch (error) {
-      console.error(error);
-      setRows([]);
-      setErrorText(
-        getErrorMessage(error, "載入人員基本資料失敗。"),
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [filters]);
+        setMeta({
+          units: Array.isArray(data?.meta?.units) ? data.meta.units : [],
+          positions: Array.isArray(data?.meta?.positions)
+            ? data.meta.positions
+            : [],
+          employees: Array.isArray(data?.meta?.employees)
+            ? data.meta.employees
+            : [],
+          roles: Array.isArray(data?.meta?.roles) ? data.meta.roles : [],
+        });
+      } catch (error) {
+        console.error(error);
+        setRows([]);
+        setErrorText(getErrorMessage(error, "載入人員基本資料失敗。"));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [filters],
+  );
 
   useEffect(() => {
     loadData(INITIAL_FILTERS);
@@ -370,15 +361,12 @@ export default function PersonnelBasicPage() {
     });
 
     try {
-      const response =
-        await apiAttendancePersonnelBasicDetail(employeeId);
+      const response = await apiAttendancePersonnelBasicDetail(employeeId);
 
       setDetailData(getData(response, {}));
     } catch (error) {
       console.error(error);
-      setDetailErrorText(
-        getErrorMessage(error, "載入人員詳細資料失敗。"),
-      );
+      setDetailErrorText(getErrorMessage(error, "載入人員詳細資料失敗。"));
     } finally {
       setDetailLoading(false);
     }
@@ -393,8 +381,7 @@ export default function PersonnelBasicPage() {
     setEditErrorText("");
 
     try {
-      const response =
-        await apiAttendancePersonnelBasicDetail(employeeId);
+      const response = await apiAttendancePersonnelBasicDetail(employeeId);
 
       const data = getData(response, {});
 
@@ -408,28 +395,34 @@ export default function PersonnelBasicPage() {
         job: data?.job || {},
         account: {
           ...(data?.account || {}),
+          role_id: String(data?.role?.role_id || ""),
           new_password: "",
           confirm_password: "",
         },
       });
     } catch (error) {
       console.error(error);
-      setEditErrorText(
-        getErrorMessage(error, "載入人員編輯資料失敗。"),
-      );
+      setEditErrorText(getErrorMessage(error, "載入人員編輯資料失敗。"));
     } finally {
       setDetailLoading(false);
     }
   };
 
   const handleOpenCreate = () => {
+    const employeeRole = (Array.isArray(meta.roles) ? meta.roles : []).find(
+      (role) => role.role_code === "employee",
+    );
+
     setCreateErrorText("");
     setCreateData({
       employee: { ...INITIAL_CREATE_DATA.employee },
       job: { ...INITIAL_CREATE_DATA.job },
       contact: { ...INITIAL_CREATE_DATA.contact },
       military: { ...INITIAL_CREATE_DATA.military },
-      account: { ...INITIAL_CREATE_DATA.account },
+      account: {
+        ...INITIAL_CREATE_DATA.account,
+        role_id: String(employeeRole?.role_id || ""),
+      },
     });
   };
 
@@ -462,6 +455,11 @@ export default function PersonnelBasicPage() {
       return;
     }
 
+    if (!String(createData?.account?.role_id || "").trim()) {
+      setCreateErrorText("帳號角色為必填。");
+      return;
+    }
+
     if (!String(createData?.account?.username || "").trim()) {
       setCreateErrorText("HRMS 帳號的使用者名稱為必填。");
       return;
@@ -473,8 +471,7 @@ export default function PersonnelBasicPage() {
     }
 
     if (
-      createData?.account?.password !==
-      createData?.account?.confirm_password
+      createData?.account?.password !== createData?.account?.confirm_password
     ) {
       setCreateErrorText("密碼與確認密碼不一致。");
       return;
@@ -492,6 +489,7 @@ export default function PersonnelBasicPage() {
         account: {
           username: createData.account.username,
           password: createData.account.password,
+          role_id: createData.account.role_id,
         },
       });
 
@@ -505,9 +503,7 @@ export default function PersonnelBasicPage() {
       });
     } catch (error) {
       console.error(error);
-      setCreateErrorText(
-        getErrorMessage(error, "建立員工失敗。"),
-      );
+      setCreateErrorText(getErrorMessage(error, "建立員工失敗。"));
     } finally {
       setCreating(false);
     }
@@ -536,10 +532,14 @@ export default function PersonnelBasicPage() {
       return;
     }
 
+    if (!String(editData?.account?.role_id || "").trim()) {
+      setEditErrorText("帳號角色為必填。");
+      return;
+    }
+
     if (
       editData?.account?.new_password &&
-      editData?.account?.new_password !==
-        editData?.account?.confirm_password
+      editData?.account?.new_password !== editData?.account?.confirm_password
     ) {
       setEditErrorText("新密碼與確認新密碼不一致。");
       return;
@@ -554,6 +554,7 @@ export default function PersonnelBasicPage() {
         contact: editData.contact,
         military: editData.military,
         account: {
+          role_id: editData?.account?.role_id || "",
           new_password: editData?.account?.new_password || "",
         },
       });
@@ -568,29 +569,22 @@ export default function PersonnelBasicPage() {
       });
     } catch (error) {
       console.error(error);
-      setEditErrorText(
-        getErrorMessage(error, "儲存人員基本資料失敗。"),
-      );
+      setEditErrorText(getErrorMessage(error, "儲存人員基本資料失敗。"));
     } finally {
       setSaving(false);
     }
   };
 
-    const handleStartJobChange = () => {
+  const handleStartJobChange = () => {
     const job = editData?.job || {};
 
     setJobChangeErrorText("");
     setJobChangeData({
-      supervisor_employee_id:
-        job.supervisor_employee_id || "",
-      unit_id:
-        job.unit_id || "",
-      position_id:
-        job.position_id || "",
-      effective_date:
-        job.effective_date || "",
-      employee_type:
-        job.employee_type || "",
+      supervisor_employee_id: job.supervisor_employee_id || "",
+      unit_id: job.unit_id || "",
+      position_id: job.position_id || "",
+      effective_date: job.effective_date || "",
+      employee_type: job.employee_type || "",
       status_after_change:
         job.status_after_change ||
         editData?.employee?.employee_status ||
@@ -607,8 +601,7 @@ export default function PersonnelBasicPage() {
   };
 
   const handleSaveJobChange = async () => {
-    const employeeId =
-      Number(editData?.employee?.employee_id || 0);
+    const employeeId = Number(editData?.employee?.employee_id || 0);
 
     if (!employeeId) return;
 
@@ -621,15 +614,9 @@ export default function PersonnelBasicPage() {
     setJobChangeErrorText("");
 
     try {
-      await apiAttendancePersonnelBasicJobChange(
-        employeeId,
-        jobChangeData,
-      );
+      await apiAttendancePersonnelBasicJobChange(employeeId, jobChangeData);
 
-      const response =
-        await apiAttendancePersonnelBasicDetail(
-          employeeId,
-        );
+      const response = await apiAttendancePersonnelBasicDetail(employeeId);
 
       const data = getData(response, {});
 
@@ -652,9 +639,7 @@ export default function PersonnelBasicPage() {
       });
     } catch (error) {
       console.error(error);
-      setJobChangeErrorText(
-        getErrorMessage(error, "儲存任職異動失敗。"),
-      );
+      setJobChangeErrorText(getErrorMessage(error, "儲存任職異動失敗。"));
     } finally {
       setJobSaving(false);
     }
@@ -905,9 +890,7 @@ export default function PersonnelBasicPage() {
         onSubmit={handleSaveCreate}
       >
         {createErrorText ? (
-          <Alert severity="error">
-            {createErrorText}
-          </Alert>
+          <Alert severity="error">{createErrorText}</Alert>
         ) : null}
 
         <DetailSection title="基本資料">
@@ -954,11 +937,7 @@ export default function PersonnelBasicPage() {
               size="small"
               value={createData?.employee?.last_name || ""}
               onChange={(event) =>
-                handleCreateChange(
-                  "employee",
-                  "last_name",
-                  event.target.value,
-                )
+                handleCreateChange("employee", "last_name", event.target.value)
               }
             />
 
@@ -967,11 +946,7 @@ export default function PersonnelBasicPage() {
               size="small"
               value={createData?.employee?.first_name || ""}
               onChange={(event) =>
-                handleCreateChange(
-                  "employee",
-                  "first_name",
-                  event.target.value,
-                )
+                handleCreateChange("employee", "first_name", event.target.value)
               }
             />
 
@@ -995,11 +970,7 @@ export default function PersonnelBasicPage() {
               required
               value={createData?.employee?.email || ""}
               onChange={(event) =>
-                handleCreateChange(
-                  "employee",
-                  "email",
-                  event.target.value,
-                )
+                handleCreateChange("employee", "email", event.target.value)
               }
             />
 
@@ -1009,11 +980,7 @@ export default function PersonnelBasicPage() {
               size="small"
               value={createData?.employee?.gender || ""}
               onChange={(event) =>
-                handleCreateChange(
-                  "employee",
-                  "gender",
-                  event.target.value,
-                )
+                handleCreateChange("employee", "gender", event.target.value)
               }
             >
               <MenuItem value="">-- 請選擇 --</MenuItem>
@@ -1027,9 +994,7 @@ export default function PersonnelBasicPage() {
 
             <Autocomplete
               options={COUNTRY_OPTIONS}
-              value={getCountryOption(
-                createData?.employee?.nationality,
-              )}
+              value={getCountryOption(createData?.employee?.nationality)}
               onChange={(_, option) =>
                 handleCreateChange(
                   "employee",
@@ -1038,13 +1003,10 @@ export default function PersonnelBasicPage() {
                 )
               }
               getOptionLabel={(option) =>
-                typeof option === "string"
-                  ? option
-                  : option?.label || ""
+                typeof option === "string" ? option : option?.label || ""
               }
               isOptionEqualToValue={(option, value) =>
-                option.code === value?.code &&
-                option.label === value?.label
+                option.code === value?.code && option.label === value?.label
               }
               renderInput={(params) => (
                 <TextField
@@ -1062,11 +1024,7 @@ export default function PersonnelBasicPage() {
               size="small"
               value={createData?.employee?.birth_date || ""}
               onChange={(event) =>
-                handleCreateChange(
-                  "employee",
-                  "birth_date",
-                  event.target.value,
-                )
+                handleCreateChange("employee", "birth_date", event.target.value)
               }
               slotProps={{
                 inputLabel: { shrink: true },
@@ -1101,11 +1059,7 @@ export default function PersonnelBasicPage() {
               size="small"
               value={createData?.employee?.hire_date || ""}
               onChange={(event) =>
-                handleCreateChange(
-                  "employee",
-                  "hire_date",
-                  event.target.value,
-                )
+                handleCreateChange("employee", "hire_date", event.target.value)
               }
               slotProps={{
                 inputLabel: { shrink: true },
@@ -1116,10 +1070,7 @@ export default function PersonnelBasicPage() {
               select
               label="狀態"
               size="small"
-              value={
-                createData?.employee?.employee_status ||
-                "啟用"
-              }
+              value={createData?.employee?.employee_status || "啟用"}
               onChange={(event) =>
                 handleCreateChange(
                   "employee",
@@ -1149,10 +1100,7 @@ export default function PersonnelBasicPage() {
               select
               label="主管"
               size="small"
-              value={
-                createData?.job?.supervisor_employee_id ||
-                ""
-              }
+              value={createData?.job?.supervisor_employee_id || ""}
               onChange={(event) =>
                 handleCreateChange(
                   "job",
@@ -1164,10 +1112,7 @@ export default function PersonnelBasicPage() {
               <MenuItem value="">-- 請選擇 --</MenuItem>
 
               {meta.employees.map((item) => (
-                <MenuItem
-                  key={item.employee_id}
-                  value={item.employee_id}
-                >
+                <MenuItem key={item.employee_id} value={item.employee_id}>
                   {employeeLabel(item)}
                 </MenuItem>
               ))}
@@ -1179,20 +1124,13 @@ export default function PersonnelBasicPage() {
               size="small"
               value={createData?.job?.unit_id || ""}
               onChange={(event) =>
-                handleCreateChange(
-                  "job",
-                  "unit_id",
-                  event.target.value,
-                )
+                handleCreateChange("job", "unit_id", event.target.value)
               }
             >
               <MenuItem value="">-- 請選擇 --</MenuItem>
 
               {meta.units.map((item) => (
-                <MenuItem
-                  key={item.unit_id}
-                  value={item.unit_id}
-                >
+                <MenuItem key={item.unit_id} value={item.unit_id}>
                   {item.unit_code && item.unit_name
                     ? `${item.unit_code} - ${item.unit_name}`
                     : item.unit_name || item.unit_code}
@@ -1206,24 +1144,16 @@ export default function PersonnelBasicPage() {
               size="small"
               value={createData?.job?.position_id || ""}
               onChange={(event) =>
-                handleCreateChange(
-                  "job",
-                  "position_id",
-                  event.target.value,
-                )
+                handleCreateChange("job", "position_id", event.target.value)
               }
             >
               <MenuItem value="">-- 請選擇 --</MenuItem>
 
               {meta.positions.map((item) => (
-                <MenuItem
-                  key={item.position_id}
-                  value={item.position_id}
-                >
+                <MenuItem key={item.position_id} value={item.position_id}>
                   {item.position_code && item.position_name
                     ? `${item.position_code} - ${item.position_name}`
-                    : item.position_name ||
-                      item.position_code}
+                    : item.position_name || item.position_code}
                 </MenuItem>
               ))}
             </TextField>
@@ -1233,15 +1163,9 @@ export default function PersonnelBasicPage() {
               type="date"
               size="small"
               required
-              value={
-                createData?.job?.effective_date || ""
-              }
+              value={createData?.job?.effective_date || ""}
               onChange={(event) =>
-                handleCreateChange(
-                  "job",
-                  "effective_date",
-                  event.target.value,
-                )
+                handleCreateChange("job", "effective_date", event.target.value)
               }
               slotProps={{
                 inputLabel: { shrink: true },
@@ -1254,11 +1178,7 @@ export default function PersonnelBasicPage() {
               size="small"
               value={createData?.job?.employee_type || ""}
               onChange={(event) =>
-                handleCreateChange(
-                  "job",
-                  "employee_type",
-                  event.target.value,
-                )
+                handleCreateChange("job", "employee_type", event.target.value)
               }
             >
               <MenuItem value="">-- 請選擇 --</MenuItem>
@@ -1277,11 +1197,7 @@ export default function PersonnelBasicPage() {
               minRows={2}
               value={createData?.job?.remarks || ""}
               onChange={(event) =>
-                handleCreateChange(
-                  "job",
-                  "remarks",
-                  event.target.value,
-                )
+                handleCreateChange("job", "remarks", event.target.value)
               }
               sx={{
                 gridColumn: { sm: "1 / -1" },
@@ -1304,9 +1220,7 @@ export default function PersonnelBasicPage() {
             <TextField
               label="手機"
               size="small"
-              value={
-                createData?.contact?.mobile_phone || ""
-              }
+              value={createData?.contact?.mobile_phone || ""}
               onChange={(event) =>
                 handleCreateChange(
                   "contact",
@@ -1319,24 +1233,16 @@ export default function PersonnelBasicPage() {
             <TextField
               label="住家電話"
               size="small"
-              value={
-                createData?.contact?.home_phone || ""
-              }
+              value={createData?.contact?.home_phone || ""}
               onChange={(event) =>
-                handleCreateChange(
-                  "contact",
-                  "home_phone",
-                  event.target.value,
-                )
+                handleCreateChange("contact", "home_phone", event.target.value)
               }
             />
 
             <TextField
               label="分機"
               size="small"
-              value={
-                createData?.contact?.extension_no || ""
-              }
+              value={createData?.contact?.extension_no || ""}
               onChange={(event) =>
                 handleCreateChange(
                   "contact",
@@ -1349,15 +1255,9 @@ export default function PersonnelBasicPage() {
             <TextField
               label="公務手機"
               size="small"
-              value={
-                createData?.contact?.work_mobile || ""
-              }
+              value={createData?.contact?.work_mobile || ""}
               onChange={(event) =>
-                handleCreateChange(
-                  "contact",
-                  "work_mobile",
-                  event.target.value,
-                )
+                handleCreateChange("contact", "work_mobile", event.target.value)
               }
             />
 
@@ -1365,9 +1265,7 @@ export default function PersonnelBasicPage() {
               label="個人 Email"
               type="email"
               size="small"
-              value={
-                createData?.contact?.personal_email || ""
-              }
+              value={createData?.contact?.personal_email || ""}
               onChange={(event) =>
                 handleCreateChange(
                   "contact",
@@ -1380,10 +1278,7 @@ export default function PersonnelBasicPage() {
             <TextField
               label="緊急聯絡人"
               size="small"
-              value={
-                createData?.contact
-                  ?.emergency_contact_name || ""
-              }
+              value={createData?.contact?.emergency_contact_name || ""}
               onChange={(event) =>
                 handleCreateChange(
                   "contact",
@@ -1396,10 +1291,7 @@ export default function PersonnelBasicPage() {
             <TextField
               label="緊急聯絡人關係"
               size="small"
-              value={
-                createData?.contact
-                  ?.emergency_relationship || ""
-              }
+              value={createData?.contact?.emergency_relationship || ""}
               onChange={(event) =>
                 handleCreateChange(
                   "contact",
@@ -1412,10 +1304,7 @@ export default function PersonnelBasicPage() {
             <TextField
               label="緊急聯絡人住家電話"
               size="small"
-              value={
-                createData?.contact
-                  ?.emergency_home_phone || ""
-              }
+              value={createData?.contact?.emergency_home_phone || ""}
               onChange={(event) =>
                 handleCreateChange(
                   "contact",
@@ -1428,10 +1317,7 @@ export default function PersonnelBasicPage() {
             <TextField
               label="緊急聯絡人手機"
               size="small"
-              value={
-                createData?.contact
-                  ?.emergency_mobile_phone || ""
-              }
+              value={createData?.contact?.emergency_mobile_phone || ""}
               onChange={(event) =>
                 handleCreateChange(
                   "contact",
@@ -1458,17 +1344,13 @@ export default function PersonnelBasicPage() {
                   size="small"
                   variant="text"
                   disabled={
-                    !String(
-                      createData?.contact
-                        ?.contact_address || "",
-                    ).trim()
+                    !String(createData?.contact?.contact_address || "").trim()
                   }
                   onClick={() =>
                     handleCreateChange(
                       "contact",
                       "postal_address",
-                      createData?.contact
-                        ?.contact_address || "",
+                      createData?.contact?.contact_address || "",
                     )
                   }
                 >
@@ -1482,9 +1364,7 @@ export default function PersonnelBasicPage() {
                 size="small"
                 multiline
                 minRows={2}
-                value={
-                  createData?.contact?.postal_address || ""
-                }
+                value={createData?.contact?.postal_address || ""}
                 onChange={(event) =>
                   handleCreateChange(
                     "contact",
@@ -1512,17 +1392,13 @@ export default function PersonnelBasicPage() {
                   size="small"
                   variant="text"
                   disabled={
-                    !String(
-                      createData?.contact
-                        ?.postal_address || "",
-                    ).trim()
+                    !String(createData?.contact?.postal_address || "").trim()
                   }
                   onClick={() =>
                     handleCreateChange(
                       "contact",
                       "contact_address",
-                      createData?.contact
-                        ?.postal_address || "",
+                      createData?.contact?.postal_address || "",
                     )
                   }
                 >
@@ -1536,10 +1412,7 @@ export default function PersonnelBasicPage() {
                 size="small"
                 multiline
                 minRows={2}
-                value={
-                  createData?.contact
-                    ?.contact_address || ""
-                }
+                value={createData?.contact?.contact_address || ""}
                 onChange={(event) =>
                   handleCreateChange(
                     "contact",
@@ -1566,9 +1439,7 @@ export default function PersonnelBasicPage() {
             <TextField
               label="兵役狀態"
               size="small"
-              value={
-                createData?.military?.military_status || ""
-              }
+              value={createData?.military?.military_status || ""}
               onChange={(event) =>
                 handleCreateChange(
                   "military",
@@ -1581,9 +1452,7 @@ export default function PersonnelBasicPage() {
             <TextField
               label="役別"
               size="small"
-              value={
-                createData?.military?.service_type || ""
-              }
+              value={createData?.military?.service_type || ""}
               onChange={(event) =>
                 handleCreateChange(
                   "military",
@@ -1596,9 +1465,7 @@ export default function PersonnelBasicPage() {
             <TextField
               label="兵役期間"
               size="small"
-              value={
-                createData?.military?.service_period || ""
-              }
+              value={createData?.military?.service_period || ""}
               onChange={(event) =>
                 handleCreateChange(
                   "military",
@@ -1612,15 +1479,9 @@ export default function PersonnelBasicPage() {
               label="入境時間"
               type="date"
               size="small"
-              value={
-                createData?.military?.entry_date || ""
-              }
+              value={createData?.military?.entry_date || ""}
               onChange={(event) =>
-                handleCreateChange(
-                  "military",
-                  "entry_date",
-                  event.target.value,
-                )
+                handleCreateChange("military", "entry_date", event.target.value)
               }
               slotProps={{
                 inputLabel: { shrink: true },
@@ -1632,15 +1493,9 @@ export default function PersonnelBasicPage() {
               size="small"
               multiline
               minRows={2}
-              value={
-                createData?.military?.remarks || ""
-              }
+              value={createData?.military?.remarks || ""}
               onChange={(event) =>
-                handleCreateChange(
-                  "military",
-                  "remarks",
-                  event.target.value,
-                )
+                handleCreateChange("military", "remarks", event.target.value)
               }
               sx={{
                 gridColumn: { sm: "1 / -1" },
@@ -1664,15 +1519,9 @@ export default function PersonnelBasicPage() {
               label="使用者名稱"
               size="small"
               required
-              value={
-                createData?.account?.username || ""
-              }
+              value={createData?.account?.username || ""}
               onChange={(event) =>
-                handleCreateChange(
-                  "account",
-                  "username",
-                  event.target.value,
-                )
+                handleCreateChange("account", "username", event.target.value)
               }
             />
 
@@ -1683,15 +1532,9 @@ export default function PersonnelBasicPage() {
               type="password"
               size="small"
               required
-              value={
-                createData?.account?.password || ""
-              }
+              value={createData?.account?.password || ""}
               onChange={(event) =>
-                handleCreateChange(
-                  "account",
-                  "password",
-                  event.target.value,
-                )
+                handleCreateChange("account", "password", event.target.value)
               }
             />
 
@@ -1700,10 +1543,7 @@ export default function PersonnelBasicPage() {
               type="password"
               size="small"
               required
-              value={
-                createData?.account
-                  ?.confirm_password || ""
-              }
+              value={createData?.account?.confirm_password || ""}
               onChange={(event) =>
                 handleCreateChange(
                   "account",
@@ -1713,6 +1553,29 @@ export default function PersonnelBasicPage() {
               }
             />
           </Box>
+        </DetailSection>
+
+        <DetailSection title="帳號角色">
+          <TextField
+            select
+            fullWidth
+            required
+            label="帳號角色"
+            size="small"
+            value={createData?.account?.role_id || ""}
+            onChange={(event) =>
+              handleCreateChange("account", "role_id", event.target.value)
+            }
+            helperText="帳號角色決定此帳號可使用的系統功能與管理權限，請依實際職責選擇。"
+          >
+            <MenuItem value="">-- 請選擇 --</MenuItem>
+
+            {meta.roles.map((role) => (
+              <MenuItem key={role.role_id} value={String(role.role_id)}>
+                {role.role_name}
+              </MenuItem>
+            ))}
+          </TextField>
         </DetailSection>
       </FormDialog>
 
@@ -1734,9 +1597,7 @@ export default function PersonnelBasicPage() {
         }}
       >
         {detailErrorText ? (
-          <Alert severity="error">
-            {detailErrorText}
-          </Alert>
+          <Alert severity="error">{detailErrorText}</Alert>
         ) : null}
 
         {detailLoading ? (
@@ -1797,10 +1658,7 @@ export default function PersonnelBasicPage() {
             </DetailSection>
 
             <DetailSection title="兵役資料">
-              <DetailField
-                label="兵役狀態"
-                value={military.military_status}
-              />
+              <DetailField label="兵役狀態" value={military.military_status} />
               <DetailField label="役別" value={military.service_type} />
               <DetailField label="兵役期間" value={military.service_period} />
               <DetailField label="入境時間" value={military.entry_date} />
@@ -1825,17 +1683,16 @@ export default function PersonnelBasicPage() {
         }}
         onSubmit={handleSaveEdit}
       >
-        {editErrorText ? (
-          <Alert severity="error">
-            {editErrorText}
-          </Alert>
-        ) : null}
+        {editErrorText ? <Alert severity="error">{editErrorText}</Alert> : null}
 
         <DetailSection title="基本資料">
           <Box
             sx={{
               display: "grid",
-              gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))" },
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "repeat(2, minmax(0, 1fr))",
+              },
               gap: "14px",
             }}
           >
@@ -1902,11 +1759,7 @@ export default function PersonnelBasicPage() {
               size="small"
               value={editData?.employee?.gender || ""}
               onChange={(event) =>
-                handleEditChange(
-                  "employee",
-                  "gender",
-                  event.target.value,
-                )
+                handleEditChange("employee", "gender", event.target.value)
               }
             >
               <MenuItem value="">-- 請選擇 --</MenuItem>
@@ -1920,24 +1773,15 @@ export default function PersonnelBasicPage() {
 
             <Autocomplete
               options={COUNTRY_OPTIONS}
-              value={getCountryOption(
-                editData?.employee?.nationality,
-              )}
+              value={getCountryOption(editData?.employee?.nationality)}
               onChange={(_, option) =>
-                handleEditChange(
-                  "employee",
-                  "nationality",
-                  option?.label || "",
-                )
+                handleEditChange("employee", "nationality", option?.label || "")
               }
               getOptionLabel={(option) =>
-                typeof option === "string"
-                  ? option
-                  : option?.label || ""
+                typeof option === "string" ? option : option?.label || ""
               }
               isOptionEqualToValue={(option, value) =>
-                option.code === value?.code &&
-                option.label === value?.label
+                option.code === value?.code && option.label === value?.label
               }
               renderInput={(params) => (
                 <TextField
@@ -1999,7 +1843,11 @@ export default function PersonnelBasicPage() {
               size="small"
               value={editData?.employee?.employee_status || "啟用"}
               onChange={(event) =>
-                handleEditChange("employee", "employee_status", event.target.value)
+                handleEditChange(
+                  "employee",
+                  "employee_status",
+                  event.target.value,
+                )
               }
             >
               <MenuItem value="啟用">啟用</MenuItem>
@@ -2012,7 +1860,10 @@ export default function PersonnelBasicPage() {
           <Box
             sx={{
               display: "grid",
-              gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))" },
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "repeat(2, minmax(0, 1fr))",
+              },
               gap: "14px",
             }}
           >
@@ -2090,7 +1941,10 @@ export default function PersonnelBasicPage() {
               <Box
                 sx={{
                   display: "grid",
-                  gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))" },
+                  gridTemplateColumns: {
+                    xs: "1fr",
+                    sm: "repeat(2, minmax(0, 1fr))",
+                  },
                   gap: "14px",
                 }}
               >
@@ -2115,10 +1969,7 @@ export default function PersonnelBasicPage() {
                         Number(editData?.employee?.employee_id),
                     )
                     .map((item) => (
-                      <MenuItem
-                        key={item.employee_id}
-                        value={item.employee_id}
-                      >
+                      <MenuItem key={item.employee_id} value={item.employee_id}>
                         {employeeLabel(item)}
                       </MenuItem>
                     ))}
@@ -2130,19 +1981,13 @@ export default function PersonnelBasicPage() {
                   size="small"
                   value={jobChangeData.unit_id}
                   onChange={(event) =>
-                    handleJobChangeValue(
-                      "unit_id",
-                      event.target.value,
-                    )
+                    handleJobChangeValue("unit_id", event.target.value)
                   }
                 >
                   <MenuItem value="">-- 請選擇 --</MenuItem>
 
                   {meta.units.map((item) => (
-                    <MenuItem
-                      key={item.unit_id}
-                      value={item.unit_id}
-                    >
+                    <MenuItem key={item.unit_id} value={item.unit_id}>
                       {item.unit_code && item.unit_name
                         ? `${item.unit_code} - ${item.unit_name}`
                         : item.unit_name || item.unit_code}
@@ -2156,19 +2001,13 @@ export default function PersonnelBasicPage() {
                   size="small"
                   value={jobChangeData.position_id}
                   onChange={(event) =>
-                    handleJobChangeValue(
-                      "position_id",
-                      event.target.value,
-                    )
+                    handleJobChangeValue("position_id", event.target.value)
                   }
                 >
                   <MenuItem value="">-- 請選擇 --</MenuItem>
 
                   {meta.positions.map((item) => (
-                    <MenuItem
-                      key={item.position_id}
-                      value={item.position_id}
-                    >
+                    <MenuItem key={item.position_id} value={item.position_id}>
                       {item.position_code && item.position_name
                         ? `${item.position_code} - ${item.position_name}`
                         : item.position_name || item.position_code}
@@ -2183,10 +2022,7 @@ export default function PersonnelBasicPage() {
                   required
                   value={jobChangeData.effective_date}
                   onChange={(event) =>
-                    handleJobChangeValue(
-                      "effective_date",
-                      event.target.value,
-                    )
+                    handleJobChangeValue("effective_date", event.target.value)
                   }
                   slotProps={{
                     inputLabel: { shrink: true },
@@ -2202,10 +2038,7 @@ export default function PersonnelBasicPage() {
                   size="small"
                   value={jobChangeData.employee_type}
                   onChange={(event) =>
-                    handleJobChangeValue(
-                      "employee_type",
-                      event.target.value,
-                    )
+                    handleJobChangeValue("employee_type", event.target.value)
                   }
                 >
                   <MenuItem value="">-- 請選擇 --</MenuItem>
@@ -2240,10 +2073,7 @@ export default function PersonnelBasicPage() {
                   minRows={2}
                   value={jobChangeData.remarks}
                   onChange={(event) =>
-                    handleJobChangeValue(
-                      "remarks",
-                      event.target.value,
-                    )
+                    handleJobChangeValue("remarks", event.target.value)
                   }
                   sx={{ gridColumn: { sm: "1 / -1" } }}
                 />
@@ -2284,19 +2114,106 @@ export default function PersonnelBasicPage() {
           <Box
             sx={{
               display: "grid",
-              gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))" },
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "repeat(2, minmax(0, 1fr))",
+              },
               gap: "14px",
             }}
           >
-            <TextField label="手機" size="small" value={editData?.contact?.mobile_phone || ""} onChange={(event) => handleEditChange("contact", "mobile_phone", event.target.value)} />
-            <TextField label="住家電話" size="small" value={editData?.contact?.home_phone || ""} onChange={(event) => handleEditChange("contact", "home_phone", event.target.value)} />
-            <TextField label="分機" size="small" value={editData?.contact?.extension_no || ""} onChange={(event) => handleEditChange("contact", "extension_no", event.target.value)} />
-            <TextField label="公務手機" size="small" value={editData?.contact?.work_mobile || ""} onChange={(event) => handleEditChange("contact", "work_mobile", event.target.value)} />
-            <TextField label="個人 Email" type="email" size="small" value={editData?.contact?.personal_email || ""} onChange={(event) => handleEditChange("contact", "personal_email", event.target.value)} />
-            <TextField label="緊急聯絡人" size="small" value={editData?.contact?.emergency_contact_name || ""} onChange={(event) => handleEditChange("contact", "emergency_contact_name", event.target.value)} />
-            <TextField label="緊急聯絡人關係" size="small" value={editData?.contact?.emergency_relationship || ""} onChange={(event) => handleEditChange("contact", "emergency_relationship", event.target.value)} />
-            <TextField label="緊急聯絡人住家電話" size="small" value={editData?.contact?.emergency_home_phone || ""} onChange={(event) => handleEditChange("contact", "emergency_home_phone", event.target.value)} />
-            <TextField label="緊急聯絡人手機" size="small" value={editData?.contact?.emergency_mobile_phone || ""} onChange={(event) => handleEditChange("contact", "emergency_mobile_phone", event.target.value)} />
+            <TextField
+              label="手機"
+              size="small"
+              value={editData?.contact?.mobile_phone || ""}
+              onChange={(event) =>
+                handleEditChange("contact", "mobile_phone", event.target.value)
+              }
+            />
+            <TextField
+              label="住家電話"
+              size="small"
+              value={editData?.contact?.home_phone || ""}
+              onChange={(event) =>
+                handleEditChange("contact", "home_phone", event.target.value)
+              }
+            />
+            <TextField
+              label="分機"
+              size="small"
+              value={editData?.contact?.extension_no || ""}
+              onChange={(event) =>
+                handleEditChange("contact", "extension_no", event.target.value)
+              }
+            />
+            <TextField
+              label="公務手機"
+              size="small"
+              value={editData?.contact?.work_mobile || ""}
+              onChange={(event) =>
+                handleEditChange("contact", "work_mobile", event.target.value)
+              }
+            />
+            <TextField
+              label="個人 Email"
+              type="email"
+              size="small"
+              value={editData?.contact?.personal_email || ""}
+              onChange={(event) =>
+                handleEditChange(
+                  "contact",
+                  "personal_email",
+                  event.target.value,
+                )
+              }
+            />
+            <TextField
+              label="緊急聯絡人"
+              size="small"
+              value={editData?.contact?.emergency_contact_name || ""}
+              onChange={(event) =>
+                handleEditChange(
+                  "contact",
+                  "emergency_contact_name",
+                  event.target.value,
+                )
+              }
+            />
+            <TextField
+              label="緊急聯絡人關係"
+              size="small"
+              value={editData?.contact?.emergency_relationship || ""}
+              onChange={(event) =>
+                handleEditChange(
+                  "contact",
+                  "emergency_relationship",
+                  event.target.value,
+                )
+              }
+            />
+            <TextField
+              label="緊急聯絡人住家電話"
+              size="small"
+              value={editData?.contact?.emergency_home_phone || ""}
+              onChange={(event) =>
+                handleEditChange(
+                  "contact",
+                  "emergency_home_phone",
+                  event.target.value,
+                )
+              }
+            />
+            <TextField
+              label="緊急聯絡人手機"
+              size="small"
+              value={editData?.contact?.emergency_mobile_phone || ""}
+              onChange={(event) =>
+                handleEditChange(
+                  "contact",
+                  "emergency_mobile_phone",
+                  event.target.value,
+                )
+              }
+            />
 
             <Box sx={{ gridColumn: { sm: "1 / -1" } }}>
               <Box
@@ -2310,17 +2227,13 @@ export default function PersonnelBasicPage() {
                   size="small"
                   variant="text"
                   disabled={
-                    !String(
-                      editData?.contact?.contact_address ||
-                        "",
-                    ).trim()
+                    !String(editData?.contact?.contact_address || "").trim()
                   }
                   onClick={() =>
                     handleEditChange(
                       "contact",
                       "postal_address",
-                      editData?.contact?.contact_address ||
-                        "",
+                      editData?.contact?.contact_address || "",
                     )
                   }
                 >
@@ -2334,9 +2247,7 @@ export default function PersonnelBasicPage() {
                 size="small"
                 multiline
                 minRows={2}
-                value={
-                  editData?.contact?.postal_address || ""
-                }
+                value={editData?.contact?.postal_address || ""}
                 onChange={(event) =>
                   handleEditChange(
                     "contact",
@@ -2359,17 +2270,13 @@ export default function PersonnelBasicPage() {
                   size="small"
                   variant="text"
                   disabled={
-                    !String(
-                      editData?.contact?.postal_address ||
-                        "",
-                    ).trim()
+                    !String(editData?.contact?.postal_address || "").trim()
                   }
                   onClick={() =>
                     handleEditChange(
                       "contact",
                       "contact_address",
-                      editData?.contact?.postal_address ||
-                        "",
+                      editData?.contact?.postal_address || "",
                     )
                   }
                 >
@@ -2383,9 +2290,7 @@ export default function PersonnelBasicPage() {
                 size="small"
                 multiline
                 minRows={2}
-                value={
-                  editData?.contact?.contact_address || ""
-                }
+                value={editData?.contact?.contact_address || ""}
                 onChange={(event) =>
                   handleEditChange(
                     "contact",
@@ -2402,13 +2307,45 @@ export default function PersonnelBasicPage() {
           <Box
             sx={{
               display: "grid",
-              gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))" },
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "repeat(2, minmax(0, 1fr))",
+              },
               gap: "14px",
             }}
           >
-            <TextField label="兵役狀態" size="small" value={editData?.military?.military_status || ""} onChange={(event) => handleEditChange("military", "military_status", event.target.value)} />
-            <TextField label="役別" size="small" value={editData?.military?.service_type || ""} onChange={(event) => handleEditChange("military", "service_type", event.target.value)} />
-            <TextField label="兵役期間" size="small" value={editData?.military?.service_period || ""} onChange={(event) => handleEditChange("military", "service_period", event.target.value)} />
+            <TextField
+              label="兵役狀態"
+              size="small"
+              value={editData?.military?.military_status || ""}
+              onChange={(event) =>
+                handleEditChange(
+                  "military",
+                  "military_status",
+                  event.target.value,
+                )
+              }
+            />
+            <TextField
+              label="役別"
+              size="small"
+              value={editData?.military?.service_type || ""}
+              onChange={(event) =>
+                handleEditChange("military", "service_type", event.target.value)
+              }
+            />
+            <TextField
+              label="兵役期間"
+              size="small"
+              value={editData?.military?.service_period || ""}
+              onChange={(event) =>
+                handleEditChange(
+                  "military",
+                  "service_period",
+                  event.target.value,
+                )
+              }
+            />
 
             <TextField
               label="入境時間"
@@ -2434,7 +2371,7 @@ export default function PersonnelBasicPage() {
             />
           </Box>
         </DetailSection>
-                <DetailSection title="HRMS 帳號">
+        <DetailSection title="HRMS 帳號">
           <Box
             sx={{
               display: "grid",
@@ -2460,15 +2397,9 @@ export default function PersonnelBasicPage() {
               label="新密碼"
               type="password"
               size="small"
-              value={
-                editData?.account?.new_password || ""
-              }
+              value={editData?.account?.new_password || ""}
               onChange={(event) =>
-                handleEditChange(
-                  "account",
-                  "new_password",
-                  event.target.value,
-                )
+                handleEditChange("account", "new_password", event.target.value)
               }
               helperText="如不需變更密碼，請留空。"
             />
@@ -2477,9 +2408,7 @@ export default function PersonnelBasicPage() {
               label="確認新密碼"
               type="password"
               size="small"
-              value={
-                editData?.account?.confirm_password || ""
-              }
+              value={editData?.account?.confirm_password || ""}
               onChange={(event) =>
                 handleEditChange(
                   "account",
@@ -2489,6 +2418,29 @@ export default function PersonnelBasicPage() {
               }
             />
           </Box>
+        </DetailSection>
+
+        <DetailSection title="帳號角色">
+          <TextField
+            select
+            fullWidth
+            required
+            label="帳號角色"
+            size="small"
+            value={editData?.account?.role_id || ""}
+            onChange={(event) =>
+              handleEditChange("account", "role_id", event.target.value)
+            }
+            helperText="帳號角色決定此帳號可使用的系統功能與管理權限，請依實際職責選擇。"
+          >
+            <MenuItem value="">-- 請選擇 --</MenuItem>
+
+            {meta.roles.map((role) => (
+              <MenuItem key={role.role_id} value={String(role.role_id)}>
+                {role.role_name}
+              </MenuItem>
+            ))}
+          </TextField>
         </DetailSection>
       </FormDialog>
 
