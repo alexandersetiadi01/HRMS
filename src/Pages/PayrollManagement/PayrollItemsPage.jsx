@@ -14,15 +14,8 @@ import {
   IconButton,
   InputLabel,
   MenuItem,
-  Paper,
   Select,
   Switch,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   TextField,
   Tooltip,
   Typography,
@@ -30,6 +23,7 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import SearchIcon from "@mui/icons-material/Search";
 import {
@@ -38,6 +32,8 @@ import {
   getPayrollItems,
   updatePayrollItem,
 } from "../../API/payroll";
+import FormDialog from "../../Components/FormDialog";
+import ResponsiveAttendanceTable from "../Attendance/AttendanceForm/ResponsiveAttendanceTable";
 
 const MAIN_CATEGORIES = [
   "基本薪資",
@@ -134,6 +130,14 @@ const HOURLY_RATE_INCLUSIONS = [
     "salary_and_items",
     "同時納入薪資異動單與加扣項金額",
   ],
+];
+
+const TABLE_COLUMNS = [
+  { key: "item_label", label: "科目代碼／名稱", width: "2fr" },
+  { key: "main_category", label: "主分類", width: "1.2fr" },
+  { key: "item_type", label: "類型", width: "0.8fr" },
+  { key: "status", label: "狀態", width: "0.8fr" },
+  { key: "actions", label: "操作", width: "132px" },
 ];
 
 const EMPTY_FORM = {
@@ -780,6 +784,139 @@ function InfoBlock({ label, children }) {
   );
 }
 
+function DetailField({ label, children }) {
+  return (
+    <Box
+      sx={{
+        minWidth: 0,
+        p: "12px",
+        border: "1px solid #e5e7eb",
+        borderRadius: "5px",
+        bgcolor: "#f8fafc",
+      }}
+    >
+      <Typography sx={{ color: "#7b8794", fontSize: "12px" }}>
+        {label}
+      </Typography>
+
+      <Box
+        sx={{
+          mt: "4px",
+          color: "#1f2937",
+          fontSize: "14px",
+          fontWeight: 600,
+          overflowWrap: "anywhere",
+        }}
+      >
+        {children || "-"}
+      </Box>
+    </Box>
+  );
+}
+
+function ItemDetailDialog({ item, onClose }) {
+  return (
+    <FormDialog
+      open={Boolean(item)}
+      title="薪資科目詳細資料"
+      submitLabel="關閉"
+      cancelLabel=""
+      maxWidth="md"
+      onClose={onClose}
+      onSubmit={onClose}
+    >
+      {item ? (
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "1fr",
+              sm: "repeat(2, minmax(0, 1fr))",
+            },
+            gap: "12px",
+          }}
+        >
+          <DetailField label="科目代碼">
+            {item.item_code || "-"}
+          </DetailField>
+
+          <DetailField label="科目名稱">
+            {item.item_name || "-"}
+          </DetailField>
+
+          <DetailField label="英文名稱">
+            {item.item_name_en || "-"}
+          </DetailField>
+
+          <DetailField label="主分類">
+            {item.main_category || "-"}
+          </DetailField>
+
+          <DetailField label="類型">
+            <ItemTypeChip value={item.item_type} />
+          </DetailField>
+
+          <DetailField label="狀態">
+            <StatusChip value={item.status} />
+          </DetailField>
+
+          <DetailField label="系統科目">
+            {toBoolean(item.is_system_item) ? "是" : "否"}
+          </DetailField>
+
+          <DetailField label="所得稅類型">
+            {item.taxable_type || "-"}
+          </DetailField>
+
+          <DetailField label="所得稅格式">
+            {getOptionLabel(INCOME_TAX_FORMATS, item.income_tax_format)}
+          </DetailField>
+
+          <DetailField label="補充保費設定">
+            {getOptionLabel(
+              SUPPLEMENTARY_PREMIUM_TYPES,
+              item.supplementary_premium_type,
+            )}
+          </DetailField>
+
+          <DetailField label="破月計算方式">
+            {getOptionLabel(PRORATE_METHODS, item.prorate_method)}
+          </DetailField>
+
+          <DetailField label="破月分母">
+            {getOptionLabel(PRORATE_DENOMINATORS, item.prorate_denominator)}
+          </DetailField>
+
+          <DetailField label="破月分子">
+            {getOptionLabel(PRORATE_NUMERATORS, item.prorate_numerator)}
+          </DetailField>
+
+          <DetailField label="小數點規則">
+            {getOptionLabel(ROUNDING_METHODS, item.rounding_method)}
+          </DetailField>
+
+          <DetailField label="小數點位數">
+            {getOptionLabel(
+              ROUNDING_PRECISIONS,
+              item.rounding_precision === null ||
+                item.rounding_precision === undefined
+                ? ""
+                : String(item.rounding_precision),
+            )}
+          </DetailField>
+
+          <DetailField label="時薪計算納入方式">
+            {getOptionLabel(
+              HOURLY_RATE_INCLUSIONS,
+              normalizeHourlyRateInclusion(item.hourly_rate_inclusion),
+            )}
+          </DetailField>
+        </Box>
+      ) : null}
+    </FormDialog>
+  );
+}
+
 function ItemMobileCard({
   item,
   onEdit,
@@ -928,6 +1065,8 @@ export default function PayrollItemsPage() {
     useState(false);
   const [editingItem, setEditingItem] =
     useState(null);
+  const [detailItem, setDetailItem] =
+    useState(null);
   const [deleteTarget, setDeleteTarget] =
     useState(null);
   const [deleting, setDeleting] =
@@ -1005,7 +1144,91 @@ export default function PayrollItemsPage() {
     typeFilter,
     statusFilter,
   ]);
+  function renderTableValue(item, column) {
+    switch (column.key) {
+      case "item_label":
+        return (
+          <Box sx={{ minWidth: 0 }}>
+            <Typography
+              sx={{
+                color: "#1f2937",
+                fontSize: "14px",
+                fontWeight: 700,
+                overflowWrap: "anywhere",
+              }}
+            >
+              {item.item_name || "-"}
+            </Typography>
 
+            <Typography
+              sx={{
+                mt: "2px",
+                color: "#64748b",
+                fontSize: "12px",
+                overflowWrap: "anywhere",
+              }}
+            >
+              {item.item_code || "-"}
+            </Typography>
+          </Box>
+        );
+
+      case "main_category":
+        return item.main_category || "-";
+
+      case "item_type":
+        return <ItemTypeChip value={item.item_type} />;
+
+      case "status":
+        return <StatusChip value={item.status} />;
+
+      case "actions":
+        return (
+          <Box
+            sx={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "2px",
+            }}
+          >
+            <Tooltip title="查看詳細資料">
+              <IconButton
+                size="small"
+                aria-label="查看薪資科目詳細資料"
+                onClick={() => setDetailItem(item)}
+                sx={{ color: "#475569" }}
+              >
+                <VisibilityOutlinedIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+
+            <Tooltip title="編輯">
+              <IconButton
+                size="small"
+                aria-label="編輯薪資科目"
+                onClick={() => openEditDialog(item)}
+              >
+                <EditOutlinedIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+
+            <Tooltip title="刪除／停用">
+              <IconButton
+                size="small"
+                color="error"
+                aria-label="刪除或停用薪資科目"
+                onClick={() => setDeleteTarget(item)}
+              >
+                <DeleteOutlineOutlinedIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Box>
+        );
+
+      default:
+        return item[column.key] || "-";
+    }
+  }
   function openCreateDialog() {
     setEditingItem(null);
     setFormOpen(true);
@@ -1238,220 +1461,22 @@ export default function PayrollItemsPage() {
         >
           <CircularProgress size={34} />
         </Box>
-      ) : filteredItems.length === 0 ? (
-        <Alert severity="info">
-          沒有符合條件的薪資科目。
-        </Alert>
       ) : (
-        <>
-          <Box
-            sx={{
-              display: {
-                xs: "grid",
-                md: "none",
-              },
-              gap: "12px",
-            }}
-          >
-            {filteredItems.map((item) => (
-              <ItemMobileCard
-                key={item.payroll_item_id}
-                item={item}
-                onEdit={openEditDialog}
-                onDelete={setDeleteTarget}
-              />
-            ))}
-          </Box>
-
-          <TableContainer
-            component={Paper}
-            variant="outlined"
-            sx={{
-              display: {
-                xs: "none",
-                md: "block",
-              },
-              borderColor: "#dfe4e8",
-            }}
-          >
-            <Table
-              size="small"
-              sx={{ minWidth: "1050px" }}
-            >
-              <TableHead>
-                <TableRow
-                  sx={{ bgcolor: "#f8fafc" }}
-                >
-                  <TableCell
-                    sx={{ fontWeight: 700 }}
-                  >
-                    科目代碼／名稱
-                  </TableCell>
-
-                  <TableCell
-                    sx={{ fontWeight: 700 }}
-                  >
-                    主分類
-                  </TableCell>
-
-                  <TableCell
-                    align="center"
-                    sx={{ fontWeight: 700 }}
-                  >
-                    類型
-                  </TableCell>
-
-                  <TableCell
-                    sx={{ fontWeight: 700 }}
-                  >
-                    所得稅
-                  </TableCell>
-
-                  <TableCell
-                    sx={{ fontWeight: 700 }}
-                  >
-                    補充保費
-                  </TableCell>
-
-                  <TableCell
-                    align="center"
-                    sx={{ fontWeight: 700 }}
-                  >
-                    系統科目
-                  </TableCell>
-
-                  <TableCell
-                    align="center"
-                    sx={{ fontWeight: 700 }}
-                  >
-                    狀態
-                  </TableCell>
-
-                  <TableCell
-                    align="right"
-                    sx={{ fontWeight: 700 }}
-                  >
-                    操作
-                  </TableCell>
-                </TableRow>
-              </TableHead>
-
-              <TableBody>
-                {filteredItems.map((item) => (
-                  <TableRow
-                    key={item.payroll_item_id}
-                    hover
-                  >
-                    <TableCell>
-                      <Typography
-                        sx={{
-                          fontSize: "14px",
-                          fontWeight: 700,
-                          color: "#1f2937",
-                        }}
-                      >
-                        {item.item_name || "-"}
-                      </Typography>
-
-                      <Typography
-                        sx={{
-                          fontSize: "12px",
-                          color: "#64748b",
-                        }}
-                      >
-                        {item.item_code || "-"}
-                        {item.item_name_en
-                          ? ` · ${item.item_name_en}`
-                          : ""}
-                      </Typography>
-                    </TableCell>
-
-                    <TableCell>
-                      {item.main_category || "-"}
-                    </TableCell>
-
-                    <TableCell align="center">
-                      <ItemTypeChip
-                        value={item.item_type}
-                      />
-                    </TableCell>
-
-                    <TableCell>
-                      {item.taxable_type || "-"}
-                      <br />
-
-                      <Typography
-                        component="span"
-                        sx={{
-                          fontSize: "12px",
-                          color: "#64748b",
-                        }}
-                      >
-                        {getOptionLabel(
-                          INCOME_TAX_FORMATS,
-                          item.income_tax_format,
-                        )}
-                      </Typography>
-                    </TableCell>
-
-                    <TableCell>
-                      {getOptionLabel(
-                        SUPPLEMENTARY_PREMIUM_TYPES,
-                        item.supplementary_premium_type,
-                      )}
-                    </TableCell>
-
-                    <TableCell align="center">
-                      {toBoolean(
-                        item.is_system_item,
-                      )
-                        ? "是"
-                        : "否"}
-                    </TableCell>
-
-                    <TableCell align="center">
-                      <StatusChip
-                        value={item.status}
-                      />
-                    </TableCell>
-
-                    <TableCell align="right">
-                      <Tooltip title="編輯">
-                        <IconButton
-                          size="small"
-                          onClick={() =>
-                            openEditDialog(item)
-                          }
-                        >
-                          <EditOutlinedIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-
-                      <Tooltip title="刪除／停用">
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() =>
-                            setDeleteTarget(item)
-                          }
-                        >
-                          <DeleteOutlineOutlinedIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </>
+        <ResponsiveAttendanceTable
+          columns={TABLE_COLUMNS}
+          rows={filteredItems}
+          getRowKey={(item) => item.payroll_item_id}
+          emptyText="沒有符合條件的薪資科目。"
+          renderValue={renderTableValue}
+          pagination
+          rowsPerPage={10}
+          desktopMinWidth="100%"
+        />
       )}
 
-      <ItemFormDialog
-        open={formOpen}
-        item={editingItem}
-        onClose={() => setFormOpen(false)}
-        onSaved={handleSaved}
+      <ItemDetailDialog
+        item={detailItem}
+        onClose={() => setDetailItem(null)}
       />
 
       <Dialog
