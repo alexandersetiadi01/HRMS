@@ -130,8 +130,15 @@ export default function AttendanceMissedPunch() {
     const holidaySet = normalizeDateSet(formMeta?.holiday_disabled_dates);
 
     const approvedLeaveRaw = formMeta?.approved_leave_dates_map || {};
+    const employeeKey = String(requestEmployeeId);
+    const hasEmployeeDates = Object.prototype.hasOwnProperty.call(approvedLeaveRaw, employeeKey);
+    const isFlatDateMap = Object.keys(approvedLeaveRaw).some((key) => /^\d{4}-\d{2}-\d{2}$/.test(key));
     const approvedLeaveSource =
-      approvedLeaveRaw?.[String(requestEmployeeId)] || approvedLeaveRaw || {};
+      Array.isArray(approvedLeaveRaw) || isFlatDateMap
+        ? approvedLeaveRaw
+        : hasEmployeeDates
+          ? approvedLeaveRaw[employeeKey]
+          : {};
     const approvedLeaveSet = normalizeDateSet(approvedLeaveSource);
 
     return new Set([...holidaySet, ...approvedLeaveSet]);

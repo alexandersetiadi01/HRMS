@@ -759,31 +759,6 @@ function ItemFormDialog({
   );
 }
 
-function InfoBlock({ label, children }) {
-  return (
-    <Box>
-      <Typography
-        sx={{
-          fontSize: "12px",
-          color: "#94a3b8",
-        }}
-      >
-        {label}
-      </Typography>
-
-      <Box
-        sx={{
-          mt: "3px",
-          fontSize: "13px",
-          color: "#334155",
-        }}
-      >
-        {children}
-      </Box>
-    </Box>
-  );
-}
-
 function DetailField({ label, children }) {
   return (
     <Box
@@ -914,134 +889,6 @@ function ItemDetailDialog({ item, onClose }) {
         </Box>
       ) : null}
     </FormDialog>
-  );
-}
-
-function ItemMobileCard({
-  item,
-  onEdit,
-  onDelete,
-}) {
-  return (
-    <Paper
-      variant="outlined"
-      sx={{
-        p: "16px",
-        borderColor: "#dfe4e8",
-      }}
-    >
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          gap: "12px",
-        }}
-      >
-        <Box sx={{ minWidth: 0 }}>
-          <Typography
-            sx={{
-              fontSize: "16px",
-              fontWeight: 700,
-              color: "#1f2937",
-            }}
-          >
-            {item.item_name || "-"}
-          </Typography>
-
-          <Typography
-            sx={{
-              mt: "2px",
-              fontSize: "12px",
-              color: "#64748b",
-              wordBreak: "break-all",
-            }}
-          >
-            {item.item_code || "-"}
-            {item.item_name_en
-              ? ` · ${item.item_name_en}`
-              : ""}
-          </Typography>
-        </Box>
-
-        <StatusChip value={item.status} />
-      </Box>
-
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns:
-            "repeat(2, minmax(0, 1fr))",
-          gap: "14px 12px",
-          mt: "16px",
-        }}
-      >
-        <InfoBlock label="主分類">
-          {item.main_category || "-"}
-        </InfoBlock>
-
-        <InfoBlock label="科目類型">
-          <ItemTypeChip
-            value={item.item_type}
-          />
-        </InfoBlock>
-
-        <InfoBlock label="所得稅">
-          {item.taxable_type || "-"} /{" "}
-          {getOptionLabel(
-            INCOME_TAX_FORMATS,
-            item.income_tax_format,
-          )}
-        </InfoBlock>
-
-        <InfoBlock label="補充保費">
-          {getOptionLabel(
-            SUPPLEMENTARY_PREMIUM_TYPES,
-            item.supplementary_premium_type,
-          )}
-        </InfoBlock>
-
-        <InfoBlock label="系統科目">
-          {toBoolean(item.is_system_item)
-            ? "是"
-            : "否"}
-        </InfoBlock>
-
-        <InfoBlock label="破月計算">
-          {item.prorate_method ||
-            "不適用"}
-        </InfoBlock>
-      </Box>
-
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "flex-end",
-          gap: "6px",
-          mt: "12px",
-        }}
-      >
-        <Button
-          size="small"
-          startIcon={
-            <EditOutlinedIcon />
-          }
-          onClick={() => onEdit(item)}
-        >
-          編輯
-        </Button>
-
-        <Button
-          size="small"
-          color="error"
-          startIcon={
-            <DeleteOutlineOutlinedIcon />
-          }
-          onClick={() => onDelete(item)}
-        >
-          刪除／停用
-        </Button>
-      </Box>
-    </Paper>
   );
 }
 
@@ -1473,6 +1320,16 @@ export default function PayrollItemsPage() {
           desktopMinWidth="100%"
         />
       )}
+
+      <ItemFormDialog
+        open={formOpen}
+        item={editingItem}
+        onClose={() => {
+          setFormOpen(false);
+          setEditingItem(null);
+        }}
+        onSaved={handleSaved}
+      />
 
       <ItemDetailDialog
         item={detailItem}
