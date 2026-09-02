@@ -128,7 +128,6 @@ export default function AttendanceMissedPunch() {
 
   const disabledDateSet = useMemo(() => {
     const holidaySet = normalizeDateSet(formMeta?.holiday_disabled_dates);
-
     const approvedLeaveRaw = formMeta?.approved_leave_dates_map || {};
     const employeeKey = String(requestEmployeeId);
     const hasEmployeeDates = Object.prototype.hasOwnProperty.call(approvedLeaveRaw, employeeKey);

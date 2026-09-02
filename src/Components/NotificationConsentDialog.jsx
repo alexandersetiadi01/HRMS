@@ -249,7 +249,7 @@ export default function NotificationConsentDialog({
             color: "#374151",
           }}
         >
-          同意後，SEHO HR 可以將下班打卡提醒、新薪資單、最新消息、部門公告及指派任務通知傳送到此裝置。
+          同意後，SEHO HR 可以將下班打卡提醒、薪資單、最新消息、部門公告及指派任務通知傳送到此裝置。
           <br />
           <br />
           即使您選擇不同意，網站內的通知、未讀數量及提醒標記仍會正常顯示。
