@@ -30,17 +30,14 @@ import {
 
 function getErrorMessage(error) {
   return (
-    error?.response?.data?.message
-    || error?.response?.data?.data?.message
-    || error?.message
-    || "無法完成裝置通知設定，請稍後再試。"
+    error?.response?.data?.message ||
+    error?.response?.data?.data?.message ||
+    error?.message ||
+    "無法完成裝置通知設定，請稍後再試。"
   );
 }
 
-export default function NotificationConsentDialog({
-  enabled,
-  employeeId,
-}) {
+export default function NotificationConsentDialog({ enabled, employeeId }) {
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorText, setErrorText] = useState("");
@@ -62,18 +59,14 @@ export default function NotificationConsentDialog({
         return;
       }
 
-      const browserPermission = (
-        getBrowserNotificationPermission()
-      );
+      const browserPermission = getBrowserNotificationPermission();
 
       if (browserPermission === "denied") {
         saveNotificationConsent(employeeId, "denied");
         return;
       }
 
-      const storedConsent = getStoredNotificationConsent(
-        employeeId,
-      );
+      const storedConsent = getStoredNotificationConsent(employeeId);
 
       if (storedConsent?.status === "denied") {
         return;
@@ -86,9 +79,7 @@ export default function NotificationConsentDialog({
           return;
         }
 
-        const pushAvailable = Boolean(
-          preferences?.push_config?.available,
-        );
+        const pushAvailable = Boolean(preferences?.push_config?.available);
 
         const publicKey = String(
           preferences?.push_config?.vapid_public_key || "",
@@ -101,12 +92,10 @@ export default function NotificationConsentDialog({
         setVapidPublicKey(publicKey);
 
         if (
-          storedConsent?.status === "granted"
-          && browserPermission === "granted"
+          storedConsent?.status === "granted" &&
+          browserPermission === "granted"
         ) {
-          const subscription = await subscribeBrowserToPush(
-            publicKey,
-          );
+          const subscription = await subscribeBrowserToPush(publicKey);
 
           await savePushSubscription(
             serializeBrowserPushSubscription(subscription),
@@ -138,9 +127,7 @@ export default function NotificationConsentDialog({
     setErrorText("");
 
     try {
-      const permission = await (
-        requestBrowserNotificationPermission()
-      );
+      const permission = await requestBrowserNotificationPermission();
 
       if (permission === "denied") {
         await updateNotificationPreferences({
@@ -154,9 +141,7 @@ export default function NotificationConsentDialog({
       }
 
       if (permission !== "granted") {
-        setErrorText(
-          "尚未取得裝置通知權限。請選擇允許後再試一次。",
-        );
+        setErrorText("尚未取得裝置通知權限。請選擇允許後再試一次。");
         return;
       }
 
@@ -164,9 +149,7 @@ export default function NotificationConsentDialog({
         throw new Error("找不到裝置通知公開金鑰。");
       }
 
-      const subscription = await subscribeBrowserToPush(
-        vapidPublicKey,
-      );
+      const subscription = await subscribeBrowserToPush(vapidPublicKey);
 
       await savePushSubscription(
         serializeBrowserPushSubscription(subscription),
@@ -190,9 +173,8 @@ export default function NotificationConsentDialog({
 
       await updateNotificationPreferences({
         push_enabled: false,
-        push_permission_state: permission === "unsupported"
-          ? "unsupported"
-          : permission,
+        push_permission_state:
+          permission === "unsupported" ? "unsupported" : permission,
       });
 
       saveNotificationConsent(employeeId, "denied");
@@ -249,7 +231,8 @@ export default function NotificationConsentDialog({
             color: "#374151",
           }}
         >
-          同意後，SEHO HR 可以將下班打卡提醒、薪資單、最新消息、部門公告及指派任務通知傳送到此裝置。
+          同意後，SEHO HR
+          可以將下班打卡提醒、薪資單、最新消息、部門公告及指派任務通知傳送到此裝置。
           <br />
           <br />
           即使您選擇不同意，網站內的通知、未讀數量及提醒標記仍會正常顯示。
@@ -289,9 +272,7 @@ export default function NotificationConsentDialog({
           onClick={handleAllow}
           disabled={submitting}
           startIcon={
-            submitting ? (
-              <CircularProgress size={16} color="inherit" />
-            ) : null
+            submitting ? <CircularProgress size={16} color="inherit" /> : null
           }
           sx={{
             minWidth: "96px",
