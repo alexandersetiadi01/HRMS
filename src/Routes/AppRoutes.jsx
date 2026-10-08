@@ -17,6 +17,9 @@ import FormManagementPage from "../Pages/Attendance/Admin/FormManagement/FormMan
 import LeaveHoursManagement from "../Pages/Attendance/Admin/LeaveHoursManagement/LeaveHoursManagement";
 import ModuleSettingPage from "../Pages/Attendance/Admin/ModuleSetting/ModuleSettingPage";
 import PersonnelBasicPage from "../Pages/Attendance/Admin/PersonnelBasic/PersonnelBasicPage";
+import ProbationManagementPage from "../Pages/Attendance/Admin/Probation/ProbationManagementPage";
+import ProbationDetailPage from "../Pages/Attendance/Admin/Probation/ProbationDetailPage";
+import ProbationEvaluationPage from "../Pages/Attendance/Admin/Probation/ProbationEvaluationPage";
 import ReportCenterPage from "../Pages/Attendance/Admin/ReportCenter/ReportCenterPage";
 import ShiftImportPage from "../Pages/Attendance/Admin/ShiftImport/ShiftImportPage";
 import StaffAttendancePage from "../Pages/Attendance/Supervisor/StaffAttendancePage";
@@ -461,6 +464,30 @@ export default function AppRoutes() {
           element={
             <RequireAttendancePermission permission="attendance_personnel_basic_manage">
               <PersonnelBasicPage />
+            </RequireAttendancePermission>
+          }
+        />
+        <Route
+          path="/attendance/admin/probation"
+          element={
+            <RequireAttendancePermission permission="attendance_probation_manage">
+              <ProbationManagementPage />
+            </RequireAttendancePermission>
+          }
+        />
+        <Route
+          path="/attendance/admin/probation/:caseId"
+          element={
+            <RequireAttendancePermission permission="attendance_probation_manage">
+              <ProbationDetailPage />
+            </RequireAttendancePermission>
+          }
+        />
+        <Route
+          path="/attendance/admin/probation/:caseId/evaluation/:month"
+          element={
+            <RequireAttendancePermission permission="attendance_probation_manage">
+              <ProbationEvaluationPage />
             </RequireAttendancePermission>
           }
         />

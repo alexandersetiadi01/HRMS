@@ -153,6 +153,7 @@ export default function ResponsiveAttendanceTable({
   getRowKey,
   desktopMinWidth = "100%",
   mobileCardTitleKey = "",
+  mobileCardEndKey = "",
   renderValue,
   headerBg = "#d4d4d4",
   pagination = false,
@@ -465,6 +466,19 @@ export default function ResponsiveAttendanceTable({
                   ? row[mobileCardTitleKey]
                   : null;
 
+              const mobileEndColumn = mobileCardEndKey
+                ? columns.find((column) => column.key === mobileCardEndKey)
+                : null;
+              const mobileEndValue = mobileEndColumn
+                ? renderValue
+                  ? renderValue(row, mobileEndColumn)
+                  : row[mobileCardEndKey]
+                : null;
+              const mobileEndContent =
+                mobileEndColumn && isStatusColumn(mobileEndColumn)
+                  ? renderStatusValue(mobileEndValue)
+                  : mobileEndValue;
+
               return (
                 <Box
                   key={getRowKey ? getRowKey(row, index) : index}
@@ -488,17 +502,37 @@ export default function ResponsiveAttendanceTable({
                         py: "10px",
                         bgcolor: "#f3f4f6",
                         borderBottom: "1px solid #e5e7eb",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: "10px",
                       }}
                     >
                       <Typography
                         sx={{
+                          minWidth: 0,
                           fontSize: "15px",
                           fontWeight: 700,
                           color: "#111827",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
                         }}
                       >
                         {cardTitle}
                       </Typography>
+
+                      {mobileEndContent ? (
+                        <Box
+                          sx={{
+                            flexShrink: 0,
+                            display: "flex",
+                            alignItems: "center",
+                          }}
+                        >
+                          {mobileEndContent}
+                        </Box>
+                      ) : null}
                     </Box>
                   ) : null}
 
@@ -512,7 +546,14 @@ export default function ResponsiveAttendanceTable({
                       columnGap: "8px",
                     }}
                   >
-                    {columns.map((column) => {
+                    {columns
+                      .filter(
+                        (column) =>
+                          !column.hideOnMobile &&
+                          column.key !== mobileCardTitleKey &&
+                          column.key !== mobileCardEndKey,
+                      )
+                      .map((column) => {
                       const value = renderValue
                         ? renderValue(row, column)
                         : row[column.key];

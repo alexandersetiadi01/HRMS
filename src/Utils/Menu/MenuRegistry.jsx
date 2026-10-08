@@ -78,6 +78,8 @@ export function renderMenuIcon(iconKey, { size = 52, color = "#2196d3" } = {}) {
       return <TuneOutlinedIcon sx={sx} />;
     case "attendance-personnel-basic":
       return <BadgeOutlinedIcon sx={sx} />;
+    case "attendance-probation":
+      return <FactCheckOutlinedIcon sx={sx} />;
     case "attendance-shift-import":
       return <LoginOutlinedIcon sx={sx} />;
     case "home-announcement":
@@ -347,6 +349,16 @@ export const MENU_ITEMS = [
     groups: ["attendance"],
     sectionKey: "manager",
     attendancePermission: "attendance_personnel_basic_manage",
+  },
+  {
+    id: "probation-management",
+    label: "試用期管理",
+    to: "/attendance/admin/probation",
+    iconKey: "attendance-probation",
+    disable: false,
+    groups: ["attendance"],
+    sectionKey: "manager",
+    attendancePermission: "attendance_probation_manage",
   },
   {
     id: "report-center-manager",
