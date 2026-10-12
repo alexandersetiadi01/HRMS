@@ -21,7 +21,7 @@ import ArrowBackOutlinedIcon from "@mui/icons-material/ArrowBackOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import SendOutlinedIcon from "@mui/icons-material/SendOutlined";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
-
+import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import Breadcrumb from "../../../../Utils/Breadcrumb";
 import { apiAttendanceAdminMeta } from "../../../../API/attendance";
 import {
@@ -1370,7 +1370,7 @@ export default function ProbationEvaluationPage() {
                       disabled={form.items.length <= 1}
                       onClick={() => handleDeleteItem(item.id)}
                     >
-                      刪除
+                      <DeleteOutlinedIcon sx={{ fontSize: 25 }} />
                     </Button>
                   </ValueCell>
                 </Box>
@@ -1459,10 +1459,8 @@ export default function ProbationEvaluationPage() {
                         lineHeight: 1.2,
                       }}
                     >
-                      {hasWeightedScore
-                        ? item.weighted_score
-                        : 0}
-                      /{formItem.weight || 0}
+                      {hasWeightedScore ? item.weighted_score : 0}/
+                      {formItem.weight || 0}
                     </Box>
 
                     <ExpandMoreRoundedIcon
@@ -1563,9 +1561,7 @@ export default function ProbationEvaluationPage() {
                                     border: selected
                                       ? `1px solid ${BLUE}`
                                       : "1px solid #6b7280",
-                                    bgcolor: selected
-                                      ? BLUE
-                                      : "#ffffff",
+                                    bgcolor: selected ? BLUE : "#ffffff",
                                   }}
                                 />
 
@@ -1630,7 +1626,8 @@ export default function ProbationEvaluationPage() {
                           disabled={form.items.length <= 1}
                           onClick={() => handleDeleteItem(item.id)}
                         >
-                          刪除此評核項目
+                          <DeleteOutlinedIcon sx={{ fontSize: 18 }} />
+                          刪除
                         </Button>
                       </Box>
                     </Box>
@@ -1665,7 +1662,7 @@ export default function ProbationEvaluationPage() {
               borderRight: `1px solid ${BORDER}`,
               borderBottom: `1px solid ${BORDER}`,
               color: "#ffffff",
-              fontSize: "13px",
+              fontSize: "18px",
               fontWeight: 700,
               textAlign: "center",
             }}
@@ -1939,11 +1936,7 @@ export default function ProbationEvaluationPage() {
                         bgcolor: "#ffffff",
                       }}
                     >
-                      <SheetInput
-                        type="date"
-                        value=""
-                        onChange={() => {}}
-                      />
+                      <SheetInput type="date" value="" onChange={() => {}} />
                     </Box>
                   </Box>
                 </Box>
