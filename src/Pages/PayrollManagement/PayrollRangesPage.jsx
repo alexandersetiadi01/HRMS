@@ -39,6 +39,7 @@ import {
   getPayrollRanges,
   updatePayrollRange,
 } from "../../API/payroll";
+import AppSnackbar from "../../Components/AppSnackbar";
 
 const EMPTY_FORM = {
   range_code: "",
@@ -959,15 +960,12 @@ export default function PayrollRangesPage() {
         </Alert>
       ) : null}
 
-      {message ? (
-        <Alert
-          severity="success"
-          onClose={() => setMessage("")}
-          sx={{ mb: "14px" }}
-        >
-          {message}
-        </Alert>
-      ) : null}
+      <AppSnackbar
+        open={Boolean(message)}
+        severity="success"
+        message={message}
+        onClose={() => setMessage("")}
+      />
 
       <Box
         sx={{

@@ -33,6 +33,7 @@ import {
   getPayrollEmployees,
   getTaxDependentDetailsReport,
 } from "../../../API/payroll";
+import AppSnackbar from "../../../Components/AppSnackbar";
 import { exportTaxDependentDetailsReport } from "../../../Utils/payrollReportDefinitions";
 
 import ReportDetailField from "./Components/ReportDetailField";
@@ -762,17 +763,12 @@ export default function TaxDependentDetailsReport() {
           {error}
         </Alert>
       ) : null}
-      {successMessage ? (
-        <Alert
-          severity="success"
-          onClose={() => setSuccessMessage("")}
-          sx={{
-            mt: "14px",
-          }}
-        >
-          {successMessage}
-        </Alert>
-      ) : null}
+      <AppSnackbar
+        open={Boolean(successMessage)}
+        severity="success"
+        message={successMessage}
+        onClose={() => setSuccessMessage("")}
+      />
 
       {loading ? (
         <ReportLoadingState message="載入所得稅扶養親屬明細中..." />

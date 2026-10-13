@@ -23,6 +23,7 @@ import SendOutlinedIcon from "@mui/icons-material/SendOutlined";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import Breadcrumb from "../../../../Utils/Breadcrumb";
+import AppSnackbar from "../../../../Components/AppSnackbar";
 import { apiAttendanceAdminMeta } from "../../../../API/attendance";
 import {
   getProbationEvaluation,
@@ -269,6 +270,7 @@ function SheetInput({
   disabled = false,
   type = "text",
   placeholder = "",
+  textAlign = "left",
 }) {
   return (
     <TextField
@@ -292,6 +294,7 @@ function SheetInput({
         },
         "& .MuiInputBase-input": {
           p: 0,
+          textAlign,
         },
         "& .MuiInputBase-inputMultiline": {
           lineHeight: 1.55,
@@ -1259,17 +1262,22 @@ export default function ProbationEvaluationPage() {
         </Button>
       </Box>
 
-      {errorText ? (
-        <Alert severity="error" sx={{ mb: "12px" }}>
-          {errorText}
-        </Alert>
-      ) : null}
-
-      {successText ? (
-        <Alert severity="success" sx={{ mb: "12px" }}>
-          {successText}
-        </Alert>
-      ) : null}
+      <AppSnackbar
+        open={Boolean(errorText || successText)}
+        severity={
+          errorText
+            ? "error"
+            : "success"
+        }
+        message={
+          errorText ||
+          successText
+        }
+        onClose={() => {
+          setErrorText("");
+          setSuccessText("");
+        }}
+      />
 
       <Paper
         variant="outlined"
@@ -1706,7 +1714,19 @@ export default function ProbationEvaluationPage() {
                     />
                   </ValueCell>
 
-                  <ValueCell sx={{ p: "6px" }}>
+                  <ValueCell
+                    sx={{
+                      justifyContent: "center",
+                      p: "6px",
+                      "& input[type=number]": {
+                        MozAppearance: "textfield",
+                      },
+                      "& input[type=number]::-webkit-outer-spin-button, & input[type=number]::-webkit-inner-spin-button": {
+                        WebkitAppearance: "none",
+                        m: 0,
+                      },
+                    }}
+                  >
                     <SheetInput
                       type="number"
                       value={formItem.weight ?? ""}
@@ -1714,6 +1734,7 @@ export default function ProbationEvaluationPage() {
                         handleItemChange(item.id, "weight", event.target.value)
                       }
                       placeholder="0"
+                      textAlign="center"
                     />
                   </ValueCell>
 

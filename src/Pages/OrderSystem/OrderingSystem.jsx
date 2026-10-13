@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  Alert,
   Box,
   Button,
   Dialog,
@@ -9,7 +8,6 @@ import {
   DialogContentText,
   DialogTitle,
   MenuItem,
-  Snackbar,
   TextField,
 } from "@mui/material";
 
@@ -19,6 +17,7 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 
 import InternalModule from "../../Components/InternalModule";
+import AppSnackbar from "../../Components/AppSnackbar";
 import {
   downloadOrderSpendingReport,
   completeOrder,
@@ -844,26 +843,12 @@ export default function OrderingSystem() {
         </DialogActions>
       </Dialog>
 
-      <Snackbar
+      <AppSnackbar
         open={snackbar.open}
-        autoHideDuration={3000}
+        severity={snackbar.severity}
+        message={snackbar.message}
         onClose={closeSnackbar}
-        anchorOrigin={{
-          vertical: "top",
-          horizontal: "center",
-        }}
-      >
-        <Alert
-          severity={snackbar.severity}
-          variant="filled"
-          onClose={closeSnackbar}
-          sx={{
-            width: "100%",
-          }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+      />
     </>
   );
 }

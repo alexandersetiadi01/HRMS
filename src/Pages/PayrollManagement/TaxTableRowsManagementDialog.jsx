@@ -44,6 +44,7 @@ import {
   getTaxTableRows,
   updateTaxTableRow,
 } from "../../API/payroll";
+import AppSnackbar from "../../Components/AppSnackbar";
 
 const EMPTY_FORM = {
   dependent_count: "0",
@@ -828,17 +829,12 @@ export default function TaxTableRowsManagementDialog({
             </Alert>
           )}
 
-          {success && (
-            <Alert
-              severity="success"
-              sx={{ mt: "16px" }}
-              onClose={() =>
-                setSuccess("")
-              }
-            >
-              {success}
-            </Alert>
-          )}
+          <AppSnackbar
+            open={Boolean(success)}
+            severity="success"
+            message={success}
+            onClose={() => setSuccess("")}
+          />
 
           <Paper
             variant="outlined"

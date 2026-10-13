@@ -5,7 +5,6 @@ import {
   Button,
   CircularProgress,
   Paper,
-  Snackbar,
   Table,
   TableBody,
   TableCell,
@@ -18,6 +17,7 @@ import {
 import SearchIcon from "@mui/icons-material/Search";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import Breadcrumb from "../../Utils/Breadcrumb";
+import AppSnackbar from "../../Components/AppSnackbar";
 import { getMyPayslipDetail } from "../../API/payroll";
 import PayrollPasswordDialog, {
   PAYROLL_VERIFICATION_STORAGE_KEY,
@@ -1702,20 +1702,17 @@ export default function PayrollDetail() {
         onVerified={handlePasswordVerified}
       />
 
-      <Snackbar
+      <AppSnackbar
         open={snackbar.open}
-        autoHideDuration={3500}
-        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert
-          severity={snackbar.severity}
-          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-          sx={{ width: "100%" }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+        severity={snackbar.severity}
+        message={snackbar.message}
+        onClose={() =>
+          setSnackbar((prev) => ({
+            ...prev,
+            open: false,
+          }))
+        }
+      />
     </Box>
   );
 }

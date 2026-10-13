@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Alert,
   Box,
   Button,
   Dialog,
@@ -8,11 +7,11 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
-  Snackbar,
   Typography,
 } from "@mui/material";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import InternalModule from "../../Components/InternalModule";
+import AppSnackbar from "../../Components/AppSnackbar";
 import {
   createStickyNote,
   deleteStickyNote,
@@ -797,21 +796,12 @@ export default function StickyNotes() {
         onClose={handleCloseDetail}
       />
 
-      <Snackbar
+      <AppSnackbar
         open={snackbar.open}
-        autoHideDuration={3000}
+        severity={snackbar.severity}
+        message={snackbar.message}
         onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-      >
-        <Alert
-          onClose={handleCloseSnackbar}
-          severity={snackbar.severity}
-          variant="filled"
-          sx={{ width: "100%" }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+      />
     </>
   );
 }

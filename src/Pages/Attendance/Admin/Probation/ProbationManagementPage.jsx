@@ -6,6 +6,10 @@ import {
   Button,
   Chip,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   IconButton,
   Paper,
   TextField,
@@ -13,7 +17,7 @@ import {
   Typography,
 } from "@mui/material";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
-import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
+import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 
 import Breadcrumb from "../../../../Utils/Breadcrumb";
 import {
@@ -21,8 +25,10 @@ import {
 } from "../../../../API/attendance";
 import {
   createProbation,
+  deleteProbation,
   getProbationCases,
 } from "../../../../API/probation";
+import AppSnackbar from "../../../../Components/AppSnackbar";
 import ResponsiveAttendanceTable from "../../AttendanceForm/ResponsiveAttendanceTable";
 import {
   ActionButtons,
@@ -197,6 +203,13 @@ export default function ProbationManagementPage() {
   const [createError, setCreateError] = useState("");
   const [loading, setLoading] = useState(true);
   const [errorText, setErrorText] = useState("");
+  const [deleteRow, setDeleteRow] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    severity: "success",
+    message: "",
+  });
 
   const loadCases = async () => {
     setLoading(true);
@@ -520,6 +533,43 @@ export default function ProbationManagementPage() {
     }
   };
 
+  const handleDeleteProbation = async () => {
+    if (!deleteRow?.id) {
+      return;
+    }
+
+    setDeleting(true);
+
+    try {
+      await deleteProbation(
+        deleteRow.id,
+      );
+
+      setDeleteRow(null);
+
+      await loadCases();
+
+      setSnackbar({
+        open: true,
+        severity: "success",
+        message: "試用期資料已刪除。",
+      });
+    } catch (error) {
+      console.error(error);
+
+      setSnackbar({
+        open: true,
+        severity: "error",
+        message:
+          error?.response?.data?.message ||
+          error?.message ||
+          "刪除試用期資料失敗。",
+      });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const handleFilterChange = (field, value) => {
     setFilters((current) => {
       const next = {
@@ -556,15 +606,17 @@ export default function ProbationManagementPage() {
 
     if (column.key === "actions") {
       return (
-        <Tooltip title="查看">
+        <Tooltip title="刪除">
           <IconButton
             size="small"
-            onClick={() =>
-              navigate(`/attendance/admin/probation/${row.id}`)
-            }
-            aria-label="查看"
+            color="error"
+            onClick={(event) => {
+              event.stopPropagation();
+              setDeleteRow(row);
+            }}
+            aria-label="刪除"
           >
-            <VisibilityOutlinedIcon fontSize="small" />
+            <DeleteOutlineOutlinedIcon fontSize="small" />
           </IconButton>
         </Tooltip>
       );
@@ -882,6 +934,72 @@ export default function ProbationManagementPage() {
           />
         )}
       </Paper>
+
+      <Dialog
+        open={Boolean(deleteRow)}
+        onClose={
+          deleting
+            ? undefined
+            : () => setDeleteRow(null)
+        }
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>
+          確認刪除試用期
+        </DialogTitle>
+
+        <DialogContent>
+          <Typography
+            sx={{
+              fontSize: "14px",
+              lineHeight: 1.7,
+              color: "#4b5563",
+            }}
+          >
+            確定要刪除
+            {deleteRow?.employee
+              ? `「${deleteRow.employee}」`
+              : "此員工"}
+            的試用期資料嗎？相關的階段、評核、評核項目及簽核資料也會一併刪除。此操作無法復原。
+          </Typography>
+        </DialogContent>
+
+        <DialogActions>
+          <Button
+            variant="outlined"
+            disabled={deleting}
+            onClick={() =>
+              setDeleteRow(null)
+            }
+          >
+            取消
+          </Button>
+
+          <Button
+            variant="contained"
+            color="error"
+            disabled={deleting}
+            onClick={handleDeleteProbation}
+          >
+            {deleting
+              ? "刪除中..."
+              : "確認刪除"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <AppSnackbar
+        open={snackbar.open}
+        severity={snackbar.severity}
+        message={snackbar.message}
+        onClose={() =>
+          setSnackbar((current) => ({
+            ...current,
+            open: false,
+          }))
+        }
+      />
 
       <ProbationInformationDialog
         open={createOpen}

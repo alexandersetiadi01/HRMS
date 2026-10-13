@@ -23,6 +23,7 @@ import EventOutlinedIcon from "@mui/icons-material/EventOutlined";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import PaymentsOutlinedIcon from "@mui/icons-material/PaymentsOutlined";
 import TaskAltIcon from "@mui/icons-material/TaskAlt";
+import AppSnackbar from "../../Components/AppSnackbar";
 import {
   closePayrollRun,
   getPayrollRunResults,
@@ -555,11 +556,12 @@ export default function PayrollCompletionPanel({
         </Alert>
       ) : null}
 
-      {message ? (
-        <Alert severity="success" sx={{ mb: "14px" }}>
-          {message}
-        </Alert>
-      ) : null}
+      <AppSnackbar
+        open={Boolean(message)}
+        severity="success"
+        message={message}
+        onClose={() => setMessage("")}
+      />
 
       {loading ? (
         <Box

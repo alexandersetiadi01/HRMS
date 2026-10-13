@@ -36,6 +36,7 @@ import {
   getPayrollCalculationRules,
   updatePayrollCalculationRule,
 } from "../../API/payroll";
+import AppSnackbar from "../../Components/AppSnackbar";
 
 const RULE_CODE = "daily_work_hours";
 
@@ -391,15 +392,12 @@ export default function PayrollHourlyFormulaPage() {
         </Alert>
       ) : null}
 
-      {success ? (
-        <Alert
-          onClose={() => setSuccess("")}
-          severity="success"
-          sx={{ mb: 2.5 }}
-        >
-          {success}
-        </Alert>
-      ) : null}
+      <AppSnackbar
+        open={Boolean(success)}
+        severity="success"
+        message={success}
+        onClose={() => setSuccess("")}
+      />
 
       {!rule ? (
         <Alert

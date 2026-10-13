@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Alert,
   Box,
   Button,
   CircularProgress,
@@ -23,6 +22,7 @@ import {
   apiUpdateLeaveBalance,
 } from "../../../../API/attendance";
 
+import AppSnackbar from "../../../../Components/AppSnackbar";
 import FormDialog from "../../../../Components/FormDialog";
 import ResponsiveAttendanceTable from "../../AttendanceForm/ResponsiveAttendanceTable";
 import {
@@ -651,17 +651,22 @@ export default function LeaveBalancesTab() {
         </Box>
       </Box>
 
-      {errorText ? (
-        <Alert severity="error" sx={{ mb: "14px" }}>
-          {errorText}
-        </Alert>
-      ) : null}
-
-      {successText ? (
-        <Alert severity="success" sx={{ mb: "14px" }}>
-          {successText}
-        </Alert>
-      ) : null}
+      <AppSnackbar
+        open={Boolean(errorText || successText)}
+        severity={
+          errorText
+            ? "error"
+            : "success"
+        }
+        message={
+          errorText ||
+          successText
+        }
+        onClose={() => {
+          setErrorText("");
+          setSuccessText("");
+        }}
+      />
 
       <Box sx={{ position: "relative" }}>
         {loading ? (

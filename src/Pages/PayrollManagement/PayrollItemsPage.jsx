@@ -32,6 +32,7 @@ import {
   getPayrollItems,
   updatePayrollItem,
 } from "../../API/payroll";
+import AppSnackbar from "../../Components/AppSnackbar";
 import FormDialog from "../../Components/FormDialog";
 import ResponsiveAttendanceTable from "../Attendance/AttendanceForm/ResponsiveAttendanceTable";
 
@@ -1206,15 +1207,12 @@ export default function PayrollItemsPage() {
         </Alert>
       ) : null}
 
-      {message ? (
-        <Alert
-          severity="success"
-          onClose={() => setMessage("")}
-          sx={{ mb: "14px" }}
-        >
-          {message}
-        </Alert>
-      ) : null}
+      <AppSnackbar
+        open={Boolean(message)}
+        severity="success"
+        message={message}
+        onClose={() => setMessage("")}
+      />
 
       <Box
         sx={{

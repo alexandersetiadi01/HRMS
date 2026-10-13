@@ -23,6 +23,7 @@ import {
   getPayrollOvertimeTaxSettings,
   updatePayrollOvertimeTaxSettings,
 } from "../../API/payroll";
+import AppSnackbar from "../../Components/AppSnackbar";
 
 const RULE_DEFINITIONS = [
   {
@@ -958,15 +959,12 @@ export default function PayrollOvertimeTaxPage() {
         </Alert>
       ) : null}
 
-      {success ? (
-        <Alert
-          severity="success"
-          sx={{ mb: "16px" }}
-          onClose={() => setSuccess("")}
-        >
-          {success}
-        </Alert>
-      ) : null}
+      <AppSnackbar
+        open={Boolean(success)}
+        severity="success"
+        message={success}
+        onClose={() => setSuccess("")}
+      />
 
       {loading ? (
         <Paper

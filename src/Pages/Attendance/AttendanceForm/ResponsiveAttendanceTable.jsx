@@ -386,6 +386,14 @@ export default function ResponsiveAttendanceTable({
                     borderBottom: "1px solid #d1d5db",
                     alignItems: "start",
                     cursor: onRowClick ? "pointer" : "default",
+                    transition: "background-color 0.15s ease",
+                    ...(onRowClick
+                      ? {
+                          "&:hover": {
+                            bgcolor: "#f3f8fd",
+                          },
+                        }
+                      : {}),
                   }}
                 >
                   {columns.map((column) => {

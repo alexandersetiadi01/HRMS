@@ -47,6 +47,7 @@ import {
   getTaxParameters,
   updateTaxParameter,
 } from "../../API/payroll";
+import AppSnackbar from "../../Components/AppSnackbar";
 
 import TaxTableRowsManagementDialog from "./TaxTableRowsManagementDialog";
 
@@ -1266,17 +1267,12 @@ export default function PayrollTaxParametersPage() {
         </Alert>
       )}
 
-      {success && (
-        <Alert
-          severity="success"
-          sx={{ mt: "18px" }}
-          onClose={() =>
-            setSuccess("")
-          }
-        >
-          {success}
-        </Alert>
-      )}
+      <AppSnackbar
+        open={Boolean(success)}
+        severity="success"
+        message={success}
+        onClose={() => setSuccess("")}
+      />
 
       <Paper
         variant="outlined"

@@ -40,6 +40,7 @@ import {
   getInsuranceIdentities,
   updateInsuranceIdentity,
 } from "../../API/payroll";
+import AppSnackbar from "../../Components/AppSnackbar";
 
 const EMPTY_FORM = {
   identity_name: "",
@@ -905,17 +906,12 @@ export default function PayrollInsuranceIdentitiesPage() {
         </Alert>
       )}
 
-      {success && (
-        <Alert
-          severity="success"
-          sx={{
-            mt: "18px",
-          }}
-          onClose={() => setSuccess("")}
-        >
-          {success}
-        </Alert>
-      )}
+      <AppSnackbar
+        open={Boolean(success)}
+        severity="success"
+        message={success}
+        onClose={() => setSuccess("")}
+      />
 
       <Paper
         variant="outlined"

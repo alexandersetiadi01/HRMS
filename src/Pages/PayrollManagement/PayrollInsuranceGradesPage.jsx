@@ -17,7 +17,6 @@ import {
   MenuItem,
   Paper,
   Select,
-  Snackbar,
   Tab,
   Table,
   TableBody,
@@ -40,6 +39,7 @@ import {
   getInsuranceGradeVersions,
   publishInsuranceGradeVersion,
 } from "../../API/payroll";
+import AppSnackbar from "../../Components/AppSnackbar";
 import InsuranceGradeVersionFormDialog from "./InsuranceGradeVersionFormDialog";
 
 const INSURANCE_TYPES = [
@@ -1233,15 +1233,11 @@ export default function PayrollInsuranceGradesPage() {
         </DialogActions>
       </Dialog>
 
-      <Snackbar
+      <AppSnackbar
         open={Boolean(successMessage)}
-        autoHideDuration={4000}
-        onClose={() => setSuccessMessage("")}
+        severity="success"
         message={successMessage}
-        anchorOrigin={{
-          vertical: "bottom",
-          horizontal: "center",
-        }}
+        onClose={() => setSuccessMessage("")}
       />
     </Box>
   );

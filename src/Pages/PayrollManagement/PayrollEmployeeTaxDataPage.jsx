@@ -36,6 +36,7 @@ import {
   getPayrollTaxProfiles,
 } from "../../API/payroll";
 
+import AppSnackbar from "../../Components/AppSnackbar";
 import EmployeeTaxDependentFormDialog from "./EmployeeTaxDependentFormDialog";
 import EmployeeTaxProfileFormDialog from "./EmployeeTaxProfileFormDialog";
 
@@ -610,15 +611,12 @@ export default function PayrollEmployeeTaxDataPage() {
         </Alert>
       )}
 
-      {successMessage && (
-        <Alert
-          severity="success"
-          sx={{ mt: "18px" }}
-          onClose={() => setSuccessMessage("")}
-        >
-          {successMessage}
-        </Alert>
-      )}
+      <AppSnackbar
+        open={Boolean(successMessage)}
+        severity="success"
+        message={successMessage}
+        onClose={() => setSuccessMessage("")}
+      />
 
       <Paper
         variant="outlined"

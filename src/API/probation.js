@@ -116,3 +116,11 @@ export async function updateProbation(
 
   return unwrapData(response, null);
 }
+
+export async function deleteProbation(caseId) {
+  const response = await http.delete(
+    `/attendance/probation/${caseId}`,
+  );
+
+  return unwrapData(response, null);
+}

@@ -32,6 +32,7 @@ import {
   getMonthlyWithholdingTaxReport,
   getTaxDeclarationUnits,
 } from "../../../API/payroll";
+import AppSnackbar from "../../../Components/AppSnackbar";
 import { exportMonthlyWithholdingTaxReport } from "../../../Utils/payrollReportDefinitions";
 
 import ReportDetailField from "./Components/ReportDetailField";
@@ -754,17 +755,12 @@ export default function MonthlyWithholdingTaxReport() {
           {error}
         </Alert>
       ) : null}
-      {successMessage ? (
-        <Alert
-          severity="success"
-          onClose={() => setSuccessMessage("")}
-          sx={{
-            mt: "14px",
-          }}
-        >
-          {successMessage}
-        </Alert>
-      ) : null}
+      <AppSnackbar
+        open={Boolean(successMessage)}
+        severity="success"
+        message={successMessage}
+        onClose={() => setSuccessMessage("")}
+      />
 
       {loading ? (
         <ReportLoadingState message="載入每月薪資所得扣繳稅額中..." />

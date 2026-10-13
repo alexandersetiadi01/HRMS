@@ -16,7 +16,6 @@ import {
   MenuItem,
   Paper,
   Select,
-  Snackbar,
   Table,
   TableBody,
   TableCell,
@@ -43,6 +42,7 @@ import {
   publishInsuranceRateVersion,
   updateInsuranceRateVersion,
 } from "../../API/payroll";
+import AppSnackbar from "../../Components/AppSnackbar";
 import InsuranceRateVersionFormDialog from "./InsuranceRateVersionFormDialog";
 
 const STATUS_OPTIONS = [
@@ -1634,24 +1634,12 @@ export default function PayrollInsuranceRatesPage() {
         onConfirm={handlePublishVersion}
       />
 
-      <Snackbar
+      <AppSnackbar
         open={Boolean(successMessage)}
-        autoHideDuration={5000}
+        severity="success"
+        message={successMessage}
         onClose={() => setSuccessMessage("")}
-        anchorOrigin={{
-          vertical: "bottom",
-          horizontal: "center",
-        }}
-      >
-        <Alert
-          severity="success"
-          variant="filled"
-          onClose={() => setSuccessMessage("")}
-          sx={{ width: "100%" }}
-        >
-          {successMessage}
-        </Alert>
-      </Snackbar>
+      />
     </Box>
   );
 }

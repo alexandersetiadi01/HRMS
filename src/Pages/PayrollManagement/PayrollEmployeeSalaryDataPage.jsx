@@ -49,6 +49,7 @@ import {
   saveEmployeeSalaryRecord,
 } from "../../API/payroll";
 
+import AppSnackbar from "../../Components/AppSnackbar";
 import PayrollAdjustmentHistoryDialog from "./PayrollAdjustmentHistoryDialog";
 import SalaryRecordFormDialog from "./SalaryRecordFormDialog";
 
@@ -1697,15 +1698,12 @@ export default function PayrollEmployeeSalaryDataPage() {
         </Alert>
       ) : null}
 
-      {successMessage ? (
-        <Alert
-          severity="success"
-          onClose={() => setSuccessMessage("")}
-          sx={{ mb: "14px" }}
-        >
-          {successMessage}
-        </Alert>
-      ) : null}
+      <AppSnackbar
+        open={Boolean(successMessage)}
+        severity="success"
+        message={successMessage}
+        onClose={() => setSuccessMessage("")}
+      />
 
       <Box
         component="form"

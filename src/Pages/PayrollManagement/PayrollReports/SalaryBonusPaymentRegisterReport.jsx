@@ -28,6 +28,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 
 import { getSalaryBonusPaymentRegister } from "../../../API/payroll";
+import AppSnackbar from "../../../Components/AppSnackbar";
 
 import { exportSalaryBonusPaymentRegister } from "../../../Utils/payrollReportDefinitions";
 
@@ -597,17 +598,12 @@ export default function SalaryBonusPaymentRegisterReport() {
         </Alert>
       ) : null}
 
-      {successMessage ? (
-        <Alert
-          severity="success"
-          onClose={() => setSuccessMessage("")}
-          sx={{
-            mt: "14px",
-          }}
-        >
-          {successMessage}
-        </Alert>
-      ) : null}
+      <AppSnackbar
+        open={Boolean(successMessage)}
+        severity="success"
+        message={successMessage}
+        onClose={() => setSuccessMessage("")}
+      />
 
       {loading ? (
         <ReportLoadingState message="載入薪資／獎金發放清冊中..." />

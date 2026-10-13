@@ -23,6 +23,7 @@ import {
   getPayrollPermissions,
   updatePayrollPermissionPosition,
 } from "../../API/payroll";
+import AppSnackbar from "../../Components/AppSnackbar";
 
 const PERMISSION_GROUP_ORDER = [
   "基本權限",
@@ -653,15 +654,12 @@ export default function PayrollPermissionsPage() {
         </Alert>
       ) : null}
 
-      {success ? (
-        <Alert
-          severity="success"
-          sx={{ mb: "16px" }}
-          onClose={() => setSuccess("")}
-        >
-          {success}
-        </Alert>
-      ) : null}
+      <AppSnackbar
+        open={Boolean(success)}
+        severity="success"
+        message={success}
+        onClose={() => setSuccess("")}
+      />
 
       {loading ? (
         <Paper

@@ -40,6 +40,7 @@ import {
   getTaxDeclarationUnits,
   updateTaxDeclarationUnit,
 } from "../../API/payroll";
+import AppSnackbar from "../../Components/AppSnackbar";
 
 const EMPTY_FORM = {
   declaration_unit_name: "",
@@ -1060,17 +1061,12 @@ export default function PayrollTaxDeclarationUnitsPage() {
         </Alert>
       )}
 
-      {success && (
-        <Alert
-          severity="success"
-          sx={{
-            mt: "18px",
-          }}
-          onClose={() => setSuccess("")}
-        >
-          {success}
-        </Alert>
-      )}
+      <AppSnackbar
+        open={Boolean(success)}
+        severity="success"
+        message={success}
+        onClose={() => setSuccess("")}
+      />
 
       <Paper
         variant="outlined"

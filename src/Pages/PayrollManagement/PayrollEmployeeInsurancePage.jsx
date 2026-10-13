@@ -37,6 +37,7 @@ import {
   getEmployeePensionInsuranceRecords,
   getPayrollEmployees,
 } from "../../API/payroll";
+import AppSnackbar from "../../Components/AppSnackbar";
 
 import InsuranceRecordManagementDialog from "./InsuranceRecordManagementDialog";
 import InsuranceRecordOperationDialog from "./InsuranceRecordOperationDialog";
@@ -1520,15 +1521,12 @@ export default function PayrollEmployeeInsurancePage() {
         </Alert>
       )}
 
-      {success && (
-        <Alert
-          severity="success"
-          sx={{ mt: "18px" }}
-          onClose={() => setSuccess("")}
-        >
-          {success}
-        </Alert>
-      )}
+      <AppSnackbar
+        open={Boolean(success)}
+        severity="success"
+        message={success}
+        onClose={() => setSuccess("")}
+      />
 
       <Paper
         variant="outlined"

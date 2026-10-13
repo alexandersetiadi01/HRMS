@@ -22,6 +22,7 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
+import AppSnackbar from "../../Components/AppSnackbar";
 import {
   createInsuranceUnitAccidentRate,
   deleteInsuranceUnitAccidentRate,
@@ -447,17 +448,12 @@ export default function InsuranceUnitRateHistoryDialog({
             </Alert>
           ) : null}
 
-          {message ? (
-            <Alert
-              severity="success"
-              onClose={() =>
-                setMessage("")
-              }
-              sx={{ mb: "14px" }}
-            >
-              {message}
-            </Alert>
-          ) : null}
+          <AppSnackbar
+            open={Boolean(message)}
+            severity="success"
+            message={message}
+            onClose={() => setMessage("")}
+          />
 
           <Paper
             component="form"

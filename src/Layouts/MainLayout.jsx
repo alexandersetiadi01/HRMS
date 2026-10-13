@@ -10,7 +10,6 @@ import {
   ClickAwayListener,
   InputBase,
   Paper,
-  Switch,
   Typography,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
@@ -29,6 +28,7 @@ import { shouldPromptLocationConsent } from "../Utils/LocationConsent";
 import NotificationProvider from "../Contexts/NotificationProvider";
 import NotificationBell from "../Components/Notifications/NotificationBell";
 import NotificationRouteReadTracker from "../Components/Notifications/NotificationRouteReadTracker";
+import AdminAccessSwitch from "../Components/AdminAccessSwitch";
 
 function MainLayout() {
   const navigate = useNavigate();
@@ -202,36 +202,11 @@ function MainLayout() {
             <NotificationBell />
 
             {authUser?.can_switch_access_mode ? (
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  mr: "4px",
-                }}
-              >
-                <Typography
-                  sx={{
-                    fontSize: "12px",
-                    fontWeight: 600,
-                    color: "#374151",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {accessModeSwitching
-                    ? "切換中..."
-                    : authUser?.is_admin_access
-                      ? "管理員模式"
-                      : "一般模式"}
-                </Typography>
-
-                <Switch
-                  size="small"
-                  checked={authUser?.is_admin_access === true}
-                  disabled={accessModeSwitching}
-                  onChange={handleAccessModeSwitch}
-                />
-              </Box>
+              <AdminAccessSwitch
+                checked={authUser?.is_admin_access === true}
+                disabled={accessModeSwitching}
+                onChange={handleAccessModeSwitch}
+              />
             ) : null}
 
             <ClickAwayListener onClickAway={() => setMenuOpen(false)}>

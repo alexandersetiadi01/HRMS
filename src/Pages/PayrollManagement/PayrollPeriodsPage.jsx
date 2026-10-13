@@ -37,6 +37,7 @@ import {
   getPayrollRanges,
   updatePayrollPeriod,
 } from "../../API/payroll";
+import AppSnackbar from "../../Components/AppSnackbar";
 
 const NOW = new Date();
 
@@ -881,15 +882,12 @@ export default function PayrollPeriodsPage() {
         </Alert>
       ) : null}
 
-      {message ? (
-        <Alert
-          severity="success"
-          onClose={() => setMessage("")}
-          sx={{ mb: "14px" }}
-        >
-          {message}
-        </Alert>
-      ) : null}
+      <AppSnackbar
+        open={Boolean(message)}
+        severity="success"
+        message={message}
+        onClose={() => setMessage("")}
+      />
 
       {!loading && ranges.length === 0 ? (
         <Alert severity="warning" sx={{ mb: "14px" }}>

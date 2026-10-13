@@ -48,6 +48,7 @@ import {
   previewIncomeTaxDeclaration,
   submitIncomeTaxDeclaration,
 } from "../../API/payroll";
+import AppSnackbar from "../../Components/AppSnackbar";
 
 const CURRENT_YEAR = new Date().getFullYear();
 
@@ -2321,17 +2322,12 @@ export default function PayrollIncomeTaxDeclarationsPage() {
         onClose={handleCloseCreate}
         onCreated={handleCreated}
       />
-      {successMessage ? (
-        <Alert
-          severity="success"
-          onClose={() => setSuccessMessage("")}
-          sx={{
-            mb: "16px",
-          }}
-        >
-          {successMessage}
-        </Alert>
-      ) : null}
+      <AppSnackbar
+        open={Boolean(successMessage)}
+        severity="success"
+        message={successMessage}
+        onClose={() => setSuccessMessage("")}
+      />
 
       {error ? (
         <Alert

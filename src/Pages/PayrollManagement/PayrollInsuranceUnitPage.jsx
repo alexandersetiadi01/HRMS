@@ -36,6 +36,7 @@ import {
   deleteInsuranceUnit,
   getInsuranceUnits,
 } from "../../API/payroll";
+import AppSnackbar from "../../Components/AppSnackbar";
 import InsuranceUnitFormDialog from "./InsuranceUnitFormDialog";
 import InsuranceUnitRateHistoryDialog from "./InsuranceUnitRateHistoryDialog";
 
@@ -534,15 +535,12 @@ export default function PayrollInsuranceUnitsPage() {
         </Alert>
       ) : null}
 
-      {message ? (
-        <Alert
-          severity="success"
-          onClose={() => setMessage("")}
-          sx={{ mb: "14px" }}
-        >
-          {message}
-        </Alert>
-      ) : null}
+      <AppSnackbar
+        open={Boolean(message)}
+        severity="success"
+        message={message}
+        onClose={() => setMessage("")}
+      />
 
       <Box
         component="form"

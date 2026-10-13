@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Avatar,
   Box,
-  Button,
   Divider,
   Drawer,
   IconButton,
@@ -25,6 +24,7 @@ import {
   updateAccessMode,
 } from "../../API/auth";
 import NotificationBell from "../Notifications/NotificationBell";
+import AdminAccessSwitch from "../AdminAccessSwitch";
 
 export default function MobileNavbar() {
   const [open, setOpen] = useState(false);
@@ -184,28 +184,11 @@ export default function MobileNavbar() {
             />
 
             {authUser?.can_switch_access_mode ? (
-              <Button
-                size="small"
-                variant={
-                  authUser?.is_admin_access
-                    ? "contained"
-                    : "outlined"
-                }
+              <AdminAccessSwitch
+                checked={authUser?.is_admin_access === true}
                 disabled={accessModeSwitching}
-                onClick={handleAccessModeSwitch}
-                sx={{
-                  minWidth: 0,
-                  height: "28px",
-                  px: "8px",
-                  borderRadius: "14px",
-                  fontSize: "11px",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {authUser?.is_admin_access
-                  ? "管理員"
-                  : "一般"}
-              </Button>
+                onChange={handleAccessModeSwitch}
+              />
             ) : null}
 
             <IconButton

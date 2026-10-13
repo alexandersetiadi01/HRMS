@@ -38,6 +38,7 @@ import {
   getPayrollSalaryBanks,
   updatePayrollSalaryBank,
 } from "../../API/payroll";
+import AppSnackbar from "../../Components/AppSnackbar";
 
 const EMPTY_FORM = {
   bank_code: "",
@@ -727,15 +728,12 @@ export default function PayrollSalaryBanksPage() {
         </Alert>
       ) : null}
 
-      {message ? (
-        <Alert
-          severity="success"
-          onClose={() => setMessage("")}
-          sx={{ mb: "14px" }}
-        >
-          {message}
-        </Alert>
-      ) : null}
+      <AppSnackbar
+        open={Boolean(message)}
+        severity="success"
+        message={message}
+        onClose={() => setMessage("")}
+      />
 
       <Box
         sx={{
