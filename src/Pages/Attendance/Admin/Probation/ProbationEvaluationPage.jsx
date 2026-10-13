@@ -25,6 +25,8 @@ import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import Breadcrumb from "../../../../Utils/Breadcrumb";
 import AppSnackbar from "../../../../Components/AppSnackbar";
 import { apiAttendanceAdminMeta } from "../../../../API/attendance";
+import { getStoredAuthUser } from "../../../../API/auth";
+import { hasAttendancePermission } from "../../../../Utils/AttendancePermissions";
 import {
   getProbationEvaluation,
   getProbationSignatureAssets,
@@ -374,6 +376,22 @@ function MobileField({ label, children, fullWidth = false }) {
 export default function ProbationEvaluationPage() {
   const { caseId, month } = useParams();
   const navigate = useNavigate();
+  const authUser = getStoredAuthUser();
+
+  const canEvaluate = hasAttendancePermission(
+    authUser,
+    "attendance_probation_evaluate",
+  );
+
+  const canSubmit = hasAttendancePermission(
+    authUser,
+    "attendance_probation_submit",
+  );
+
+  const canSign = hasAttendancePermission(
+    authUser,
+    "attendance_probation_sign",
+  );
 
   const evaluationMonth = Number(month);
 
@@ -2388,7 +2406,10 @@ export default function ProbationEvaluationPage() {
                       }}
                     >
                       <ButtonBase
-                        disabled={!approval.can_sign}
+                        disabled={
+                          !canSign ||
+                          !approval.can_sign
+                        }
                         onClick={() =>
                           handleOpenSignatureDialog(
                             role,
@@ -2406,6 +2427,7 @@ export default function ProbationEvaluationPage() {
                           textAlign: "center",
                           "&:hover": {
                             bgcolor:
+                              canSign &&
                               approval.can_sign
                                 ? "#f8fafc"
                                 : "#ffffff",
@@ -2547,23 +2569,27 @@ export default function ProbationEvaluationPage() {
           返回
         </Button>
 
-        <Button
-          variant="outlined"
-          startIcon={<SaveOutlinedIcon />}
-          disabled={saving}
-          onClick={handleSaveDraft}
-        >
-          儲存草稿
-        </Button>
+        {canEvaluate ? (
+          <Button
+            variant="outlined"
+            startIcon={<SaveOutlinedIcon />}
+            disabled={saving}
+            onClick={handleSaveDraft}
+          >
+            儲存草稿
+          </Button>
+        ) : null}
 
-        <Button
-          variant="contained"
-          startIcon={<SendOutlinedIcon />}
-          disabled={saving}
-          onClick={handleSubmit}
-        >
-          送出
-        </Button>
+        {canSubmit ? (
+          <Button
+            variant="contained"
+            startIcon={<SendOutlinedIcon />}
+            disabled={saving}
+            onClick={handleSubmit}
+          >
+            送出
+          </Button>
+        ) : null}
       </Box>
 
       <Dialog

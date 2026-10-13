@@ -20,6 +20,8 @@ import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 
 import FormDialog from "../../../../Components/FormDialog";
 import SuccessDialog from "../../../../Components/SuccessDialog";
+import { getStoredAuthUser } from "../../../../API/auth";
+import { hasAttendancePermission } from "../../../../Utils/AttendancePermissions";
 import ResponsiveAttendanceTable from "../../AttendanceForm/ResponsiveAttendanceTable";
 import {
   apiAttendanceAdminMeta,
@@ -81,6 +83,13 @@ function normalizeProxyFormTypes(value) {
 export default function UnitParameterSettingsTab({
   initialViewMode = "all",
 }) {
+  const authUser = getStoredAuthUser();
+
+  const canUpdate = hasAttendancePermission(
+    authUser,
+    "attendance_module_unit_settings_update",
+  );
+
   const [unitOptions, setUnitOptions] = useState([]);
   const [unitId, setUnitId] = useState("");
   const [rows, setRows] = useState([]);
@@ -652,26 +661,28 @@ export default function UnitParameterSettingsTab({
             gap: "4px",
           }}
         >
-          <Tooltip title="詳細 / 編輯">
+          <Tooltip title={canUpdate ? "詳細 / 編輯" : "詳細"}>
             <IconButton
               size="small"
               onClick={() => handleOpenPermission(row)}
-              aria-label="詳細 / 編輯"
+              aria-label={canUpdate ? "詳細 / 編輯" : "詳細"}
             >
               <EditOutlinedIcon fontSize="small" />
             </IconButton>
           </Tooltip>
 
-          <Tooltip title="移除">
-            <IconButton
-              size="small"
-              onClick={() => handleOpenDelete(row)}
-              aria-label="移除"
-              disabled={saving}
-            >
-              <DeleteOutlineIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+          {canUpdate ? (
+            <Tooltip title="移除">
+              <IconButton
+                size="small"
+                onClick={() => handleOpenDelete(row)}
+                aria-label="移除"
+                disabled={saving}
+              >
+                <DeleteOutlineIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          ) : null}
         </Box>
       );
     }
@@ -722,23 +733,27 @@ export default function UnitParameterSettingsTab({
             gap: "8px",
           }}
         >
-          <Button
-            variant="outlined"
-            startIcon={<AddOutlinedIcon />}
-            disabled={!unitId || loading}
-            onClick={handleOpenAdd}
-          >
-            新增人員
-          </Button>
+          {canUpdate ? (
+            <>
+              <Button
+                variant="outlined"
+                startIcon={<AddOutlinedIcon />}
+                disabled={!unitId || loading}
+                onClick={handleOpenAdd}
+              >
+                新增人員
+              </Button>
 
-          <Button
-            variant="contained"
-            startIcon={<SaveOutlinedIcon />}
-            disabled={!unitId || loading || saving}
-            onClick={handleSave}
-          >
-            {saving ? "儲存中..." : "儲存"}
-          </Button>
+              <Button
+                variant="contained"
+                startIcon={<SaveOutlinedIcon />}
+                disabled={!unitId || loading || saving}
+                onClick={handleSave}
+              >
+                {saving ? "儲存中..." : "儲存"}
+              </Button>
+            </>
+          ) : null}
         </Box>
       </Box>
 
@@ -975,6 +990,7 @@ export default function UnitParameterSettingsTab({
         title="人員權限詳細"
         submitting={permissionSaving}
         submitLabel="套用"
+        hideSubmit={!canUpdate}
         onClose={handleClosePermission}
         onSubmit={handleUpdatePermission}
       >
@@ -1020,6 +1036,7 @@ export default function UnitParameterSettingsTab({
             control={
               <Checkbox
                 checked={permissionForm.can_manage_schedule}
+                disabled={!canUpdate}
                 onChange={(event) =>
                   setPermissionForm((current) => ({
                     ...current,
@@ -1063,6 +1080,7 @@ export default function UnitParameterSettingsTab({
                       checked={permissionForm.proxy_form_types.includes(
                         formType,
                       )}
+                      disabled={!canUpdate}
                       onChange={(event) =>
                         handlePermissionProxyTypeChange(
                           formType,

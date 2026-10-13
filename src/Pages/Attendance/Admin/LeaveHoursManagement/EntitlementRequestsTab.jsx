@@ -21,6 +21,8 @@ import {
 
 import FormDialog from "../../../../Components/FormDialog";
 import SuccessDialog from "../../../../Components/SuccessDialog";
+import { getStoredAuthUser } from "../../../../API/auth";
+import { hasAttendancePermission } from "../../../../Utils/AttendancePermissions";
 import ResponsiveAttendanceTable from "../../AttendanceForm/ResponsiveAttendanceTable";
 import {
   ActionButtons,
@@ -80,6 +82,18 @@ function formatHours(value) {
 }
 
 export default function EntitlementRequestsTab() {
+  const authUser = getStoredAuthUser();
+
+  const canApprove = hasAttendancePermission(
+    authUser,
+    "attendance_leave_balance_approve",
+  );
+
+  const canReject = hasAttendancePermission(
+    authUser,
+    "attendance_leave_balance_reject",
+  );
+
   const [filters, setFilters] = useState(INITIAL_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState(INITIAL_FILTERS);
   const [unitOptions, setUnitOptions] = useState([]);
@@ -333,18 +347,24 @@ export default function EntitlementRequestsTab() {
             </IconButton>
           </Tooltip>
 
-          {pending ? (
+          {canApprove && pending ? (
             <Tooltip title="核准">
               <IconButton
                 size="small"
-                onClick={() => openActionDialog(row, "approve")}
+                onClick={() =>
+                  openActionDialog(
+                    row,
+                    "approve",
+                  )
+                }
               >
                 <CheckIcon fontSize="small" />
               </IconButton>
             </Tooltip>
           ) : null}
 
-          {pending || approved ? (
+          {canReject &&
+          (pending || approved) ? (
             <Tooltip
               title={
                 rejectBlocked
@@ -356,7 +376,12 @@ export default function EntitlementRequestsTab() {
                 <IconButton
                   size="small"
                   disabled={rejectBlocked}
-                  onClick={() => openActionDialog(row, "reject")}
+                  onClick={() =>
+                    openActionDialog(
+                      row,
+                      "reject",
+                    )
+                  }
                 >
                   <CloseOutlinedIcon fontSize="small" />
                 </IconButton>

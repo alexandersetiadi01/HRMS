@@ -20,6 +20,25 @@ export function hasAttendancePermission(authUser, permissionCode) {
   return getAttendancePermissionCodes(authUser).includes(code);
 }
 
+export function hasAnyAttendancePermission(
+  authUser,
+  permissionCodes = [],
+) {
+  if (authUser?.is_admin_access === true) {
+    return true;
+  }
+
+  return (Array.isArray(permissionCodes)
+    ? permissionCodes
+    : []
+  ).some((permissionCode) =>
+    hasAttendancePermission(
+      authUser,
+      permissionCode,
+    ),
+  );
+}
+
 export function canViewStaffAttendance(authUser) {
   return hasAttendancePermission(
     authUser,

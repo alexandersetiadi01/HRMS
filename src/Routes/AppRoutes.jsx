@@ -148,7 +148,7 @@ export default function AppRoutes() {
         <Route
           path="/attendance/admin/staff-attendance"
           element={
-            <RequireAttendancePermission permission="attendance_staff_view">
+            <RequireAttendancePermission permission="attendance_staff_attendance_view">
               <StaffAttendancePage />
             </RequireAttendancePermission>
           }
@@ -156,10 +156,8 @@ export default function AppRoutes() {
         <Route
           path="/attendance/admin/shift-approval"
           element={
-            <RequireAttendancePermission permission="attendance_shift_approval">
-              <RequireScheduleManagementAccess>
-                <ShiftApprovalPage />
-              </RequireScheduleManagementAccess>
+            <RequireAttendancePermission permission="attendance_shift_approval_view">
+              <ShiftApprovalPage />
             </RequireAttendancePermission>
           }
         />
@@ -175,7 +173,7 @@ export default function AppRoutes() {
         <Route
           path="/attendance/admin/report-center"
           element={
-            <RequireAttendancePermission permission="attendance_supervisor_report_center_view">
+            <RequireAttendancePermission permission="attendance_supervisor_report_view">
               <ReportCenterPage scope="supervisor" />
             </RequireAttendancePermission>
           }
@@ -183,7 +181,7 @@ export default function AppRoutes() {
         <Route
           path="/attendance/admin/record-maintenance/*"
           element={
-            <RequireAttendancePermission permission="attendance_punch_maintenance">
+            <RequireAttendancePermission permission="attendance_punch_maintenance_view">
               <AttendanceRecordMaintenance />
             </RequireAttendancePermission>
           }
@@ -191,7 +189,7 @@ export default function AppRoutes() {
         <Route
           path="/attendance/admin/form-management"
           element={
-            <RequireAttendancePermission permission="attendance_form_management_manage">
+            <RequireAttendancePermission permission="attendance_form_management_view">
               <FormManagementPage />
             </RequireAttendancePermission>
           }
@@ -199,7 +197,7 @@ export default function AppRoutes() {
         <Route
           path="/attendance/admin/leave-hours-management/*"
           element={
-            <RequireAttendancePermission permission="attendance_leave_balance_manage">
+            <RequireAttendancePermission permission="attendance_leave_balance_view">
               <LeaveHoursManagement />
             </RequireAttendancePermission>
           }
@@ -207,7 +205,7 @@ export default function AppRoutes() {
         <Route
           path="/attendance/admin/payroll-work"
           element={
-            <RequireAttendancePermission permission="attendance_settlement_manage">
+            <RequireAttendancePermission permission="attendance_settlement_view">
               <RequirePayrollAdmin>
                 <PayrollDefaultRedirect />
               </RequirePayrollAdmin>
@@ -228,7 +226,7 @@ export default function AppRoutes() {
           <Route
             path="operations/salary"
             element={
-              <RequireAttendancePermission permission="attendance_settlement_manage">
+              <RequireAttendancePermission permission="attendance_settlement_view">
                 <RequirePayrollPermission
                   permissions={[
                     "payroll_view",
@@ -456,7 +454,27 @@ export default function AppRoutes() {
         <Route
           path="/attendance/admin/module-setting/*"
           element={
-            <RequireAttendancePermission permission="attendance_module_settings_manage">
+            <RequireAttendancePermission
+              permissions={[
+                "attendance_module_permissions_view",
+                "attendance_module_approval_view",
+                "attendance_module_calendar_view",
+                "attendance_module_shift_view",
+                "attendance_module_shift_group_view",
+                "attendance_module_shift_assignment_view",
+                "attendance_module_leave_type_view",
+                "attendance_module_leave_rule_view",
+                "attendance_module_clock_rule_view",
+                "attendance_module_overtime_rule_view",
+                "attendance_module_schedule_rule_view",
+                "attendance_module_outing_rule_view",
+                "attendance_module_business_trip_rule_view",
+                "attendance_module_clock_location_view",
+                "attendance_module_clock_ip_view",
+                "attendance_module_unit_settings_view",
+                "attendance_schedule_manager_view",
+              ]}
+            >
               <ModuleSettingPage />
             </RequireAttendancePermission>
           }
@@ -464,7 +482,7 @@ export default function AppRoutes() {
         <Route
           path="/attendance/admin/personnel-basic"
           element={
-            <RequireAttendancePermission permission="attendance_personnel_basic_manage">
+            <RequireAttendancePermission permission="attendance_personnel_basic_view">
               <PersonnelBasicPage />
             </RequireAttendancePermission>
           }
@@ -480,7 +498,7 @@ export default function AppRoutes() {
         <Route
           path="/attendance/admin/probation"
           element={
-            <RequireAttendancePermission permission="attendance_probation_manage">
+            <RequireAttendancePermission permission="attendance_probation_view">
               <ProbationManagementPage />
             </RequireAttendancePermission>
           }
@@ -488,7 +506,7 @@ export default function AppRoutes() {
         <Route
           path="/attendance/admin/probation/:caseId"
           element={
-            <RequireAttendancePermission permission="attendance_probation_manage">
+            <RequireAttendancePermission permission="attendance_probation_view">
               <ProbationDetailPage />
             </RequireAttendancePermission>
           }
@@ -496,7 +514,7 @@ export default function AppRoutes() {
         <Route
           path="/attendance/admin/probation/:caseId/evaluation/:month"
           element={
-            <RequireAttendancePermission permission="attendance_probation_manage">
+            <RequireAttendancePermission permission="attendance_probation_view">
               <ProbationEvaluationPage />
             </RequireAttendancePermission>
           }
@@ -504,7 +522,7 @@ export default function AppRoutes() {
         <Route
           path="/attendance/admin/manager-report-center"
           element={
-            <RequireAttendancePermission permission="attendance_report_center_manage">
+            <RequireAttendancePermission permission="attendance_report_center_view">
               <ReportCenterPage />
             </RequireAttendancePermission>
           }
@@ -512,7 +530,7 @@ export default function AppRoutes() {
         <Route
           path="/attendance/admin/shift-import"
           element={
-            <RequireAttendancePermission permission="attendance_shift_import_manage">
+            <RequireAttendancePermission permission="attendance_shift_import_view">
               <ShiftImportPage />
             </RequireAttendancePermission>
           }

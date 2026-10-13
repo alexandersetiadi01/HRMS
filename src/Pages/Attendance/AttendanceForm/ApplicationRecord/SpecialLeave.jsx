@@ -177,7 +177,7 @@ export default function SpecialLeave() {
 
         const employeeOnly = !hasAttendancePermission(
           getStoredAuthUser(),
-          "attendance_leave_balance_manage",
+          "attendance_leave_balance_view",
         );
 
         setIsEmployeeOnly(employeeOnly);

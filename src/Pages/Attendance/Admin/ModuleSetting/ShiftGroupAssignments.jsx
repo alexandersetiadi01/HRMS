@@ -24,6 +24,8 @@ import {
 
 import FormDialog from "../../../../Components/FormDialog";
 import SuccessDialog from "../../../../Components/SuccessDialog";
+import { getStoredAuthUser } from "../../../../API/auth";
+import { hasAttendancePermission } from "../../../../Utils/AttendancePermissions";
 import ResponsiveAttendanceTable from "../../AttendanceForm/ResponsiveAttendanceTable";
 import {
   ActionButtons,
@@ -93,6 +95,18 @@ function formatAssignmentStatus(row) {
 }
 
 export default function ShiftGroupAssignments() {
+  const authUser = getStoredAuthUser();
+
+  const canUpdate = hasAttendancePermission(
+    authUser,
+    "attendance_module_shift_assignment_update",
+  );
+
+  const canDelete = hasAttendancePermission(
+    authUser,
+    "attendance_module_shift_assignment_delete",
+  );
+
   const [filters, setFilters] = useState(INITIAL_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState(INITIAL_FILTERS);
   const [unitOptions, setUnitOptions] = useState([]);
@@ -502,13 +516,15 @@ export default function ShiftGroupAssignments() {
             gap: "4px",
           }}
         >
-          <Tooltip title="編輯">
-            <IconButton size="small" onClick={() => handleOpenEdit(row)}>
-              <EditOutlinedIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+          {canUpdate ? (
+            <Tooltip title="編輯">
+              <IconButton size="small" onClick={() => handleOpenEdit(row)}>
+                <EditOutlinedIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          ) : null}
 
-          {!started ? (
+          {canDelete && !started ? (
             <Tooltip title="刪除">
               <IconButton size="small" onClick={() => handleOpenDelete(row)}>
                 <DeleteOutlineIcon fontSize="small" />
@@ -556,15 +572,17 @@ export default function ShiftGroupAssignments() {
           </Typography>
         </Box>
 
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleOpenCreate}
-          disabled={loadingMeta}
-          sx={{ alignSelf: { xs: "stretch", sm: "flex-start" } }}
-        >
-          新增人員班別
-        </Button>
+        {canUpdate ? (
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleOpenCreate}
+            disabled={loadingMeta}
+            sx={{ alignSelf: { xs: "stretch", sm: "flex-start" } }}
+          >
+            新增人員班別
+          </Button>
+        ) : null}
       </Box>
 
       <Box sx={{ mb: "18px" }}>

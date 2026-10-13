@@ -407,6 +407,7 @@ function EmployeeReviewRow({ result }) {
 
 export default function PayrollCompletionPanel({
   payrollRunId,
+  canClosePermission = false,
   onReload,
 }) {
   const [data, setData] = useState(null);
@@ -486,6 +487,7 @@ export default function PayrollCompletionPanel({
       Number(summary.result_count || 0);
 
   const canClose =
+    canClosePermission &&
     !isClosed &&
     data?.run_status === "計算完成" &&
     countsMatch &&
@@ -807,51 +809,55 @@ export default function PayrollCompletionPanel({
             </Alert>
           )}
 
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "flex-end",
-              mt: "16px",
-            }}
-          >
-            <Button
-              variant="contained"
-              startIcon={
-                closing ? (
-                  <CircularProgress
-                    size={17}
-                    color="inherit"
-                  />
-                ) : isClosed ? (
-                  <LockOutlinedIcon />
-                ) : (
-                  <TaskAltIcon />
-                )
-              }
-              onClick={() => setCloseDialogOpen(true)}
-              disabled={!canClose || closing}
+          {canClosePermission ? (
+            <Box
               sx={{
-                width: {
-                  xs: "100%",
-                  sm: "auto",
-                },
-                bgcolor: isClosed
-                  ? "#64748b"
-                  : "#1f9bd1",
-                "&:hover": {
-                  bgcolor: isClosed
-                    ? "#64748b"
-                    : "#168dc5",
-                },
+                display: "flex",
+                justifyContent: "flex-end",
+                mt: "16px",
               }}
             >
-              {closing
-                ? "關帳中..."
-                : isClosed
-                  ? "已完成關帳"
-                  : "確認並完成關帳"}
-            </Button>
-          </Box>
+              <Button
+                variant="contained"
+                startIcon={
+                  closing ? (
+                    <CircularProgress
+                      size={17}
+                      color="inherit"
+                    />
+                  ) : isClosed ? (
+                    <LockOutlinedIcon />
+                  ) : (
+                    <TaskAltIcon />
+                  )
+                }
+                onClick={() =>
+                  setCloseDialogOpen(true)
+                }
+                disabled={!canClose || closing}
+                sx={{
+                  width: {
+                    xs: "100%",
+                    sm: "auto",
+                  },
+                  bgcolor: isClosed
+                    ? "#64748b"
+                    : "#1f9bd1",
+                  "&:hover": {
+                    bgcolor: isClosed
+                      ? "#64748b"
+                      : "#168dc5",
+                  },
+                }}
+              >
+                {closing
+                  ? "關帳中..."
+                  : isClosed
+                    ? "已完成關帳"
+                    : "確認並完成關帳"}
+              </Button>
+            </Box>
+          ) : null}
         </>
       ) : null}
 

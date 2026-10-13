@@ -23,6 +23,8 @@ import {
 
 import FormDialog from "../../../../Components/FormDialog";
 import SuccessDialog from "../../../../Components/SuccessDialog";
+import { getStoredAuthUser } from "../../../../API/auth";
+import { hasAttendancePermission } from "../../../../Utils/AttendancePermissions";
 import ResponsiveAttendanceTable from "../../AttendanceForm/ResponsiveAttendanceTable";
 import { SelectField } from "../../AttendanceForm/ApplicationRecord/SharedFields";
 import { ENABLE_STATUS_OPTIONS } from "./moduleSettingOptions";
@@ -132,6 +134,13 @@ function getRuleConfig(ruleCode) {
 }
 
 export default function ClockRulesTab() {
+  const authUser = getStoredAuthUser();
+
+  const canUpdate = hasAttendancePermission(
+    authUser,
+    "attendance_module_clock_rule_update",
+  );
+
   const [rules, setRules] = useState({});
   const [rangesByRule, setRangesByRule] = useState({});
   const [loading, setLoading] = useState(true);
@@ -493,7 +502,7 @@ export default function ClockRulesTab() {
     }
 
     if (column.key === "actions") {
-      return (
+      return canUpdate ? (
         <Tooltip title={row.configured ? "編輯" : "設定"}>
           <IconButton
             size="small"
@@ -507,7 +516,7 @@ export default function ClockRulesTab() {
             )}
           </IconButton>
         </Tooltip>
-      );
+      ) : null;
     }
 
     return row[column.key];

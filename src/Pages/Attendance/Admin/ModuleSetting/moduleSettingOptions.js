@@ -1,36 +1,147 @@
 export const MODULE_TABS = [
-  { value: "permissions", label: "權限設定" },
-  { value: "approval", label: "簽核設定" },
-  { value: "form-parameters", label: "表單參數" },
+  {
+    value: "permissions",
+    label: "權限設定",
+    permission:
+      "attendance_module_permissions_view",
+  },
+  {
+    value: "approval",
+    label: "簽核設定",
+    permission:
+      "attendance_module_approval_view",
+  },
+  {
+    value: "form-parameters",
+    label: "表單參數",
+  },
 ];
 
 export const FORM_PARAMETER_ITEMS = [
-  { value: "calendar", label: "行事曆管理" },
-  { value: "shift", label: "班次" },
-  { value: "shift-group", label: "班別", expandable: true },
-  { value: "leave-types", label: "假別名稱維護" },
-  { value: "attendance-rules", label: "出勤規則設定", expandable: true },
-  { value: "clock-settings", label: "打卡設定", expandable: true },
-  { value: "unit-settings", label: "單位參數設定" },
+  {
+    value: "calendar",
+    label: "行事曆管理",
+    permission:
+      "attendance_module_calendar_view",
+  },
+  {
+    value: "shift",
+    label: "班次",
+    permission:
+      "attendance_module_shift_view",
+  },
+  {
+    value: "shift-group",
+    label: "班別",
+    expandable: true,
+    permissions: [
+      "attendance_module_shift_group_view",
+      "attendance_module_shift_assignment_view",
+    ],
+  },
+  {
+    value: "leave-types",
+    label: "假別名稱維護",
+    permission:
+      "attendance_module_leave_type_view",
+  },
+  {
+    value: "attendance-rules",
+    label: "出勤規則設定",
+    expandable: true,
+    permissions: [
+      "attendance_module_leave_rule_view",
+      "attendance_module_clock_rule_view",
+      "attendance_module_overtime_rule_view",
+      "attendance_module_schedule_rule_view",
+      "attendance_module_outing_rule_view",
+      "attendance_module_business_trip_rule_view",
+    ],
+  },
+  {
+    value: "clock-settings",
+    label: "打卡設定",
+    expandable: true,
+    permissions: [
+      "attendance_module_clock_location_view",
+      "attendance_module_clock_ip_view",
+    ],
+  },
+  {
+    value: "unit-settings",
+    label: "單位參數設定",
+    permission:
+      "attendance_module_unit_settings_view",
+  },
 ];
 
 export const CLOCK_SETTING_ITEMS = [
-  { value: "location", label: "地點設定" },
-  { value: "ip", label: "IP設定" },
+  {
+    value: "location",
+    label: "地點設定",
+    permission:
+      "attendance_module_clock_location_view",
+  },
+  {
+    value: "ip",
+    label: "IP設定",
+    permission:
+      "attendance_module_clock_ip_view",
+  },
 ];
 
 export const SHIFT_GROUP_ITEMS = [
-  { value: "groups", label: "班別設定" },
-  { value: "assignments", label: "人員班別設定" },
+  {
+    value: "groups",
+    label: "班別設定",
+    permission:
+      "attendance_module_shift_group_view",
+  },
+  {
+    value: "assignments",
+    label: "人員班別設定",
+    permission:
+      "attendance_module_shift_assignment_view",
+  },
 ];
 
 export const ATTENDANCE_RULE_ITEMS = [
-  { value: "leave", label: "假別規則" },
-  { value: "clock", label: "打卡規則" },
-  { value: "overtime", label: "加班規則" },
-  { value: "schedule", label: "排班規則" },
-  { value: "outing", label: "公出規則" },
-  { value: "business-trip", label: "出差規則" },
+  {
+    value: "leave",
+    label: "假別規則",
+    permission:
+      "attendance_module_leave_rule_view",
+  },
+  {
+    value: "clock",
+    label: "打卡規則",
+    permission:
+      "attendance_module_clock_rule_view",
+  },
+  {
+    value: "overtime",
+    label: "加班規則",
+    permission:
+      "attendance_module_overtime_rule_view",
+  },
+  {
+    value: "schedule",
+    label: "排班規則",
+    permission:
+      "attendance_module_schedule_rule_view",
+  },
+  {
+    value: "outing",
+    label: "公出規則",
+    permission:
+      "attendance_module_outing_rule_view",
+  },
+  {
+    value: "business-trip",
+    label: "出差規則",
+    permission:
+      "attendance_module_business_trip_rule_view",
+  },
 ];
 
 export const ENABLE_STATUS_OPTIONS = [

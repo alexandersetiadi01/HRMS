@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { Box, Collapse, Paper, Tab, Tabs, Typography } from "@mui/material";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
@@ -8,7 +8,12 @@ import ClockIpSettingsTab from "./ClockIpSettingsTab";
 import ClockLocationSettingsTab from "./ClockLocationSettingsTab";
 import PermissionSettingsTab from "./PermissionSettingsTab";
 import UnitParameterSettingsTab from "./UnitParameterSettingsTab";
+import { getStoredAuthUser } from "../../../../API/auth";
 import Breadcrumb from "../../../../Utils/Breadcrumb";
+import {
+  hasAnyAttendancePermission,
+  hasAttendancePermission,
+} from "../../../../Utils/AttendancePermissions";
 import AttendanceRulesTab from "./AttendanceRulesTab";
 import CalendarTab from "./CalendarTab";
 import LeaveTypesTab from "./LeaveTypesTab";
@@ -53,7 +58,9 @@ function getModuleSettingState(pathname) {
       activeShiftGroupItem:
         activeParameter === "shift-group" ? parts[2] || "groups" : "groups",
       activeClockSetting:
-        activeParameter === "clock-settings" ? parts[2] || "location" : "location",
+        activeParameter === "clock-settings"
+          ? parts[2] || "location"
+          : "location",
     };
   }
 
@@ -72,9 +79,7 @@ export default function ModuleSettingPage() {
   const routeState = getModuleSettingState(location.pathname);
   const searchParams = new URLSearchParams(location.search);
   const unitSettingsView =
-    searchParams.get("view") === "schedule"
-      ? "schedule"
-      : "all";
+    searchParams.get("view") === "schedule" ? "schedule" : "all";
   const {
     activeTab,
     activeParameter,
@@ -82,6 +87,47 @@ export default function ModuleSettingPage() {
     activeShiftGroupItem,
     activeClockSetting,
   } = routeState;
+
+  const authUser = getStoredAuthUser();
+
+  const canAccessItem = (item) => {
+    if (item.permission) {
+      return hasAttendancePermission(authUser, item.permission);
+    }
+
+    if (item.permissions) {
+      return hasAnyAttendancePermission(authUser, item.permissions);
+    }
+
+    return true;
+  };
+
+  const canViewScheduleManagerSettings =
+    unitSettingsView === "schedule" &&
+    hasAttendancePermission(authUser, "attendance_schedule_manager_view");
+
+  const availableAttendanceRuleItems =
+    ATTENDANCE_RULE_ITEMS.filter(canAccessItem);
+
+  const availableShiftGroupItems = SHIFT_GROUP_ITEMS.filter(canAccessItem);
+
+  const availableClockSettingItems = CLOCK_SETTING_ITEMS.filter(canAccessItem);
+
+  const availableFormParameterItems = FORM_PARAMETER_ITEMS.filter((item) => {
+    if (item.value === "unit-settings" && canViewScheduleManagerSettings) {
+      return true;
+    }
+
+    return canAccessItem(item);
+  });
+
+  const availableModuleTabs = MODULE_TABS.filter((tab) => {
+    if (tab.value === "form-parameters") {
+      return availableFormParameterItems.length > 0;
+    }
+
+    return canAccessItem(tab);
+  });
 
   const [attendanceRulesOpen, setAttendanceRulesOpen] = useState(
     activeParameter === "attendance-rules",
@@ -151,7 +197,9 @@ export default function ModuleSettingPage() {
       }
 
       setClockSettingsOpen(true);
-      navigate(`${MODULE_SETTING_BASE}/form-parameters/clock-settings/location`);
+      navigate(
+        `${MODULE_SETTING_BASE}/form-parameters/clock-settings/location`,
+      );
       return;
     }
 
@@ -159,7 +207,9 @@ export default function ModuleSettingPage() {
   };
 
   const handleAttendanceRuleClick = (value) => {
-    navigate(`${MODULE_SETTING_BASE}/form-parameters/attendance-rules/${value}`);
+    navigate(
+      `${MODULE_SETTING_BASE}/form-parameters/attendance-rules/${value}`,
+    );
   };
 
   const handleShiftGroupClick = (value) => {
@@ -169,6 +219,103 @@ export default function ModuleSettingPage() {
   const handleClockSettingClick = (value) => {
     navigate(`${MODULE_SETTING_BASE}/form-parameters/clock-settings/${value}`);
   };
+
+  const firstFormParameterPath = () => {
+    const item = availableFormParameterItems[0];
+
+    if (!item) {
+      return "";
+    }
+
+    if (item.value === "attendance-rules") {
+      const rule = availableAttendanceRuleItems[0];
+
+      return rule
+        ? `${MODULE_SETTING_BASE}/form-parameters/attendance-rules/${rule.value}`
+        : "";
+    }
+
+    if (item.value === "shift-group") {
+      const shiftGroupItem = availableShiftGroupItems[0];
+
+      return shiftGroupItem
+        ? `${MODULE_SETTING_BASE}/form-parameters/shift-group/${shiftGroupItem.value}`
+        : "";
+    }
+
+    if (item.value === "clock-settings") {
+      const clockItem = availableClockSettingItems[0];
+
+      return clockItem
+        ? `${MODULE_SETTING_BASE}/form-parameters/clock-settings/${clockItem.value}`
+        : "";
+    }
+
+    if (item.value === "unit-settings" && canViewScheduleManagerSettings) {
+      return `${MODULE_SETTING_BASE}/form-parameters/unit-settings?view=schedule`;
+    }
+
+    return `${MODULE_SETTING_BASE}/form-parameters/${item.value}`;
+  };
+
+  let redirectPath = "";
+
+  if (!availableModuleTabs.some((tab) => tab.value === activeTab)) {
+    const firstTab = availableModuleTabs[0];
+
+    if (firstTab?.value === "permissions") {
+      redirectPath = `${MODULE_SETTING_BASE}/permissions`;
+    } else if (firstTab?.value === "approval") {
+      redirectPath = `${MODULE_SETTING_BASE}/approval`;
+    } else if (firstTab?.value === "form-parameters") {
+      redirectPath = firstFormParameterPath();
+    }
+  } else if (activeTab === "form-parameters") {
+    const parameterAllowed = availableFormParameterItems.some(
+      (item) => item.value === activeParameter,
+    );
+
+    if (!parameterAllowed) {
+      redirectPath = firstFormParameterPath();
+    } else if (
+      activeParameter === "attendance-rules" &&
+      !availableAttendanceRuleItems.some(
+        (item) => item.value === activeAttendanceRule,
+      )
+    ) {
+      const firstRule = availableAttendanceRuleItems[0];
+
+      if (firstRule) {
+        redirectPath = `${MODULE_SETTING_BASE}/form-parameters/attendance-rules/${firstRule.value}`;
+      }
+    } else if (
+      activeParameter === "shift-group" &&
+      !availableShiftGroupItems.some(
+        (item) => item.value === activeShiftGroupItem,
+      )
+    ) {
+      const firstShiftGroupItem = availableShiftGroupItems[0];
+
+      if (firstShiftGroupItem) {
+        redirectPath = `${MODULE_SETTING_BASE}/form-parameters/shift-group/${firstShiftGroupItem.value}`;
+      }
+    } else if (
+      activeParameter === "clock-settings" &&
+      !availableClockSettingItems.some(
+        (item) => item.value === activeClockSetting,
+      )
+    ) {
+      const firstClockItem = availableClockSettingItems[0];
+
+      if (firstClockItem) {
+        redirectPath = `${MODULE_SETTING_BASE}/form-parameters/clock-settings/${firstClockItem.value}`;
+      }
+    }
+  }
+
+  if (redirectPath) {
+    return <Navigate to={redirectPath} replace />;
+  }
 
   return (
     <Box sx={{ px: { xs: 1.5, sm: 2, md: 3 }, py: { xs: 2, sm: 2.5, md: 3 } }}>
@@ -220,7 +367,7 @@ export default function ModuleSettingPage() {
             },
           }}
         >
-          {MODULE_TABS.map((tab) => (
+          {availableModuleTabs.map((tab) => (
             <Tab key={tab.value} value={tab.value} label={tab.label} />
           ))}
         </Tabs>
@@ -252,239 +399,249 @@ export default function ModuleSettingPage() {
                 bgcolor: "#f9fafb",
               }}
             >
-            <Box sx={{ p: "10px" }}>
-              {FORM_PARAMETER_ITEMS.map((item) => {
-                const active = activeParameter === item.value;
-                const expandable = Boolean(item.expandable);
+              <Box sx={{ p: "10px" }}>
+                {availableFormParameterItems.map((item) => {
+                  const active = activeParameter === item.value;
+                  const expandable = Boolean(item.expandable);
 
-                return (
-                  <Box key={item.value}>
-                    <Box
-                      component="button"
-                      type="button"
-                      onClick={() => handleParameterClick(item)}
-                      sx={{
-                        width: "100%",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: "8px",
-                        border: 0,
-                        borderRadius: "6px",
-                        px: "14px",
-                        py: "11px",
-                        bgcolor: active ? "#e8f3ff" : "transparent",
-                        color: active ? "#1976d2" : "#374151",
-                        fontSize: "15px",
-                        fontWeight: active ? 700 : 400,
-                        textAlign: "left",
-                        cursor: "pointer",
-                        whiteSpace: "nowrap",
-                        "&:hover": {
-                          bgcolor: active ? "#e8f3ff" : "#f3f4f6",
-                        },
-                      }}
-                    >
-                      <Box component="span">{item.label}</Box>
+                  return (
+                    <Box key={item.value}>
+                      <Box
+                        component="button"
+                        type="button"
+                        onClick={() => handleParameterClick(item)}
+                        sx={{
+                          width: "100%",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: "8px",
+                          border: 0,
+                          borderRadius: "6px",
+                          px: "14px",
+                          py: "11px",
+                          bgcolor: active ? "#e8f3ff" : "transparent",
+                          color: active ? "#1976d2" : "#374151",
+                          fontSize: "15px",
+                          fontWeight: active ? 700 : 400,
+                          textAlign: "left",
+                          cursor: "pointer",
+                          whiteSpace: "nowrap",
+                          "&:hover": {
+                            bgcolor: active ? "#e8f3ff" : "#f3f4f6",
+                          },
+                        }}
+                      >
+                        <Box component="span">{item.label}</Box>
 
-                      {expandable ? (
-                        item.value === "attendance-rules" ? (
-                          attendanceRulesOpen ? (
-                            <KeyboardArrowDownIcon sx={{ fontSize: "20px" }} />
-                          ) : (
-                            <KeyboardArrowRightIcon sx={{ fontSize: "20px" }} />
-                          )
-                        ) : item.value === "shift-group" ? (
-                          shiftGroupOpen ? (
-                            <KeyboardArrowDownIcon sx={{ fontSize: "20px" }} />
-                          ) : (
-                            <KeyboardArrowRightIcon sx={{ fontSize: "20px" }} />
-                          )
-                        ) : item.value === "clock-settings" ? (
-                          clockSettingsOpen ? (
-                            <KeyboardArrowDownIcon sx={{ fontSize: "20px" }} />
-                          ) : (
-                            <KeyboardArrowRightIcon sx={{ fontSize: "20px" }} />
-                          )
-                        ) : null
+                        {expandable ? (
+                          item.value === "attendance-rules" ? (
+                            attendanceRulesOpen ? (
+                              <KeyboardArrowDownIcon
+                                sx={{ fontSize: "20px" }}
+                              />
+                            ) : (
+                              <KeyboardArrowRightIcon
+                                sx={{ fontSize: "20px" }}
+                              />
+                            )
+                          ) : item.value === "shift-group" ? (
+                            shiftGroupOpen ? (
+                              <KeyboardArrowDownIcon
+                                sx={{ fontSize: "20px" }}
+                              />
+                            ) : (
+                              <KeyboardArrowRightIcon
+                                sx={{ fontSize: "20px" }}
+                              />
+                            )
+                          ) : item.value === "clock-settings" ? (
+                            clockSettingsOpen ? (
+                              <KeyboardArrowDownIcon
+                                sx={{ fontSize: "20px" }}
+                              />
+                            ) : (
+                              <KeyboardArrowRightIcon
+                                sx={{ fontSize: "20px" }}
+                              />
+                            )
+                          ) : null
+                        ) : null}
+                      </Box>
+
+                      {item.value === "attendance-rules" ? (
+                        <Collapse
+                          in={attendanceRulesOpen}
+                          timeout="auto"
+                          unmountOnExit
+                        >
+                          <Box sx={{ py: "4px" }}>
+                            {availableAttendanceRuleItems.map((rule) => {
+                              const ruleActive =
+                                activeParameter === "attendance-rules" &&
+                                activeAttendanceRule === rule.value;
+
+                              return (
+                                <Box
+                                  key={rule.value}
+                                  component="button"
+                                  type="button"
+                                  onClick={() =>
+                                    handleAttendanceRuleClick(rule.value)
+                                  }
+                                  sx={{
+                                    width: "100%",
+                                    display: "block",
+                                    border: 0,
+                                    borderRadius: "6px",
+                                    pl: "30px",
+                                    pr: "14px",
+                                    py: "9px",
+                                    bgcolor: ruleActive
+                                      ? "#f0f7ff"
+                                      : "transparent",
+                                    color: ruleActive ? "#1976d2" : "#4b5563",
+                                    fontSize: "14px",
+                                    fontWeight: ruleActive ? 700 : 400,
+                                    textAlign: "left",
+                                    cursor: "pointer",
+                                    whiteSpace: "nowrap",
+                                    "&:hover": {
+                                      bgcolor: ruleActive
+                                        ? "#f0f7ff"
+                                        : "#f3f4f6",
+                                    },
+                                  }}
+                                >
+                                  {rule.label}
+                                </Box>
+                              );
+                            })}
+                          </Box>
+                        </Collapse>
                       ) : null}
-                    </Box>
 
-                    {item.value === "attendance-rules" ? (
-                      <Collapse
-                        in={attendanceRulesOpen}
-                        timeout="auto"
-                        unmountOnExit
-                      >
-                        <Box sx={{ py: "4px" }}>
-                          {ATTENDANCE_RULE_ITEMS.map((rule) => {
-                            const ruleActive =
-                              activeParameter === "attendance-rules" &&
-                              activeAttendanceRule === rule.value;
+                      {item.value === "shift-group" ? (
+                        <Collapse
+                          in={shiftGroupOpen}
+                          timeout="auto"
+                          unmountOnExit
+                        >
+                          <Box sx={{ py: "4px" }}>
+                            {availableShiftGroupItems.map((shiftGroupItem) => {
+                              const shiftGroupActive =
+                                activeParameter === "shift-group" &&
+                                activeShiftGroupItem === shiftGroupItem.value;
 
-                            return (
-                              <Box
-                                key={rule.value}
-                                component="button"
-                                type="button"
-                                onClick={() =>
-                                  handleAttendanceRuleClick(rule.value)
-                                }
-                                sx={{
-                                  width: "100%",
-                                  display: "block",
-                                  border: 0,
-                                  borderRadius: "6px",
-                                  pl: "30px",
-                                  pr: "14px",
-                                  py: "9px",
-                                  bgcolor: ruleActive
-                                    ? "#f0f7ff"
-                                    : "transparent",
-                                  color: ruleActive ? "#1976d2" : "#4b5563",
-                                  fontSize: "14px",
-                                  fontWeight: ruleActive ? 700 : 400,
-                                  textAlign: "left",
-                                  cursor: "pointer",
-                                  whiteSpace: "nowrap",
-                                  "&:hover": {
-                                    bgcolor: ruleActive ? "#f0f7ff" : "#f3f4f6",
-                                  },
-                                }}
-                              >
-                                {rule.label}
-                              </Box>
-                            );
-                          })}
-                        </Box>
-                      </Collapse>
-                    ) : null}
-
-                    {item.value === "shift-group" ? (
-                      <Collapse
-                        in={shiftGroupOpen}
-                        timeout="auto"
-                        unmountOnExit
-                      >
-                        <Box sx={{ py: "4px" }}>
-                          {SHIFT_GROUP_ITEMS.map((shiftGroupItem) => {
-                            const shiftGroupActive =
-                              activeParameter === "shift-group" &&
-                              activeShiftGroupItem === shiftGroupItem.value;
-
-                            return (
-                              <Box
-                                key={shiftGroupItem.value}
-                                component="button"
-                                type="button"
-                                onClick={() =>
-                                  handleShiftGroupClick(shiftGroupItem.value)
-                                }
-                                sx={{
-                                  width: "100%",
-                                  display: "block",
-                                  border: 0,
-                                  borderRadius: "6px",
-                                  pl: "30px",
-                                  pr: "14px",
-                                  py: "9px",
-                                  bgcolor: shiftGroupActive
-                                    ? "#f0f7ff"
-                                    : "transparent",
-                                  color: shiftGroupActive
-                                    ? "#1976d2"
-                                    : "#4b5563",
-                                  fontSize: "14px",
-                                  fontWeight: shiftGroupActive ? 700 : 400,
-                                  textAlign: "left",
-                                  cursor: "pointer",
-                                  whiteSpace: "nowrap",
-                                  "&:hover": {
+                              return (
+                                <Box
+                                  key={shiftGroupItem.value}
+                                  component="button"
+                                  type="button"
+                                  onClick={() =>
+                                    handleShiftGroupClick(shiftGroupItem.value)
+                                  }
+                                  sx={{
+                                    width: "100%",
+                                    display: "block",
+                                    border: 0,
+                                    borderRadius: "6px",
+                                    pl: "30px",
+                                    pr: "14px",
+                                    py: "9px",
                                     bgcolor: shiftGroupActive
                                       ? "#f0f7ff"
-                                      : "#f3f4f6",
-                                  },
-                                }}
-                              >
-                                {shiftGroupItem.label}
-                              </Box>
-                            );
-                          })}
-                        </Box>
-                      </Collapse>
-                    ) : null}
+                                      : "transparent",
+                                    color: shiftGroupActive
+                                      ? "#1976d2"
+                                      : "#4b5563",
+                                    fontSize: "14px",
+                                    fontWeight: shiftGroupActive ? 700 : 400,
+                                    textAlign: "left",
+                                    cursor: "pointer",
+                                    whiteSpace: "nowrap",
+                                    "&:hover": {
+                                      bgcolor: shiftGroupActive
+                                        ? "#f0f7ff"
+                                        : "#f3f4f6",
+                                    },
+                                  }}
+                                >
+                                  {shiftGroupItem.label}
+                                </Box>
+                              );
+                            })}
+                          </Box>
+                        </Collapse>
+                      ) : null}
 
-                    {item.value === "clock-settings" ? (
-                      <Collapse
-                        in={clockSettingsOpen}
-                        timeout="auto"
-                        unmountOnExit
-                      >
-                        <Box sx={{ py: "4px" }}>
-                          {CLOCK_SETTING_ITEMS.map((clockSettingItem) => {
-                            const clockSettingActive =
-                              activeParameter === "clock-settings" &&
-                              activeClockSetting === clockSettingItem.value;
+                      {item.value === "clock-settings" ? (
+                        <Collapse
+                          in={clockSettingsOpen}
+                          timeout="auto"
+                          unmountOnExit
+                        >
+                          <Box sx={{ py: "4px" }}>
+                            {availableClockSettingItems.map((clockSettingItem) => {
+                              const clockSettingActive =
+                                activeParameter === "clock-settings" &&
+                                activeClockSetting === clockSettingItem.value;
 
-                            return (
-                              <Box
-                                key={clockSettingItem.value}
-                                component="button"
-                                type="button"
-                                onClick={() =>
-                                  handleClockSettingClick(
-                                    clockSettingItem.value,
-                                  )
-                                }
-                                sx={{
-                                  width: "100%",
-                                  display: "block",
-                                  border: 0,
-                                  borderRadius: "6px",
-                                  pl: "30px",
-                                  pr: "14px",
-                                  py: "9px",
-                                  bgcolor: clockSettingActive
-                                    ? "#f0f7ff"
-                                    : "transparent",
-                                  color: clockSettingActive
-                                    ? "#1976d2"
-                                    : "#4b5563",
-                                  fontSize: "14px",
-                                  fontWeight: clockSettingActive ? 700 : 400,
-                                  textAlign: "left",
-                                  cursor: "pointer",
-                                  whiteSpace: "nowrap",
-                                  "&:hover": {
+                              return (
+                                <Box
+                                  key={clockSettingItem.value}
+                                  component="button"
+                                  type="button"
+                                  onClick={() =>
+                                    handleClockSettingClick(
+                                      clockSettingItem.value,
+                                    )
+                                  }
+                                  sx={{
+                                    width: "100%",
+                                    display: "block",
+                                    border: 0,
+                                    borderRadius: "6px",
+                                    pl: "30px",
+                                    pr: "14px",
+                                    py: "9px",
                                     bgcolor: clockSettingActive
                                       ? "#f0f7ff"
-                                      : "#f3f4f6",
-                                  },
-                                }}
-                              >
-                                {clockSettingItem.label}
-                              </Box>
-                            );
-                          })}
-                        </Box>
-                      </Collapse>
-                    ) : null}
-                  </Box>
-                );
-              })}
+                                      : "transparent",
+                                    color: clockSettingActive
+                                      ? "#1976d2"
+                                      : "#4b5563",
+                                    fontSize: "14px",
+                                    fontWeight: clockSettingActive ? 700 : 400,
+                                    textAlign: "left",
+                                    cursor: "pointer",
+                                    whiteSpace: "nowrap",
+                                    "&:hover": {
+                                      bgcolor: clockSettingActive
+                                        ? "#f0f7ff"
+                                        : "#f3f4f6",
+                                    },
+                                  }}
+                                >
+                                  {clockSettingItem.label}
+                                </Box>
+                              );
+                            })}
+                          </Box>
+                        </Collapse>
+                      ) : null}
+                    </Box>
+                  );
+                })}
+              </Box>
             </Box>
-          </Box>
           ) : null}
 
           <Box sx={{ minWidth: 0 }}>
             <Box sx={{ p: { xs: "16px", sm: "20px" }, minWidth: 0 }}>
-              {activeTab === "permissions" ? (
-                <PermissionSettingsTab />
-              ) : null}
+              {activeTab === "permissions" ? <PermissionSettingsTab /> : null}
 
-              {activeTab === "approval" ? (
-                <ApprovalSettingsTab />
-              ) : null}
+              {activeTab === "approval" ? <ApprovalSettingsTab /> : null}
 
               {activeTab === "form-parameters" ? (
                 <>
@@ -519,7 +676,9 @@ export default function ModuleSettingPage() {
                   ) : null}
 
                   {activeParameter === "unit-settings" ? (
-                    <UnitParameterSettingsTab initialViewMode={unitSettingsView} />
+                    <UnitParameterSettingsTab
+                      initialViewMode={unitSettingsView}
+                    />
                   ) : null}
                 </>
               ) : null}

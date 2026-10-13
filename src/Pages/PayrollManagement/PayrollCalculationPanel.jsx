@@ -1398,6 +1398,8 @@ function EmployeeResultCard({ result }) {
 
 export default function PayrollCalculationPanel({
   payrollRunId,
+  canRecalculate = false,
+  canApprove = false,
   onReload,
 }) {
   const [data, setData] = useState(null);
@@ -1871,66 +1873,72 @@ export default function PayrollCalculationPanel({
               mt: "16px",
             }}
           >
-            <Button
-              variant="outlined"
-              startIcon={
-                recalculating ? (
-                  <CircularProgress
-                    size={17}
-                    color="inherit"
-                  />
-                ) : (
-                  <RefreshIcon />
-                )
-              }
-              onClick={handleRecalculate}
-              disabled={
-                hasApprovedResults ||
-                recalculating ||
-                approving
-              }
-              title={
-                hasApprovedResults
-                  ? "此薪資批次已有核准結果，無法重新計算"
-                  : undefined
-              }
-              sx={{
-                color: "#475569",
-                borderColor: "#cbd5e1",
-              }}
-            >
-              {recalculating
-                ? "重新計算中..."
-                : "重新計算"}
-            </Button>
+            {canRecalculate ? (
+              <Button
+                variant="outlined"
+                startIcon={
+                  recalculating ? (
+                    <CircularProgress
+                      size={17}
+                      color="inherit"
+                    />
+                  ) : (
+                    <RefreshIcon />
+                  )
+                }
+                onClick={handleRecalculate}
+                disabled={
+                  hasApprovedResults ||
+                  recalculating ||
+                  approving
+                }
+                title={
+                  hasApprovedResults
+                    ? "此薪資批次已有核准結果，無法重新計算"
+                    : undefined
+                }
+                sx={{
+                  color: "#475569",
+                  borderColor: "#cbd5e1",
+                }}
+              >
+                {recalculating
+                  ? "重新計算中..."
+                  : "重新計算"}
+              </Button>
+            ) : null}
 
-            <Button
-              variant="contained"
-              startIcon={
-                approving ? (
-                  <CircularProgress
-                    size={17}
-                    color="inherit"
-                  />
-                ) : (
-                  <TaskAltIcon />
-                )
-              }
-              onClick={handleApprove}
-              disabled={
-                !readyToApprove ||
-                recalculating ||
-                approving
-              }
-              sx={{
-                bgcolor: "#1f9bd1",
-                "&:hover": {
-                  bgcolor: "#168dc5",
-                },
-              }}
-            >
-              {approving ? "核准中..." : "核准薪資結果"}
-            </Button>
+            {canApprove ? (
+              <Button
+                variant="contained"
+                startIcon={
+                  approving ? (
+                    <CircularProgress
+                      size={17}
+                      color="inherit"
+                    />
+                  ) : (
+                    <TaskAltIcon />
+                  )
+                }
+                onClick={handleApprove}
+                disabled={
+                  !readyToApprove ||
+                  recalculating ||
+                  approving
+                }
+                sx={{
+                  bgcolor: "#1f9bd1",
+                  "&:hover": {
+                    bgcolor: "#168dc5",
+                  },
+                }}
+              >
+                {approving
+                  ? "核准中..."
+                  : "核准薪資結果"}
+              </Button>
+            ) : null}
           </Box>
         </>
       ) : null}

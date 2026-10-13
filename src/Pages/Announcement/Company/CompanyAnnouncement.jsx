@@ -353,9 +353,19 @@ export default function CompanyAnnouncement() {
 
   const authUser = getStoredAuthUser();
 
-  const canManageAnnouncements = hasAttendancePermission(
+  const canViewAnnouncements = hasAttendancePermission(
     authUser,
-    "attendance_department_announcement_manage",
+    "attendance_department_announcement_view",
+  );
+
+  const canCreateAnnouncements = hasAttendancePermission(
+    authUser,
+    "attendance_department_announcement_create",
+  );
+
+  const canManageAnnouncementAttachments = hasAttendancePermission(
+    authUser,
+    "attendance_department_announcement_attachment",
   );
 
   const currentPage = 1;
@@ -369,7 +379,7 @@ export default function CompanyAnnouncement() {
 
       try {
         const data = await fetchDepartmentAnnouncements({
-          scope: canManageAnnouncements
+          scope: canViewAnnouncements
             ? "all"
             : "mine",
         });
@@ -397,7 +407,7 @@ export default function CompanyAnnouncement() {
     return () => {
       active = false;
     };
-  }, [canManageAnnouncements]);
+  }, [canViewAnnouncements]);
 
   const handleOpenCreate = async () => {
     setCreateForm(createAnnouncementForm());
@@ -483,7 +493,8 @@ export default function CompanyAnnouncement() {
       );
 
       const uploadResults =
-        announcementId > 0
+        announcementId > 0 &&
+        canManageAnnouncementAttachments
           ? await Promise.allSettled(
               createFiles.map((file) =>
                 uploadDepartmentAnnouncementAttachment(
@@ -592,7 +603,7 @@ export default function CompanyAnnouncement() {
           部門公告
         </Typography>
 
-        {canManageAnnouncements ? (
+        {canCreateAnnouncements ? (
           <Button
             variant="contained"
             startIcon={<AddOutlinedIcon />}
@@ -785,38 +796,40 @@ export default function CompanyAnnouncement() {
           </MenuItem>
         </TextField>
 
-        <Box>
-          <Button
-            component="label"
-            variant="outlined"
-          >
-            選擇附件
-            <input
-              hidden
-              multiple
-              type="file"
-              onChange={(event) =>
-                setCreateFiles(
-                  Array.from(
-                    event.target.files || [],
-                  ),
-                )
-              }
-            />
-          </Button>
-
-          {createFiles.length > 0 ? (
-            <Typography
-              sx={{
-                mt: "8px",
-                fontSize: "13px",
-                color: "#6b7280",
-              }}
+        {canManageAnnouncementAttachments ? (
+          <Box>
+            <Button
+              component="label"
+              variant="outlined"
             >
-              已選擇 {createFiles.length} 個附件
-            </Typography>
-          ) : null}
-        </Box>
+              選擇附件
+              <input
+                hidden
+                multiple
+                type="file"
+                onChange={(event) =>
+                  setCreateFiles(
+                    Array.from(
+                      event.target.files || [],
+                    ),
+                  )
+                }
+              />
+            </Button>
+
+            {createFiles.length > 0 ? (
+              <Typography
+                sx={{
+                  mt: "8px",
+                  fontSize: "13px",
+                  color: "#6b7280",
+                }}
+              >
+                已選擇 {createFiles.length} 個附件
+              </Typography>
+            ) : null}
+          </Box>
+        ) : null}
       </FormDialog>
 
       <AppSnackbar

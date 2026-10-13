@@ -28,6 +28,8 @@ import {
 
 import FormDialog from "../../../../Components/FormDialog";
 import SuccessDialog from "../../../../Components/SuccessDialog";
+import { getStoredAuthUser } from "../../../../API/auth";
+import { hasAttendancePermission } from "../../../../Utils/AttendancePermissions";
 import CalendarMonthView from "./CalendarMonthView";
 import ResponsiveAttendanceTable from "../../AttendanceForm/ResponsiveAttendanceTable";
 import { SelectField } from "../../AttendanceForm/ApplicationRecord/SharedFields";
@@ -84,6 +86,13 @@ function formatDateTime(value) {
 }
 
 export default function CalendarTab() {
+  const authUser = getStoredAuthUser();
+
+  const canUpdate = hasAttendancePermission(
+    authUser,
+    "attendance_module_calendar_update",
+  );
+
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorText, setErrorText] = useState("");
@@ -395,7 +404,7 @@ export default function CalendarTab() {
   };
 
   const handleSelectCalendarDate = (day) => {
-    if (!day || !detailRow) return;
+    if (!day || !detailRow || !canUpdate) return;
 
     if (["published", "inactive"].includes(detailRow.status)) {
       setDetailErrorText("已發布或已停用的行事曆無法直接修改日期設定。");
@@ -554,11 +563,13 @@ export default function CalendarTab() {
             </IconButton>
           </Tooltip>
 
-          <Tooltip title="編輯">
-            <IconButton size="small" onClick={() => handleOpenEdit(row)}>
-              <EditOutlinedIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+          {canUpdate ? (
+            <Tooltip title="編輯">
+              <IconButton size="small" onClick={() => handleOpenEdit(row)}>
+                <EditOutlinedIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          ) : null}
         </Box>
       );
     }
@@ -590,14 +601,16 @@ export default function CalendarTab() {
           </Typography>
         </Box>
 
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleOpenCreate}
-          sx={{ alignSelf: { xs: "stretch", sm: "flex-start" } }}
-        >
-          新增行事曆
-        </Button>
+        {canUpdate ? (
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleOpenCreate}
+            sx={{ alignSelf: { xs: "stretch", sm: "flex-start" } }}
+          >
+            新增行事曆
+          </Button>
+        ) : null}
       </Box>
 
       {errorText ? (
@@ -826,16 +839,18 @@ export default function CalendarTab() {
           <Alert severity="error">{yearErrorText}</Alert>
         ) : null}
 
-        <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleOpenCreateYear}
-            disabled={yearLoading || yearSubmitting}
-          >
-            新增年度
-          </Button>
-        </Box>
+        {canUpdate ? (
+          <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleOpenCreateYear}
+              disabled={yearLoading || yearSubmitting}
+            >
+              新增年度
+            </Button>
+          </Box>
+        ) : null}
 
         {yearLoading ? (
           <Box
@@ -898,7 +913,7 @@ export default function CalendarTab() {
                     </IconButton>
                   </Tooltip>
 
-                  {row.status === "draft" ? (
+                  {canUpdate && row.status === "draft" ? (
                     <Tooltip title="發布">
                       <IconButton
                         size="small"

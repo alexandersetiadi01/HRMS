@@ -274,7 +274,7 @@ export const MENU_ITEMS = [
     disable: false,
     groups: ["attendance"],
     sectionKey: "supervisor",
-    attendancePermission: "attendance_staff_view",
+    attendancePermission: "attendance_staff_attendance_view",
   },
   {
     id: "shift-approval",
@@ -284,8 +284,7 @@ export const MENU_ITEMS = [
     disable: false,
     groups: ["attendance"],
     sectionKey: "supervisor",
-    attendancePermission: "attendance_shift_approval",
-    requiresScheduleManagement: true,
+    attendancePermission: "attendance_shift_approval_view",
   },
   {
     id: "shift-manager-setting",
@@ -295,7 +294,7 @@ export const MENU_ITEMS = [
     disable: false,
     groups: ["attendance"],
     sectionKey: "supervisor",
-    attendancePermission: "attendance_module_settings_manage",
+    attendancePermission: "attendance_schedule_manager_view",
   },
   {
     id: "report-center-supervisor",
@@ -305,7 +304,7 @@ export const MENU_ITEMS = [
     disable: false,
     groups: ["attendance"],
     sectionKey: "supervisor",
-    attendancePermission: "attendance_supervisor_report_center_view",
+    attendancePermission: "attendance_supervisor_report_view",
   },
 
   {
@@ -315,7 +314,7 @@ export const MENU_ITEMS = [
     iconKey: "attendance-record-maintenance",
     groups: ["attendance"],
     sectionKey: "manager",
-    attendancePermission: "attendance_punch_maintenance",
+    attendancePermission: "attendance_punch_maintenance_view",
   },
   {
     id: "form-management",
@@ -325,7 +324,7 @@ export const MENU_ITEMS = [
     disable: false,
     groups: ["attendance"],
     sectionKey: "manager",
-    attendancePermission: "attendance_form_management_manage",
+    attendancePermission: "attendance_form_management_view",
   },
   {
     id: "leave-hours-management",
@@ -335,7 +334,7 @@ export const MENU_ITEMS = [
     disable: false,
     groups: ["attendance"],
     sectionKey: "manager",
-    attendancePermission: "attendance_leave_balance_manage",
+    attendancePermission: "attendance_leave_balance_view",
   },
   {
     id: "payroll-work",
@@ -345,7 +344,7 @@ export const MENU_ITEMS = [
     disable: false,
     groups: ["attendance"],
     sectionKey: "manager",
-    attendancePermission: "attendance_settlement_manage",
+    attendancePermission: "attendance_settlement_view",
   },
   {
     id: "module-setting",
@@ -355,7 +354,24 @@ export const MENU_ITEMS = [
     disable: false,
     groups: ["attendance"],
     sectionKey: "manager",
-    attendancePermission: "attendance_module_settings_manage",
+    attendancePermissions: [
+      "attendance_module_permissions_view",
+      "attendance_module_approval_view",
+      "attendance_module_calendar_view",
+      "attendance_module_shift_view",
+      "attendance_module_shift_group_view",
+      "attendance_module_shift_assignment_view",
+      "attendance_module_leave_type_view",
+      "attendance_module_leave_rule_view",
+      "attendance_module_clock_rule_view",
+      "attendance_module_overtime_rule_view",
+      "attendance_module_schedule_rule_view",
+      "attendance_module_outing_rule_view",
+      "attendance_module_business_trip_rule_view",
+      "attendance_module_clock_location_view",
+      "attendance_module_clock_ip_view",
+      "attendance_module_unit_settings_view",
+    ],
   },
   {
     id: "personnel-basic",
@@ -365,7 +381,7 @@ export const MENU_ITEMS = [
     disable: false,
     groups: ["attendance"],
     sectionKey: "manager",
-    attendancePermission: "attendance_personnel_basic_manage",
+    attendancePermission: "attendance_personnel_basic_view",
   },
   {
     id: "account-management",
@@ -385,7 +401,7 @@ export const MENU_ITEMS = [
     disable: false,
     groups: ["attendance"],
     sectionKey: "manager",
-    attendancePermission: "attendance_probation_manage",
+    attendancePermission: "attendance_probation_view",
   },
   {
     id: "report-center-manager",
@@ -395,7 +411,7 @@ export const MENU_ITEMS = [
     disable: false,
     groups: ["attendance"],
     sectionKey: "manager",
-    attendancePermission: "attendance_report_center_manage",
+    attendancePermission: "attendance_report_center_view",
   },
   {
     id: "shift-import",
@@ -405,7 +421,7 @@ export const MENU_ITEMS = [
     disable: false,
     groups: ["attendance"],
     sectionKey: "manager",
-    attendancePermission: "attendance_shift_import_manage",
+    attendancePermission: "attendance_shift_import_view",
   },
 
   {

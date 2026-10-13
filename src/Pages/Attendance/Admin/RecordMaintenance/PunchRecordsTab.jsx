@@ -25,6 +25,8 @@ import {
 import { renderDateField } from "../../../../Components/GlobalComponent";
 import FormDialog from "../../../../Components/FormDialog";
 import SuccessDialog from "../../../../Components/SuccessDialog";
+import { getStoredAuthUser } from "../../../../API/auth";
+import { hasAttendancePermission } from "../../../../Utils/AttendancePermissions";
 import { MobileTimeSelect } from "../../../../Utils/Attendance/SharedForm";
 import ResponsiveAttendanceTable from "../../AttendanceForm/ResponsiveAttendanceTable";
 import {
@@ -218,6 +220,23 @@ function getErrorMessage(error, fallback) {
 }
 
 export default function PunchRecordsTab() {
+  const authUser = getStoredAuthUser();
+
+  const canCreate = hasAttendancePermission(
+    authUser,
+    "attendance_punch_maintenance_create",
+  );
+
+  const canUpdate = hasAttendancePermission(
+    authUser,
+    "attendance_punch_maintenance_update",
+  );
+
+  const canDelete = hasAttendancePermission(
+    authUser,
+    "attendance_punch_maintenance_delete",
+  );
+
   const [filters, setFilters] = useState(INITIAL_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState(INITIAL_FILTERS);
 
@@ -616,11 +635,13 @@ export default function PunchRecordsTab() {
             gap: "2px",
           }}
         >
-          <Tooltip title="編輯">
-            <IconButton size="small" onClick={() => handleEdit(row)}>
-              <EditOutlinedIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+          {canUpdate ? (
+            <Tooltip title="編輯">
+              <IconButton size="small" onClick={() => handleEdit(row)}>
+                <EditOutlinedIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          ) : null}
 
           <Tooltip title="維護歷程">
             <IconButton size="small" onClick={() => handleHistory(row)}>
@@ -628,11 +649,13 @@ export default function PunchRecordsTab() {
             </IconButton>
           </Tooltip>
 
-          <Tooltip title="刪除">
-            <IconButton size="small" onClick={() => handleDelete(row)}>
-              <DeleteOutlineOutlinedIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+          {canDelete ? (
+            <Tooltip title="刪除">
+              <IconButton size="small" onClick={() => handleDelete(row)}>
+                <DeleteOutlineOutlinedIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          ) : null}
         </Box>
       );
     }
@@ -699,13 +722,15 @@ export default function PunchRecordsTab() {
           </Typography>
         </Box>
 
-        <Button
-          variant="contained"
-          startIcon={<AddOutlinedIcon />}
-          onClick={handleCreate}
-        >
-          新增打卡
-        </Button>
+        {canCreate ? (
+          <Button
+            variant="contained"
+            startIcon={<AddOutlinedIcon />}
+            onClick={handleCreate}
+          >
+            新增打卡
+          </Button>
+        ) : null}
       </Box>
 
       <Box sx={{ mb: "18px" }}>

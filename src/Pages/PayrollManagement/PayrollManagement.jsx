@@ -32,6 +32,7 @@ import PayrollReadinessPanel from "./PayrollReadinessPanel";
 import PayrollCalculationPanel from "./PayrollCalculationPanel";
 import PayrollCompletionPanel from "./PayrollCompletionPanel";
 import { getStoredAuthUser } from "../../API/auth";
+import { hasAttendancePermission } from "../../Utils/AttendancePermissions";
 import { hasPayrollPermission } from "../../Utils/PayrollPermissions";
 
 const STAGES = ["資料確認", "資料計算", "計算完成"];
@@ -258,6 +259,7 @@ function PayrollRunCard({
   onReload,
   onDelete,
   canCalculate,
+  canRecalculate,
   canApprove,
   canClose,
 }) {
@@ -472,7 +474,7 @@ function PayrollRunCard({
         {selectedStage === 1 ? (
           <PayrollCalculationPanel
             payrollRunId={run.payroll_run_id}
-            canCalculate={canCalculate}
+            canRecalculate={canRecalculate}
             canApprove={canApprove}
             onReload={onReload}
           />
@@ -481,7 +483,7 @@ function PayrollRunCard({
         {selectedStage === 2 ? (
           <PayrollCompletionPanel
             payrollRunId={run.payroll_run_id}
-            canClose={canClose}
+            canClosePermission={canClose}
             onReload={onReload}
           />
         ) : null}
@@ -493,11 +495,45 @@ function PayrollRunCard({
 export default function PayrollManagement() {
   const authUser = useMemo(() => getStoredAuthUser(), []);
 
-  const canCalculate = hasPayrollPermission(authUser, "payroll_calculate");
+  const canCalculate =
+    hasPayrollPermission(
+      authUser,
+      "payroll_calculate",
+    ) &&
+    hasAttendancePermission(
+      authUser,
+      "attendance_settlement_calculate",
+    );
 
-  const canApprove = hasPayrollPermission(authUser, "payroll_approve");
+  const canRecalculate =
+    hasPayrollPermission(
+      authUser,
+      "payroll_calculate",
+    ) &&
+    hasAttendancePermission(
+      authUser,
+      "attendance_settlement_recalculate",
+    );
 
-  const canClose = hasPayrollPermission(authUser, "payroll_close");
+  const canApprove =
+    hasPayrollPermission(
+      authUser,
+      "payroll_approve",
+    ) &&
+    hasAttendancePermission(
+      authUser,
+      "attendance_settlement_approve",
+    );
+
+  const canClose =
+    hasPayrollPermission(
+      authUser,
+      "payroll_close",
+    ) &&
+    hasAttendancePermission(
+      authUser,
+      "attendance_settlement_close",
+    );
 
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
@@ -842,6 +878,7 @@ export default function PayrollManagement() {
               key={run.payroll_run_id}
               run={run}
               canCalculate={canCalculate}
+              canRecalculate={canRecalculate}
               canApprove={canApprove}
               canClose={canClose}
               onDelete={(target) => {

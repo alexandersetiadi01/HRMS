@@ -3,6 +3,7 @@ import MenuTile from "../Components/MenuTile";
 import { getStoredAuthUser } from "../API/auth";
 import {
   canManageAttendanceSchedule,
+  hasAnyAttendancePermission,
   hasAttendancePermission,
 } from "../Utils/AttendancePermissions";
 import { getAttendanceMenuItemsBySection } from "../Utils/Menu/MenuRegistry";
@@ -65,7 +66,20 @@ export default function AttendanceLayout() {
 
     if (
       item.attendancePermission &&
-      !hasAttendancePermission(authUser, item.attendancePermission)
+      !hasAttendancePermission(
+        authUser,
+        item.attendancePermission,
+      )
+    ) {
+      return false;
+    }
+
+    if (
+      item.attendancePermissions &&
+      !hasAnyAttendancePermission(
+        authUser,
+        item.attendancePermissions,
+      )
     ) {
       return false;
     }

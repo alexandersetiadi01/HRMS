@@ -18,6 +18,8 @@ import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
 import * as XLSX from "xlsx";
 import { renderDateField } from "../../../../Components/GlobalComponent";
 import Breadcrumb from "../../../../Utils/Breadcrumb";
+import { getStoredAuthUser } from "../../../../API/auth";
+import { hasAttendancePermission } from "../../../../Utils/AttendancePermissions";
 import ResponsiveAttendanceTable from "../../AttendanceForm/ResponsiveAttendanceTable";
 import {
   ActionButtons,
@@ -307,6 +309,14 @@ function exportValue(row, key) {
 
 export default function ReportCenterPage({ scope = "manager" }) {
   const isSupervisor = scope === "supervisor";
+  const authUser = getStoredAuthUser();
+
+  const canExport = hasAttendancePermission(
+    authUser,
+    isSupervisor
+      ? "attendance_supervisor_report_export"
+      : "attendance_report_center_export",
+  );
   const [filters, setFilters] = useState(INITIAL_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState(INITIAL_FILTERS);
   const [meta, setMeta] = useState({
@@ -810,15 +820,17 @@ export default function ReportCenterPage({ scope = "manager" }) {
                   disabled={loadingMeta || loading}
                 />
 
-                <Button
-                  variant="outlined"
-                  startIcon={<DownloadOutlinedIcon />}
-                  onClick={handleDownloadExcel}
-                  disabled={loadingMeta || loading || !rows.length}
-                  sx={ACTION_BUTTON_SX}
-                >
-                  下載 Excel
-                </Button>
+                {canExport ? (
+                  <Button
+                    variant="outlined"
+                    startIcon={<DownloadOutlinedIcon />}
+                    onClick={handleDownloadExcel}
+                    disabled={loading || rows.length === 0}
+                    sx={ACTION_BUTTON_SX}
+                  >
+                    下載 Excel
+                  </Button>
+                ) : null}
               </Box>
             </Box>
           </Box>

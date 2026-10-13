@@ -22,9 +22,11 @@ import {
   apiAttendancePersonnelBasicList,
   apiAttendancePersonnelBasicUpdate,
 } from "../../../../API/attendance";
+import { getStoredAuthUser } from "../../../../API/auth";
 import FormDialog from "../../../../Components/FormDialog";
 import SuccessDialog from "../../../../Components/SuccessDialog";
 import Breadcrumb from "../../../../Utils/Breadcrumb";
+import { hasAttendancePermission } from "../../../../Utils/AttendancePermissions";
 import ResponsiveAttendanceTable from "../../AttendanceForm/ResponsiveAttendanceTable";
 import {
   ActionButtons,
@@ -228,6 +230,23 @@ function DetailSection({ title, children }) {
 }
 
 export default function PersonnelBasicPage() {
+  const authUser = getStoredAuthUser();
+
+  const canCreate = hasAttendancePermission(
+    authUser,
+    "attendance_personnel_basic_create",
+  );
+
+  const canUpdate = hasAttendancePermission(
+    authUser,
+    "attendance_personnel_basic_update",
+  );
+
+  const canJobChange = hasAttendancePermission(
+    authUser,
+    "attendance_personnel_basic_job_change",
+  );
+
   const [filters, setFilters] = useState(INITIAL_FILTERS);
   const [rows, setRows] = useState([]);
   const [meta, setMeta] = useState({
@@ -593,15 +612,27 @@ export default function PersonnelBasicPage() {
             </IconButton>
           </Tooltip>
 
-          <Tooltip title="編輯">
-            <IconButton
-              size="small"
-              onClick={() => handleOpenEdit(row)}
-              aria-label="編輯"
+          {canUpdate || canJobChange ? (
+            <Tooltip
+              title={
+                canUpdate
+                  ? "編輯"
+                  : "任職異動"
+              }
             >
-              <EditOutlinedIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+              <IconButton
+                size="small"
+                onClick={() => handleOpenEdit(row)}
+                aria-label={
+                  canUpdate
+                    ? "編輯"
+                    : "任職異動"
+                }
+              >
+                <EditOutlinedIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          ) : null}
         </Box>
       );
     }
@@ -759,17 +790,19 @@ export default function PersonnelBasicPage() {
             gap: "10px",
           }}
         >
-          <Button
-            variant="contained"
-            onClick={handleOpenCreate}
-            disabled={loading}
-            sx={{
-              height: "38px",
-              whiteSpace: "nowrap",
-            }}
-          >
-            新增員工
-          </Button>
+          {canCreate ? (
+            <Button
+              variant="contained"
+              onClick={handleOpenCreate}
+              disabled={loading}
+              sx={{
+                height: "38px",
+                whiteSpace: "nowrap",
+              }}
+            >
+              新增員工
+            </Button>
+          ) : null}
 
           <ActionButtons
             onClear={handleClear}
@@ -1530,12 +1563,17 @@ export default function PersonnelBasicPage() {
 
       <FormDialog
         open={Boolean(editData)}
-        title="編輯人員基本資料"
+        title={
+          canUpdate
+            ? "編輯人員基本資料"
+            : "任職異動"
+        }
         submitLabel="儲存"
         cancelLabel="取消"
         maxWidth="md"
         submitting={saving}
         scrollToTopSignal={editErrorText}
+        hideSubmit={!canUpdate}
         onClose={() => {
           if (saving) return;
           setEditData(null);
@@ -1545,7 +1583,23 @@ export default function PersonnelBasicPage() {
       >
         {editErrorText ? <Alert severity="error">{editErrorText}</Alert> : null}
 
-        <DetailSection title="基本資料">
+        {!canUpdate ? (
+          <Alert severity="info">
+            目前權限僅允許任職異動；基本資料、聯絡資料及兵役資料僅供查看。
+          </Alert>
+        ) : null}
+
+        <Box
+          component="fieldset"
+          disabled={!canUpdate}
+          sx={{
+            m: 0,
+            p: 0,
+            border: 0,
+            minWidth: 0,
+          }}
+        >
+          <DetailSection title="基本資料">
           <Box
             sx={{
               display: "grid",
@@ -1716,6 +1770,8 @@ export default function PersonnelBasicPage() {
           </Box>
         </DetailSection>
 
+        </Box>
+
         <DetailSection title="任職資料">
           <Box
             sx={{
@@ -1757,21 +1813,23 @@ export default function PersonnelBasicPage() {
           </Box>
 
           {!jobChangeData ? (
-            <Box
-              sx={{
-                mt: "14px",
-                display: "flex",
-                justifyContent: "flex-end",
-              }}
-            >
-              <Button
-                variant="outlined"
-                onClick={handleStartJobChange}
-                disabled={saving}
+            canJobChange ? (
+              <Box
+                sx={{
+                  mt: "14px",
+                  display: "flex",
+                  justifyContent: "flex-end",
+                }}
               >
-                新增任職異動
-              </Button>
-            </Box>
+                <Button
+                  variant="outlined"
+                  onClick={handleStartJobChange}
+                  disabled={saving}
+                >
+                  新增任職異動
+                </Button>
+              </Box>
+            ) : null
           ) : (
             <Box
               sx={{

@@ -30,6 +30,8 @@ import {
 
 import FormDialog from "../../../../Components/FormDialog";
 import SuccessDialog from "../../../../Components/SuccessDialog";
+import { getStoredAuthUser } from "../../../../API/auth";
+import { hasAttendancePermission } from "../../../../Utils/AttendancePermissions";
 import ResponsiveAttendanceTable from "../../AttendanceForm/ResponsiveAttendanceTable";
 import {
   ActionButtons,
@@ -111,6 +113,23 @@ function normalizeTime(value) {
 }
 
 export default function ShiftsTab() {
+  const authUser = getStoredAuthUser();
+
+  const canCreate = hasAttendancePermission(
+    authUser,
+    "attendance_module_shift_create",
+  );
+
+  const canUpdate = hasAttendancePermission(
+    authUser,
+    "attendance_module_shift_update",
+  );
+
+  const canDelete = hasAttendancePermission(
+    authUser,
+    "attendance_module_shift_delete",
+  );
+
   const [filters, setFilters] = useState(INITIAL_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState(INITIAL_FILTERS);
   const [rows, setRows] = useState([]);
@@ -604,26 +623,32 @@ export default function ShiftsTab() {
             gap: "4px",
           }}
         >
-          <Tooltip title="編輯">
-            <IconButton size="small" onClick={() => handleOpenEdit(row)}>
-              <EditOutlinedIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+          {canUpdate ? (
+            <>
+              <Tooltip title="編輯">
+                <IconButton size="small" onClick={() => handleOpenEdit(row)}>
+                  <EditOutlinedIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
 
-          <Tooltip title="班次日設定">
-            <IconButton size="small" onClick={() => handleOpenShiftDays(row)}>
-              <CalendarViewWeekOutlinedIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+              <Tooltip title="班次日設定">
+                <IconButton size="small" onClick={() => handleOpenShiftDays(row)}>
+                  <CalendarViewWeekOutlinedIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </>
+          ) : null}
 
-          <Tooltip title="刪除">
-            <IconButton
-              size="small"
-              onClick={() => openActionDialog(row, "delete")}
-            >
-              <DeleteOutlineIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+          {canDelete ? (
+            <Tooltip title="刪除">
+              <IconButton
+                size="small"
+                onClick={() => openActionDialog(row, "delete")}
+              >
+                <DeleteOutlineIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          ) : null}
         </Box>
       );
     }
@@ -692,14 +717,16 @@ export default function ShiftsTab() {
           </Typography>
         </Box>
 
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleOpenCreate}
-          sx={{ alignSelf: { xs: "stretch", sm: "flex-start" } }}
-        >
-          新增班次
-        </Button>
+        {canCreate ? (
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleOpenCreate}
+            sx={{ alignSelf: { xs: "stretch", sm: "flex-start" } }}
+          >
+            新增班次
+          </Button>
+        ) : null}
       </Box>
 
       <Box sx={{ mb: "18px" }}>

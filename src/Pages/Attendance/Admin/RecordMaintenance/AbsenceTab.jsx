@@ -20,6 +20,8 @@ import {
 import { renderDateField } from "../../../../Components/GlobalComponent";
 import FormDialog from "../../../../Components/FormDialog";
 import SuccessDialog from "../../../../Components/SuccessDialog";
+import { getStoredAuthUser } from "../../../../API/auth";
+import { hasAttendancePermission } from "../../../../Utils/AttendancePermissions";
 import ResponsiveAttendanceTable from "../../AttendanceForm/ResponsiveAttendanceTable";
 import {
   ActionButtons,
@@ -106,6 +108,18 @@ function formatStatus(value) {
 }
 
 export default function AbsenceTab() {
+  const authUser = getStoredAuthUser();
+
+  const canCreate = hasAttendancePermission(
+    authUser,
+    "attendance_punch_maintenance_create",
+  );
+
+  const canUpdate = hasAttendancePermission(
+    authUser,
+    "attendance_punch_maintenance_update",
+  );
+
   const [filters, setFilters] = useState(INITIAL_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState(INITIAL_FILTERS);
   const [unitOptions, setUnitOptions] = useState([]);
@@ -435,7 +449,7 @@ export default function AbsenceTab() {
         return "-";
       }
 
-      return (
+      return canUpdate ? (
         <Box sx={{ display: "flex", alignItems: "center", gap: "4px" }}>
           <Button
             size="small"
@@ -453,7 +467,7 @@ export default function AbsenceTab() {
             撤銷
           </Button>
         </Box>
-      );
+      ) : "-";
     }
 
     return row[column.key] || "-";
@@ -481,9 +495,15 @@ export default function AbsenceTab() {
           </Typography>
         </Box>
 
-        <Button variant="contained" startIcon={<AddOutlinedIcon />} onClick={handleOpenCreate}>
-          新增曠職
-        </Button>
+        {canCreate ? (
+          <Button
+            variant="contained"
+            startIcon={<AddOutlinedIcon />}
+            onClick={handleOpenCreate}
+          >
+            新增曠職
+          </Button>
+        ) : null}
       </Box>
 
       <Box sx={{ mb: "18px" }}>

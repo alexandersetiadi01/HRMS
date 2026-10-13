@@ -18,6 +18,8 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 
 import FormDialog from "../../../../Components/FormDialog";
 import SuccessDialog from "../../../../Components/SuccessDialog";
+import { getStoredAuthUser } from "../../../../API/auth";
+import { hasAttendancePermission } from "../../../../Utils/AttendancePermissions";
 import ResponsiveAttendanceTable from "../../AttendanceForm/ResponsiveAttendanceTable";
 import {
   apiAttendancePunchIpSettings,
@@ -79,6 +81,23 @@ function formatIpAddress(row) {
 }
 
 export default function ClockIpSettingsTab() {
+  const authUser = getStoredAuthUser();
+
+  const canCreate = hasAttendancePermission(
+    authUser,
+    "attendance_module_clock_ip_create",
+  );
+
+  const canUpdate = hasAttendancePermission(
+    authUser,
+    "attendance_module_clock_ip_update",
+  );
+
+  const canDelete = hasAttendancePermission(
+    authUser,
+    "attendance_module_clock_ip_delete",
+  );
+
   const [appIpRestrictionEnabled, setAppIpRestrictionEnabled] = useState(false);
   const [rows, setRows] = useState([]);
   const [locations, setLocations] = useState([]);
@@ -300,24 +319,28 @@ export default function ClockIpSettingsTab() {
     if (column.key === "actions") {
       return (
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "4px" }}>
-          <Tooltip title="編輯">
-            <IconButton size="small" onClick={() => handleOpenEdit(row)} aria-label="編輯">
-              <EditOutlinedIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-
-          <Tooltip title="刪除">
-            <span>
-              <IconButton
-                size="small"
-                disabled={deletingId === Number(row.ip_rule_id || 0)}
-                onClick={() => handleDelete(row)}
-                aria-label="刪除"
-              >
-                <DeleteOutlineIcon fontSize="small" />
+          {canUpdate ? (
+            <Tooltip title="編輯">
+              <IconButton size="small" onClick={() => handleOpenEdit(row)} aria-label="編輯">
+                <EditOutlinedIcon fontSize="small" />
               </IconButton>
-            </span>
-          </Tooltip>
+            </Tooltip>
+          ) : null}
+
+          {canDelete ? (
+            <Tooltip title="刪除">
+              <span>
+                <IconButton
+                  size="small"
+                  disabled={deletingId === Number(row.ip_rule_id || 0)}
+                  onClick={() => handleDelete(row)}
+                  aria-label="刪除"
+                >
+                  <DeleteOutlineIcon fontSize="small" />
+                </IconButton>
+              </span>
+            </Tooltip>
+          ) : null}
         </Box>
       );
     }
@@ -347,9 +370,11 @@ export default function ClockIpSettingsTab() {
           </Typography>
         </Box>
 
-        <Button variant="contained" startIcon={<AddOutlinedIcon />} onClick={handleOpenCreate}>
-          新增
-        </Button>
+        {canCreate ? (
+          <Button variant="contained" startIcon={<AddOutlinedIcon />} onClick={handleOpenCreate}>
+            新增
+          </Button>
+        ) : null}
       </Box>
 
       <Alert severity="info" sx={{ mb: "16px" }}>
@@ -367,7 +392,7 @@ export default function ClockIpSettingsTab() {
           control={
             <Switch
               checked={appIpRestrictionEnabled}
-              disabled={savingGlobal || loading}
+              disabled={!canUpdate || savingGlobal || loading}
               onChange={(event) => handleGlobalRestrictionChange(event.target.checked)}
             />
           }

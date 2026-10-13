@@ -1095,9 +1095,19 @@ export default function LatestNews() {
 
   const authUser = getStoredAuthUser();
 
-  const canManageNews = hasAttendancePermission(
+  const canViewNewsManagement = hasAttendancePermission(
     authUser,
-    "attendance_news_manage",
+    "attendance_news_view",
+  );
+
+  const canCreateNews = hasAttendancePermission(
+    authUser,
+    "attendance_news_create",
+  );
+
+  const canManageNewsAttachments = hasAttendancePermission(
+    authUser,
+    "attendance_news_attachment",
   );
 
   useEffect(() => {
@@ -1209,7 +1219,7 @@ export default function LatestNews() {
       try {
         const result = await fetchNewsList({
           news_category_id: activeCategoryId,
-          ...(canManageNews
+          ...(canViewNewsManagement
             ? {}
             : {
                 status: "發布",
@@ -1234,7 +1244,7 @@ export default function LatestNews() {
     return () => {
       alive = false;
     };
-  }, [activeCategoryId, canManageNews]);
+  }, [activeCategoryId, canViewNewsManagement]);
 
   useEffect(() => {
     const totalPages = Math.max(
@@ -1395,7 +1405,8 @@ export default function LatestNews() {
       );
 
       const uploadResults =
-        newsId > 0
+        newsId > 0 &&
+        canManageNewsAttachments
           ? await Promise.allSettled(
               createFiles.map((file) =>
                 uploadNewsAttachment(
@@ -1540,7 +1551,7 @@ export default function LatestNews() {
           最新消息
         </Typography>
 
-        {canManageNews ? (
+        {canCreateNews ? (
           <Button
             variant="contained"
             startIcon={<AddOutlinedIcon />}
@@ -1774,38 +1785,40 @@ export default function LatestNews() {
           </TextField>
         ) : null}
 
-        <Box>
-          <Button
-            component="label"
-            variant="outlined"
-          >
-            選擇附件
-            <input
-              hidden
-              multiple
-              type="file"
-              onChange={(event) =>
-                setCreateFiles(
-                  Array.from(
-                    event.target.files || [],
-                  ),
-                )
-              }
-            />
-          </Button>
-
-          {createFiles.length > 0 ? (
-            <Typography
-              sx={{
-                mt: "8px",
-                fontSize: "13px",
-                color: "#6b7280",
-              }}
+        {canManageNewsAttachments ? (
+          <Box>
+            <Button
+              component="label"
+              variant="outlined"
             >
-              已選擇 {createFiles.length} 個附件
-            </Typography>
-          ) : null}
-        </Box>
+              選擇附件
+              <input
+                hidden
+                multiple
+                type="file"
+                onChange={(event) =>
+                  setCreateFiles(
+                    Array.from(
+                      event.target.files || [],
+                    ),
+                  )
+                }
+              />
+            </Button>
+
+            {createFiles.length > 0 ? (
+              <Typography
+                sx={{
+                  mt: "8px",
+                  fontSize: "13px",
+                  color: "#6b7280",
+                }}
+              >
+                已選擇 {createFiles.length} 個附件
+              </Typography>
+            ) : null}
+          </Box>
+        ) : null}
       </FormDialog>
 
       <AppSnackbar

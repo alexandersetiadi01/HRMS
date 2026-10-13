@@ -24,6 +24,8 @@ import {
 
 import AppSnackbar from "../../../../Components/AppSnackbar";
 import FormDialog from "../../../../Components/FormDialog";
+import { getStoredAuthUser } from "../../../../API/auth";
+import { hasAttendancePermission } from "../../../../Utils/AttendancePermissions";
 import ResponsiveAttendanceTable from "../../AttendanceForm/ResponsiveAttendanceTable";
 import {
   ActionButtons,
@@ -121,6 +123,22 @@ function buildValidPeriod(validFrom, validTo) {
 }
 
 export default function LeaveBalancesTab() {
+  const authUser = getStoredAuthUser();
+
+  const canCreate = hasAttendancePermission(
+    authUser,
+    "attendance_leave_balance_create",
+  );
+
+  const canUpdate = hasAttendancePermission(
+    authUser,
+    "attendance_leave_balance_update",
+  );
+
+  const canDelete = hasAttendancePermission(
+    authUser,
+    "attendance_leave_balance_delete",
+  );
   const [filters, setFilters] = useState(INITIAL_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState(INITIAL_FILTERS);
   const [unitOptions, setUnitOptions] = useState([]);
@@ -516,26 +534,35 @@ export default function LeaveBalancesTab() {
             </IconButton>
           </Tooltip>
 
-          {isNormal ? (
-            <>
-              <Tooltip title="編輯">
-                <IconButton size="small" onClick={() => handleOpenEdit(row)}>
-                  <EditOutlinedIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
+          {isNormal && canUpdate ? (
+            <Tooltip title="編輯">
+              <IconButton
+                size="small"
+                onClick={() => handleOpenEdit(row)}
+              >
+                <EditOutlinedIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          ) : null}
 
-              <Tooltip title={hasUsedHours ? "已有使用紀錄，無法刪除" : "刪除"}>
-                <span>
-                  <IconButton
-                    size="small"
-                    onClick={() => setDeleteRow(row)}
-                    disabled={hasUsedHours}
-                  >
-                    <DeleteOutlineOutlinedIcon fontSize="small" />
-                  </IconButton>
-                </span>
-              </Tooltip>
-            </>
+          {isNormal && canDelete ? (
+            <Tooltip
+              title={
+                hasUsedHours
+                  ? "已有使用紀錄，無法刪除"
+                  : "刪除"
+              }
+            >
+              <span>
+                <IconButton
+                  size="small"
+                  onClick={() => setDeleteRow(row)}
+                  disabled={hasUsedHours}
+                >
+                  <DeleteOutlineOutlinedIcon fontSize="small" />
+                </IconButton>
+              </span>
+            </Tooltip>
           ) : null}
         </Box>
       );
@@ -639,15 +666,17 @@ export default function LeaveBalancesTab() {
             disabled={loading}
           />
 
-          <Button
-            variant="outlined"
-            startIcon={<AddOutlinedIcon />}
-            onClick={handleOpenCreate}
-            disabled={loading}
-            sx={ACTION_BUTTON_SX}
-          >
-            新增給假
-          </Button>
+          {canCreate ? (
+            <Button
+              variant="outlined"
+              startIcon={<AddOutlinedIcon />}
+              onClick={handleOpenCreate}
+              disabled={loading}
+              sx={ACTION_BUTTON_SX}
+            >
+              新增給假
+            </Button>
+          ) : null}
         </Box>
       </Box>
 

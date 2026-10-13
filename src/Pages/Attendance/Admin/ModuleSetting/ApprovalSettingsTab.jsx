@@ -20,6 +20,8 @@ import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 
 import FormDialog from "../../../../Components/FormDialog";
 import SuccessDialog from "../../../../Components/SuccessDialog";
+import { getStoredAuthUser } from "../../../../API/auth";
+import { hasAttendancePermission } from "../../../../Utils/AttendancePermissions";
 import ResponsiveAttendanceTable from "../../AttendanceForm/ResponsiveAttendanceTable";
 import {
   apiAttendanceApprovalSettings,
@@ -61,6 +63,13 @@ function normalizeStep(step = {}) {
 }
 
 export default function ApprovalSettingsTab() {
+  const authUser = getStoredAuthUser();
+
+  const canUpdate = hasAttendancePermission(
+    authUser,
+    "attendance_module_approval_update",
+  );
+
   const [requestTypes, setRequestTypes] = useState({});
   const [approverTypes, setApproverTypes] = useState({});
   const [positions, setPositions] = useState([]);
@@ -376,15 +385,17 @@ export default function ApprovalSettingsTab() {
             </IconButton>
           </Tooltip>
 
-          <Tooltip title="編輯">
-            <IconButton
-              size="small"
-              onClick={() => handleOpenDialog(row, "edit")}
-              aria-label="編輯"
-            >
-              <EditOutlinedIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+          {canUpdate ? (
+            <Tooltip title="編輯">
+              <IconButton
+                size="small"
+                onClick={() => handleOpenDialog(row, "edit")}
+                aria-label="編輯"
+              >
+                <EditOutlinedIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          ) : null}
         </Box>
       );
     }
@@ -444,6 +455,7 @@ export default function ApprovalSettingsTab() {
         submitLabel={dialogMode === "view" ? "編輯" : "儲存"}
         cancelLabel={dialogMode === "view" ? "關閉" : "取消"}
         maxWidth="md"
+        hideSubmit={dialogMode === "view" && !canUpdate}
         onClose={handleCloseDialog}
         onSubmit={handleDialogSubmit}
       >

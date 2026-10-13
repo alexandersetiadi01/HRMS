@@ -13,6 +13,8 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 
 import FormDialog from "../../../../Components/FormDialog";
 import SuccessDialog from "../../../../Components/SuccessDialog";
+import { getStoredAuthUser } from "../../../../API/auth";
+import { hasAttendancePermission } from "../../../../Utils/AttendancePermissions";
 import ResponsiveAttendanceTable from "../../AttendanceForm/ResponsiveAttendanceTable";
 import {
   apiAttendanceBusinessTripRules,
@@ -66,6 +68,13 @@ function formatRuleValue(config, value) {
 }
 
 export default function BusinessTripRulesTab() {
+  const authUser = getStoredAuthUser();
+
+  const canUpdate = hasAttendancePermission(
+    authUser,
+    "attendance_module_business_trip_rule_update",
+  );
+
   const [rules, setRules] = useState({});
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -278,7 +287,7 @@ export default function BusinessTripRulesTab() {
 
   const renderValue = (row, column) => {
     if (column.key === "actions") {
-      return (
+      return canUpdate ? (
         <Tooltip title="編輯">
           <IconButton
             size="small"
@@ -288,7 +297,7 @@ export default function BusinessTripRulesTab() {
             <EditOutlinedIcon fontSize="small" />
           </IconButton>
         </Tooltip>
-      );
+      ) : "-";
     }
 
     return row[column.key];

@@ -18,6 +18,8 @@ import {
 import { renderDateField } from "../../../../Components/GlobalComponent";
 import FormDialog from "../../../../Components/FormDialog";
 import SuccessDialog from "../../../../Components/SuccessDialog";
+import { getStoredAuthUser } from "../../../../API/auth";
+import { hasAttendancePermission } from "../../../../Utils/AttendancePermissions";
 import ResponsiveAttendanceTable from "../../AttendanceForm/ResponsiveAttendanceTable";
 import {
   ActionButtons,
@@ -125,6 +127,12 @@ function formatAttendanceStatus(value) {
 }
 
 export default function AttendanceAnomaliesTab() {
+  const authUser = getStoredAuthUser();
+
+  const canCreate = hasAttendancePermission(
+    authUser,
+    "attendance_punch_maintenance_create",
+  );
   const [filters, setFilters] = useState(INITIAL_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState(INITIAL_FILTERS);
   const [unitOptions, setUnitOptions] = useState([]);
@@ -388,7 +396,9 @@ export default function AttendanceAnomaliesTab() {
             </IconButton>
           </Tooltip>
 
-          {row.status === "open" && row.anomaly_type === "absent" ? (
+          {canCreate &&
+          row.status === "open" &&
+          row.anomaly_type === "absent" ? (
             <Tooltip title="轉曠職">
               <IconButton size="small" onClick={() => handleOpenConvert(row)}>
                 <PersonOffOutlinedIcon fontSize="small" />

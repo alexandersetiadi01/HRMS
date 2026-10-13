@@ -15,8 +15,10 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 
 import { apiAttendanceFormManagement } from "../../../../API/attendance";
+import { getStoredAuthUser } from "../../../../API/auth";
 import FormDialog from "../../../../Components/FormDialog";
 import Breadcrumb from "../../../../Utils/Breadcrumb";
+import { hasAttendancePermission } from "../../../../Utils/AttendancePermissions";
 import ResponsiveAttendanceTable from "../../AttendanceForm/ResponsiveAttendanceTable";
 import {
   FilterActions,
@@ -97,6 +99,13 @@ function DetailField({ label, value }) {
 }
 
 export default function FormManagementPage() {
+  const authUser = getStoredAuthUser();
+
+  const canViewAll = hasAttendancePermission(
+    authUser,
+    "attendance_form_management_view_all",
+  );
+
   const [filters, setFilters] = useState(INITIAL_FILTERS);
   const [rows, setRows] = useState([]);
   const [meta, setMeta] = useState({
@@ -352,52 +361,80 @@ export default function FormManagementPage() {
             minWidth="170px"
           />
 
-          <SelectField
-            label="單位"
-            value={filters.unit_id}
-            onChange={(value) => handleFilterChange("unit_id", value)}
-            options={unitOptions}
-            minWidth="180px"
-          />
+          {canViewAll ? (
+            <>
+              <SelectField
+                label="單位"
+                value={filters.unit_id}
+                onChange={(value) =>
+                  handleFilterChange(
+                    "unit_id",
+                    value,
+                  )
+                }
+                options={unitOptions}
+                minWidth="180px"
+              />
 
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "6px",
-              width: { xs: "100%", sm: "240px" },
-            }}
-          >
-            <Typography
-              sx={{
-                fontSize: "15px",
-                color: "#111827",
-                fontWeight: 500,
-              }}
-            >
-              員工
-            </Typography>
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "6px",
+                  width: {
+                    xs: "100%",
+                    sm: "240px",
+                  },
+                }}
+              >
+                <Typography
+                  sx={{
+                    fontSize: "15px",
+                    color: "#111827",
+                    fontWeight: 500,
+                  }}
+                >
+                  員工
+                </Typography>
 
-            <Autocomplete
-              size="small"
-              options={employeeOptions}
-              value={selectedEmployee}
-              getOptionLabel={(option) => option?.employee_label || ""}
-              isOptionEqualToValue={(option, value) =>
-                Number(option?.employee_id || 0) ===
-                Number(value?.employee_id || 0)
-              }
-              onChange={(_event, value) =>
-                handleFilterChange(
-                  "employee_id",
-                  value ? String(value.employee_id) : "",
-                )
-              }
-              renderInput={(params) => (
-                <TextField {...params} placeholder="全部員工" />
-              )}
-            />
-          </Box>
+                <Autocomplete
+                  size="small"
+                  options={employeeOptions}
+                  value={selectedEmployee}
+                  getOptionLabel={(option) =>
+                    option?.employee_label || ""
+                  }
+                  isOptionEqualToValue={(
+                    option,
+                    value,
+                  ) =>
+                    Number(
+                      option?.employee_id || 0,
+                    ) ===
+                    Number(
+                      value?.employee_id || 0,
+                    )
+                  }
+                  onChange={(_event, value) =>
+                    handleFilterChange(
+                      "employee_id",
+                      value
+                        ? String(
+                            value.employee_id,
+                          )
+                        : "",
+                    )
+                  }
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      placeholder="全部員工"
+                    />
+                  )}
+                />
+              </Box>
+            </>
+          ) : null}
 
           <SelectField
             label="狀態"

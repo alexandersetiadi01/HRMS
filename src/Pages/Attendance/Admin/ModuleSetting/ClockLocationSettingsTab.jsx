@@ -17,6 +17,8 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 
 import FormDialog from "../../../../Components/FormDialog";
 import SuccessDialog from "../../../../Components/SuccessDialog";
+import { getStoredAuthUser } from "../../../../API/auth";
+import { hasAttendancePermission } from "../../../../Utils/AttendancePermissions";
 import ResponsiveAttendanceTable from "../../AttendanceForm/ResponsiveAttendanceTable";
 import {
   apiAttendancePunchLocations,
@@ -58,6 +60,23 @@ function getErrorMessage(error, fallback) {
 }
 
 export default function ClockLocationSettingsTab() {
+  const authUser = getStoredAuthUser();
+
+  const canCreate = hasAttendancePermission(
+    authUser,
+    "attendance_module_clock_location_create",
+  );
+
+  const canUpdate = hasAttendancePermission(
+    authUser,
+    "attendance_module_clock_location_update",
+  );
+
+  const canDelete = hasAttendancePermission(
+    authUser,
+    "attendance_module_clock_location_delete",
+  );
+
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadErrorText, setLoadErrorText] = useState("");
@@ -302,31 +321,35 @@ export default function ClockLocationSettingsTab() {
             gap: "4px",
           }}
         >
-          <Tooltip title="編輯">
-            <IconButton
-              size="small"
-              onClick={() => handleOpenEdit(row)}
-              aria-label="編輯"
-            >
-              <EditOutlinedIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-
-          <Tooltip title="刪除">
-            <span>
+          {canUpdate ? (
+            <Tooltip title="編輯">
               <IconButton
                 size="small"
-                disabled={
-                  deletingId ===
-                  Number(row.location_id || 0)
-                }
-                onClick={() => handleDelete(row)}
-                aria-label="刪除"
+                onClick={() => handleOpenEdit(row)}
+                aria-label="編輯"
               >
-                <DeleteOutlineIcon fontSize="small" />
+                <EditOutlinedIcon fontSize="small" />
               </IconButton>
-            </span>
-          </Tooltip>
+            </Tooltip>
+          ) : null}
+
+          {canDelete ? (
+            <Tooltip title="刪除">
+              <span>
+                <IconButton
+                  size="small"
+                  disabled={
+                    deletingId ===
+                    Number(row.location_id || 0)
+                  }
+                  onClick={() => handleDelete(row)}
+                  aria-label="刪除"
+                >
+                  <DeleteOutlineIcon fontSize="small" />
+                </IconButton>
+              </span>
+            </Tooltip>
+          ) : null}
         </Box>
       );
     }
@@ -368,13 +391,15 @@ export default function ClockLocationSettingsTab() {
           </Typography>
         </Box>
 
-        <Button
-          variant="contained"
-          startIcon={<AddOutlinedIcon />}
-          onClick={handleOpenCreate}
-        >
-          新增
-        </Button>
+        {canCreate ? (
+          <Button
+            variant="contained"
+            startIcon={<AddOutlinedIcon />}
+            onClick={handleOpenCreate}
+          >
+            新增
+          </Button>
+        ) : null}
       </Box>
 
       <Alert severity="info" sx={{ mb: "16px" }}>

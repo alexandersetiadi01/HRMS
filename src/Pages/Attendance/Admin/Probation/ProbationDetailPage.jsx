@@ -15,6 +15,8 @@ import EditNoteOutlinedIcon from "@mui/icons-material/EditNoteOutlined";
 
 import Breadcrumb from "../../../../Utils/Breadcrumb";
 import { apiAttendanceAdminMeta } from "../../../../API/attendance";
+import { getStoredAuthUser } from "../../../../API/auth";
+import { hasAttendancePermission } from "../../../../Utils/AttendancePermissions";
 import { getProbationCase, updateProbation } from "../../../../API/probation";
 import { EVALUATION_STATUS, PROBATION_STATUS } from "./probationConstants";
 import ProbationInformationDialog, {
@@ -262,6 +264,12 @@ function MonthCard({ monthData, onOpen }) {
 export default function ProbationDetailPage() {
   const { caseId } = useParams();
   const navigate = useNavigate();
+  const authUser = getStoredAuthUser();
+
+  const canUpdate = hasAttendancePermission(
+    authUser,
+    "attendance_probation_update",
+  );
 
   const [caseData, setCaseData] = useState(null);
   const [employeeOptions, setEmployeeOptions] = useState([]);
@@ -561,18 +569,20 @@ export default function ProbationDetailPage() {
                   gap: "8px",
                 }}
               >
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<EditOutlinedIcon />}
-                  onClick={handleOpenEdit}
-                  sx={{
-                    minHeight: "34px",
-                    textTransform: "none",
-                  }}
-                >
-                  修改
-                </Button>
+                {canUpdate ? (
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<EditOutlinedIcon />}
+                    onClick={handleOpenEdit}
+                    sx={{
+                      minHeight: "34px",
+                      textTransform: "none",
+                    }}
+                  >
+                    修改
+                  </Button>
+                ) : null}
 
                 <StatusChip
                   label={

@@ -34,6 +34,8 @@ import {
 
 import FormDialog from "../../../../Components/FormDialog";
 import SuccessDialog from "../../../../Components/SuccessDialog";
+import { getStoredAuthUser } from "../../../../API/auth";
+import { hasAttendancePermission } from "../../../../Utils/AttendancePermissions";
 import ResponsiveAttendanceTable from "../../AttendanceForm/ResponsiveAttendanceTable";
 import {
   ActionButtons,
@@ -153,6 +155,18 @@ function getItems(response) {
 }
 
 export default function LeaveRulesTab() {
+  const authUser = getStoredAuthUser();
+
+  const canUpdate = hasAttendancePermission(
+    authUser,
+    "attendance_module_leave_rule_update",
+  );
+
+  const canCreateLeaveType = hasAttendancePermission(
+    authUser,
+    "attendance_module_leave_type_create",
+  );
+
   const [filters, setFilters] = useState(INITIAL_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState(INITIAL_FILTERS);
   const [rows, setRows] = useState([]);
@@ -774,34 +788,38 @@ export default function LeaveRulesTab() {
             </IconButton>
           </Tooltip>
 
-          <Tooltip title="編輯">
-            <IconButton size="small" onClick={() => handleOpenEdit(row)}>
-              <EditOutlinedIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+          {canUpdate ? (
+            <>
+              <Tooltip title="編輯">
+                <IconButton size="small" onClick={() => handleOpenEdit(row)}>
+                  <EditOutlinedIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
 
-          <Tooltip title="規則設定">
-            <IconButton size="small" onClick={() => handleOpenSettings(row)}>
-              <SettingsOutlinedIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+              <Tooltip title="規則設定">
+                <IconButton size="small" onClick={() => handleOpenSettings(row)}>
+                  <SettingsOutlinedIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
 
-          {Number(row.require_relation_type || 0) === 1 ? (
-            <Tooltip title="條件規則">
-              <IconButton
-                size="small"
-                onClick={() => handleOpenConditions(row)}
-              >
-                <AccountTreeOutlinedIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
+              {Number(row.require_relation_type || 0) === 1 ? (
+                <Tooltip title="條件規則">
+                  <IconButton
+                    size="small"
+                    onClick={() => handleOpenConditions(row)}
+                  >
+                    <AccountTreeOutlinedIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              ) : null}
+
+              <Tooltip title="刪除">
+                <IconButton size="small" onClick={() => setDeleteRow(row)}>
+                  <DeleteOutlineIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </>
           ) : null}
-
-          <Tooltip title="刪除">
-            <IconButton size="small" onClick={() => setDeleteRow(row)}>
-              <DeleteOutlineIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
         </Box>
       );
     }
@@ -833,14 +851,17 @@ export default function LeaveRulesTab() {
           </Typography>
         </Box>
 
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleOpenCreate}
-          sx={{ alignSelf: { xs: "stretch", sm: "flex-start" } }}
-        >
-          新增規則
-        </Button>
+        {canUpdate &&
+        (availableCreateTypes.length > 0 || canCreateLeaveType) ? (
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleOpenCreate}
+            sx={{ alignSelf: { xs: "stretch", sm: "flex-start" } }}
+          >
+            新增規則
+          </Button>
+        ) : null}
       </Box>
 
       <Box sx={{ mb: "18px" }}>
@@ -1058,10 +1079,14 @@ export default function LeaveRulesTab() {
                         },
                       ]
                     : []),
-                  {
-                    value: "new",
-                    label: "建立新的特殊假別",
-                  },
+                  ...(canCreateLeaveType
+                    ? [
+                        {
+                          value: "new",
+                          label: "建立新的特殊假別",
+                        },
+                      ]
+                    : []),
                 ]}
                 fullWidth
                 height="38px"

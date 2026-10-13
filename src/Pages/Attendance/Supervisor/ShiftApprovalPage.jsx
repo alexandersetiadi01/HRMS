@@ -20,6 +20,7 @@ import SuccessDialog from "../../../Components/SuccessDialog";
 import Breadcrumb from "../../../Utils/Breadcrumb";
 import {
   getScheduleManagerUnitIds,
+  hasAttendancePermission,
 } from "../../../Utils/AttendancePermissions";
 import ResponsiveAttendanceTable from "../AttendanceForm/ResponsiveAttendanceTable";
 import { SelectField } from "../AttendanceForm/ApplicationRecord/SharedFields";
@@ -102,7 +103,12 @@ function formatPublicationStatus(row) {
 }
 
 export default function ShiftApprovalPage() {
-  const authUser = useMemo(() => getStoredAuthUser(), []);
+  const authUser = getStoredAuthUser();
+
+  const canPublish = hasAttendancePermission(
+    authUser,
+    "attendance_shift_approval_publish",
+  );
   const scheduleManagerUnitIds = useMemo(
     () => getScheduleManagerUnitIds(authUser),
     [authUser],
@@ -547,24 +553,26 @@ export default function ShiftApprovalPage() {
                 fitToContainer
               />
 
-              <Box
-                sx={{
-                  mt: "18px",
-                  display: "flex",
-                  justifyContent: "flex-end",
-                }}
-              >
-                <Button
-                  variant="contained"
-                  disabled={
-                    publishing ||
-                    summary.can_publish !== true
-                  }
-                  onClick={() => setPublishDialogOpen(true)}
+              {canPublish ? (
+                <Box
+                  sx={{
+                    mt: "18px",
+                    display: "flex",
+                    justifyContent: "flex-end",
+                  }}
                 >
-                  發布班表
-                </Button>
-              </Box>
+                  <Button
+                    variant="contained"
+                    disabled={
+                      publishing ||
+                      summary.can_publish !== true
+                    }
+                    onClick={() => setPublishDialogOpen(true)}
+                  >
+                    發布班表
+                  </Button>
+                </Box>
+              ) : null}
             </>
           ) : (
             <Typography sx={{ fontSize: "14px", color: "#6b7280" }}>

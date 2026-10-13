@@ -2,6 +2,8 @@ import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Box, Paper, Tab, Tabs, Typography } from "@mui/material";
 import Breadcrumb from "../../../../Utils/Breadcrumb";
+import { getStoredAuthUser } from "../../../../API/auth";
+import { hasAttendancePermission } from "../../../../Utils/AttendancePermissions";
 
 import PunchRecordsTab from "./PunchRecordsTab";
 import BulkPunchTab from "./BulkPunchTab";
@@ -17,12 +19,12 @@ const TABS = [
   { value: "absence", label: "曠職" },
 ];
 
-function getActiveTab(pathname) {
+function getActiveTab(pathname, availableTabs) {
   const relativePath = pathname
     .replace(RECORD_MAINTENANCE_BASE, "")
     .replace(/^\/+|\/+$/g, "");
 
-  return TABS.some((tab) => tab.value === relativePath)
+  return availableTabs.some((tab) => tab.value === relativePath)
     ? relativePath
     : "records";
 }
@@ -30,7 +32,23 @@ function getActiveTab(pathname) {
 export default function AttendanceRecordMaintenance() {
   const location = useLocation();
   const navigate = useNavigate();
-  const activeTab = getActiveTab(location.pathname);
+  const authUser = getStoredAuthUser();
+
+  const canBulkMaintain = hasAttendancePermission(
+    authUser,
+    "attendance_punch_maintenance_bulk",
+  );
+
+  const availableTabs = TABS.filter(
+    (tab) =>
+      tab.value !== "bulk" ||
+      canBulkMaintain,
+  );
+
+  const activeTab = getActiveTab(
+    location.pathname,
+    availableTabs,
+  );
 
   useEffect(() => {
     const expectedPath = `${RECORD_MAINTENANCE_BASE}/${activeTab}`;
@@ -91,7 +109,7 @@ export default function AttendanceRecordMaintenance() {
               },
             }}
           >
-            {TABS.map((tab) => (
+            {availableTabs.map((tab) => (
               <Tab key={tab.value} value={tab.value} label={tab.label} />
             ))}
           </Tabs>

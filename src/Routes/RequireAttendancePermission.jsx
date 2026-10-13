@@ -9,16 +9,31 @@ import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import { useNavigate } from "react-router-dom";
 
 import { getStoredAuthUser } from "../API/auth";
-import { hasAttendancePermission } from "../Utils/AttendancePermissions";
+import {
+  hasAnyAttendancePermission,
+  hasAttendancePermission,
+} from "../Utils/AttendancePermissions";
 
 export default function RequireAttendancePermission({
   permission,
+  permissions = [],
   children,
 }) {
   const navigate = useNavigate();
   const authUser = getStoredAuthUser();
 
-  if (hasAttendancePermission(authUser, permission)) {
+  const allowed =
+    permission
+      ? hasAttendancePermission(
+          authUser,
+          permission,
+        )
+      : hasAnyAttendancePermission(
+          authUser,
+          permissions,
+        );
+
+  if (allowed) {
     return children;
   }
 

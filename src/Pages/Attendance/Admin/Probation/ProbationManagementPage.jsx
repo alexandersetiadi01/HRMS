@@ -23,6 +23,8 @@ import Breadcrumb from "../../../../Utils/Breadcrumb";
 import {
   apiAttendanceAdminMeta,
 } from "../../../../API/attendance";
+import { getStoredAuthUser } from "../../../../API/auth";
+import { hasAttendancePermission } from "../../../../Utils/AttendancePermissions";
 import {
   createProbation,
   deleteProbation,
@@ -190,6 +192,17 @@ function buildTableRow(caseData) {
 
 export default function ProbationManagementPage() {
   const navigate = useNavigate();
+  const authUser = getStoredAuthUser();
+
+  const canCreate = hasAttendancePermission(
+    authUser,
+    "attendance_probation_create",
+  );
+
+  const canDelete = hasAttendancePermission(
+    authUser,
+    "attendance_probation_delete",
+  );
 
   const [filters, setFilters] = useState(INITIAL_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState(INITIAL_FILTERS);
@@ -605,7 +618,7 @@ export default function ProbationManagementPage() {
     }
 
     if (column.key === "actions") {
-      return (
+      return canDelete ? (
         <Tooltip title="刪除">
           <IconButton
             size="small"
@@ -619,7 +632,7 @@ export default function ProbationManagementPage() {
             <DeleteOutlineOutlinedIcon fontSize="small" />
           </IconButton>
         </Tooltip>
-      );
+      ) : null;
     }
 
     return row?.[column.key] || "-";
@@ -671,24 +684,26 @@ export default function ProbationManagementPage() {
           試用期管理
         </Typography>
 
-        <Button
-          variant="contained"
-          startIcon={
-            <AddOutlinedIcon />
-          }
-          onClick={handleOpenCreate}
-          disabled={loading}
-          sx={{
-            alignSelf: {
-              xs: "stretch",
-              sm: "center",
-            },
-            minHeight: "38px",
-            textTransform: "none",
-          }}
-        >
-          新增試用期
-        </Button>
+        {canCreate ? (
+          <Button
+            variant="contained"
+            startIcon={
+              <AddOutlinedIcon />
+            }
+            onClick={handleOpenCreate}
+            disabled={loading}
+            sx={{
+              alignSelf: {
+                xs: "stretch",
+                sm: "center",
+              },
+              minHeight: "38px",
+              textTransform: "none",
+            }}
+          >
+            新增試用期
+          </Button>
+        ) : null}
       </Box>
 
       <Box

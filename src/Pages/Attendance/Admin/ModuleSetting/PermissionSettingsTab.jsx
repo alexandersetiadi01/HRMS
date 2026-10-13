@@ -164,29 +164,101 @@ export default function PermissionSettingsTab() {
     const groups = new Map();
 
     permissions.forEach((permission) => {
-      const groupName = String(permission?.permission_group || "").trim();
+      const groupName = String(
+        permission?.permission_group || "",
+      ).trim();
+      const featureName = String(
+        permission?.permission_feature || "",
+      ).trim();
 
-      if (!groupName) return;
+      if (!groupName || !featureName) return;
 
       if (!groups.has(groupName)) {
-        groups.set(groupName, []);
+        groups.set(groupName, new Map());
       }
 
-      groups.get(groupName).push(permission);
+      const features = groups.get(groupName);
+
+      if (!features.has(featureName)) {
+        features.set(featureName, []);
+      }
+
+      features.get(featureName).push(permission);
     });
 
-    return Array.from(groups.entries());
+    return Array.from(groups.entries()).map(
+      ([groupName, features]) => [
+        groupName,
+        Array.from(features.entries()).map(
+          ([featureName, featurePermissions]) => [
+            featureName,
+            [...featurePermissions].sort(
+              (a, b) =>
+                Number(a?.action_order || 0) -
+                Number(b?.action_order || 0),
+            ),
+          ],
+        ),
+      ],
+    );
   }, [permissions]);
 
-  const handlePermissionChange = (permissionCode, checked) => {
+  const handlePermissionChange = (permission, checked) => {
+    const permissionCode = String(
+      permission?.permission_code || "",
+    );
+    const groupName = String(
+      permission?.permission_group || "",
+    );
+    const featureName = String(
+      permission?.permission_feature || "",
+    );
+    const action = String(
+      permission?.permission_action || "",
+    );
+
+    const featurePermissions = permissions.filter(
+      (item) =>
+        String(item?.permission_group || "") === groupName &&
+        String(item?.permission_feature || "") === featureName,
+    );
+
+    const viewPermission = featurePermissions.find(
+      (item) =>
+        String(item?.permission_action || "") === "view",
+    );
+
     setPermissionCodes((current) => {
+      const next = new Set(current);
+
       if (checked) {
-        return current.includes(permissionCode)
-          ? current
-          : [...current, permissionCode];
+        next.add(permissionCode);
+
+        if (
+          action !== "view" &&
+          viewPermission?.permission_code
+        ) {
+          next.add(
+            String(viewPermission.permission_code),
+          );
+        }
+
+        return Array.from(next);
       }
 
-      return current.filter((code) => code !== permissionCode);
+      if (action === "view") {
+        featurePermissions.forEach((item) => {
+          next.delete(
+            String(item?.permission_code || ""),
+          );
+        });
+
+        return Array.from(next);
+      }
+
+      next.delete(permissionCode);
+
+      return Array.from(next);
     });
 
     setErrorText("");
@@ -328,7 +400,7 @@ export default function PermissionSettingsTab() {
             ) : (
               <>
                 {permissionGroups.map(
-                  ([groupName, groupPermissions], groupIndex) => (
+                  ([groupName, features], groupIndex) => (
                     <Box key={groupName}>
                       {groupIndex > 0 ? <Divider /> : null}
 
@@ -336,8 +408,8 @@ export default function PermissionSettingsTab() {
                         sx={{
                           px: { xs: "14px", sm: "18px" },
                           py: "14px",
-                          bgcolor: "#f9fafb",
-                          borderBottom: "1px solid #e5e7eb",
+                          bgcolor: "#f3f4f6",
+                          borderBottom: "1px solid #d1d5db",
                         }}
                       >
                         <Typography
@@ -351,53 +423,96 @@ export default function PermissionSettingsTab() {
                         </Typography>
                       </Box>
 
-                      <Box
-                        sx={{
-                          px: { xs: "14px", sm: "18px" },
-                          py: "10px",
-                          display: "grid",
-                          gridTemplateColumns: {
-                            xs: "1fr",
-                            sm: "repeat(2, minmax(0, 1fr))",
-                          },
-                          columnGap: "20px",
-                        }}
-                      >
-                        {groupPermissions.map((permission) => {
-                          const permissionCode = String(
-                            permission?.permission_code || "",
-                          );
-                          const checked =
-                            permissionCodes.includes(permissionCode);
-
-                          return (
-                            <FormControlLabel
-                              key={permission.attendance_permission_id}
-                              control={
-                                <Checkbox
-                                  checked={checked}
-                                  onChange={(event) =>
-                                    handlePermissionChange(
-                                      permissionCode,
-                                      event.target.checked,
-                                    )
-                                  }
-                                  disabled={saving}
-                                />
-                              }
-                              label={permission.permission_name}
+                      {features.map(
+                        ([featureName, featurePermissions], featureIndex) => (
+                          <Box
+                            key={`${groupName}-${featureName}`}
+                            sx={{
+                              display: "grid",
+                              gridTemplateColumns: {
+                                xs: "1fr",
+                                md: "180px minmax(0, 1fr)",
+                              },
+                              borderBottom:
+                                featureIndex < features.length - 1
+                                  ? "1px solid #e5e7eb"
+                                  : 0,
+                            }}
+                          >
+                            <Box
                               sx={{
-                                m: 0,
-                                minHeight: "44px",
-                                "& .MuiFormControlLabel-label": {
-                                  fontSize: "14px",
-                                  color: "#374151",
-                                },
+                                px: { xs: "14px", sm: "18px" },
+                                py: "14px",
+                                bgcolor: "#f9fafb",
+                                display: "flex",
+                                alignItems: "center",
                               }}
-                            />
-                          );
-                        })}
-                      </Box>
+                            >
+                              <Typography
+                                sx={{
+                                  fontSize: "14px",
+                                  fontWeight: 700,
+                                  color: "#374151",
+                                }}
+                              >
+                                {featureName}
+                              </Typography>
+                            </Box>
+
+                            <Box
+                              sx={{
+                                px: { xs: "14px", sm: "18px" },
+                                py: "8px",
+                                display: "flex",
+                                alignItems: "center",
+                                flexWrap: "wrap",
+                                columnGap: "18px",
+                                rowGap: "2px",
+                              }}
+                            >
+                              {featurePermissions.map((permission) => {
+                                const permissionCode = String(
+                                  permission?.permission_code || "",
+                                );
+                                const checked =
+                                  permissionCodes.includes(
+                                    permissionCode,
+                                  );
+
+                                return (
+                                  <FormControlLabel
+                                    key={
+                                      permission.attendance_permission_id
+                                    }
+                                    control={
+                                      <Checkbox
+                                        checked={checked}
+                                        onChange={(event) =>
+                                          handlePermissionChange(
+                                            permission,
+                                            event.target.checked,
+                                          )
+                                        }
+                                        disabled={saving}
+                                      />
+                                    }
+                                    label={permission.permission_name}
+                                    sx={{
+                                      m: 0,
+                                      minHeight: "40px",
+                                      "& .MuiFormControlLabel-label": {
+                                        fontSize: "14px",
+                                        color: "#374151",
+                                        whiteSpace: "nowrap",
+                                      },
+                                    }}
+                                  />
+                                );
+                              })}
+                            </Box>
+                          </Box>
+                        ),
+                      )}
                     </Box>
                   ),
                 )}
