@@ -59,3 +59,39 @@ export async function fetchDepartmentAnnouncementDetail(announcementId) {
   const item = unwrapResponse(response, null);
   return item ? mapDepartmentAnnouncement(item) : null;
 }
+
+export async function fetchDepartmentAnnouncementUnits() {
+  const response = await http.get("/org-units");
+
+  const rows = unwrapResponse(response, []);
+  return Array.isArray(rows) ? rows : [];
+}
+
+export async function createDepartmentAnnouncement(payload = {}) {
+  const response = await http.post(
+    "/department-announcements",
+    payload,
+  );
+
+  return unwrapResponse(response, {});
+}
+
+export async function uploadDepartmentAnnouncementAttachment(
+  announcementId,
+  file,
+) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await http.post(
+    `/department-announcements/${announcementId}/upload`,
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    },
+  );
+
+  return unwrapResponse(response, {});
+}

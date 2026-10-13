@@ -7,21 +7,60 @@ import {
   DialogContent,
   IconButton,
   Link,
+  MenuItem,
+  TextField,
   Typography,
 } from "@mui/material";
+import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import CloseIcon from "@mui/icons-material/Close";
 import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
 import KeyboardDoubleArrowRightIcon from "@mui/icons-material/KeyboardDoubleArrowRight";
 import Breadcrumb from "../../../Utils/Breadcrumb";
+import AppSnackbar from "../../../Components/AppSnackbar";
+import FormDialog from "../../../Components/FormDialog";
+import { getStoredAuthUser } from "../../../API/auth";
+import { hasAttendancePermission } from "../../../Utils/AttendancePermissions";
 import { DesktopTable, MobileList } from "./Table";
 import {
+  createDepartmentAnnouncement,
   fetchDepartmentAnnouncementDetail,
   fetchDepartmentAnnouncements,
+  fetchDepartmentAnnouncementUnits,
+  uploadDepartmentAnnouncementAttachment,
 } from "../../../API/departmentAnnouncement";
 import useNotifications from "../../../Contexts/UseNotification";
 import useNotificationHighlight from "../../../Utils/Notifications/UseNotificationHighlight";
+
+function getLocalDateTimeValue() {
+  const now = new Date();
+  const offset = now.getTimezoneOffset();
+
+  return new Date(
+    now.getTime() - offset * 60000,
+  )
+    .toISOString()
+    .slice(0, 16);
+}
+
+function toApiDateTime(value) {
+  const text = String(value || "").trim();
+
+  return text
+    ? `${text.replace("T", " ")}:00`
+    : "";
+}
+
+function createAnnouncementForm() {
+  return {
+    unit_ids: [],
+    title: "",
+    content: "",
+    published_at: getLocalDateTimeValue(),
+    status: "發布",
+  };
+}
 
 function AnnouncementDialog({ open, item, loading = false, onClose }) {
   if (!item && !loading) return null;
@@ -301,6 +340,24 @@ export default function CompanyAnnouncement() {
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createSubmitting, setCreateSubmitting] = useState(false);
+  const [announcementUnits, setAnnouncementUnits] = useState([]);
+  const [createForm, setCreateForm] = useState(createAnnouncementForm);
+  const [createFiles, setCreateFiles] = useState([]);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    severity: "success",
+    message: "",
+  });
+
+  const authUser = getStoredAuthUser();
+
+  const canManageAnnouncements = hasAttendancePermission(
+    authUser,
+    "attendance_department_announcement_manage",
+  );
+
   const currentPage = 1;
 
   useEffect(() => {
@@ -311,7 +368,11 @@ export default function CompanyAnnouncement() {
       setError("");
 
       try {
-        const data = await fetchDepartmentAnnouncements();
+        const data = await fetchDepartmentAnnouncements({
+          scope: canManageAnnouncements
+            ? "all"
+            : "mine",
+        });
 
         if (active) {
           setRows(data);
@@ -336,7 +397,140 @@ export default function CompanyAnnouncement() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [canManageAnnouncements]);
+
+  const handleOpenCreate = async () => {
+    setCreateForm(createAnnouncementForm());
+    setCreateFiles([]);
+    setCreateOpen(true);
+
+    try {
+      const units =
+        await fetchDepartmentAnnouncementUnits();
+
+      setAnnouncementUnits(
+        Array.isArray(units)
+          ? units
+          : [],
+      );
+    } catch (err) {
+      setSnackbar({
+        open: true,
+        severity: "error",
+        message:
+          err?.response?.data?.message ||
+          err?.message ||
+          "讀取部門資料失敗。",
+      });
+    }
+  };
+
+  const handleCreateAnnouncement = async () => {
+    const title = String(
+      createForm.title || "",
+    ).trim();
+
+    const content = String(
+      createForm.content || "",
+    ).trim();
+
+    if (!title) {
+      setSnackbar({
+        open: true,
+        severity: "warning",
+        message: "請填寫公告標題。",
+      });
+      return;
+    }
+
+    if (!content) {
+      setSnackbar({
+        open: true,
+        severity: "warning",
+        message: "請填寫公告內容。",
+      });
+      return;
+    }
+
+    if (
+      !Array.isArray(createForm.unit_ids) ||
+      createForm.unit_ids.length === 0
+    ) {
+      setSnackbar({
+        open: true,
+        severity: "warning",
+        message: "請選擇公告部門。",
+      });
+      return;
+    }
+
+    setCreateSubmitting(true);
+
+    try {
+      const result =
+        await createDepartmentAnnouncement({
+          unit_ids: createForm.unit_ids.map(Number),
+          title,
+          content,
+          published_at: toApiDateTime(
+            createForm.published_at,
+          ),
+          status: createForm.status,
+        });
+
+      const announcementId = Number(
+        result?.department_announcement_id || 0,
+      );
+
+      const uploadResults =
+        announcementId > 0
+          ? await Promise.allSettled(
+              createFiles.map((file) =>
+                uploadDepartmentAnnouncementAttachment(
+                  announcementId,
+                  file,
+                ),
+              ),
+            )
+          : [];
+
+      const uploadFailed =
+        uploadResults.some(
+          (item) =>
+            item.status === "rejected",
+        );
+
+      const data =
+        await fetchDepartmentAnnouncements({
+          scope: "all",
+        });
+
+      setRows(data);
+      setCreateOpen(false);
+      setCreateFiles([]);
+
+      setSnackbar({
+        open: true,
+        severity: uploadFailed
+          ? "warning"
+          : "success",
+        message: uploadFailed
+          ? "公告已建立，但部分附件上傳失敗。"
+          : "部門公告已建立。",
+      });
+    } catch (err) {
+      setSnackbar({
+        open: true,
+        severity: "error",
+        message:
+          err?.response?.data?.message ||
+          err?.message ||
+          "新增部門公告失敗。",
+      });
+    } finally {
+      setCreateSubmitting(false);
+    }
+  };
 
   const handleOpenDialog = async (item) => {
     setSelectedItem(item);
@@ -379,16 +573,35 @@ export default function CompanyAnnouncement() {
     <Box>
       <Breadcrumb rootLabel="首頁" currentLabel="部門公告" mb="14px" />
 
-      <Typography
+      <Box
         sx={{
-          fontSize: "18px",
-          fontWeight: 700,
-          color: "#111827",
-          mb: "60px",
+          mb: "18px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "12px",
         }}
       >
-        部門公告
-      </Typography>
+        <Typography
+          sx={{
+            fontSize: "18px",
+            fontWeight: 700,
+            color: "#111827",
+          }}
+        >
+          部門公告
+        </Typography>
+
+        {canManageAnnouncements ? (
+          <Button
+            variant="contained"
+            startIcon={<AddOutlinedIcon />}
+            onClick={handleOpenCreate}
+          >
+            新增公告
+          </Button>
+        ) : null}
+      </Box>
 
       {loading && (
         <Box sx={{ display: "flex", justifyContent: "center", py: "40px" }}>
@@ -459,6 +672,164 @@ export default function CompanyAnnouncement() {
           </Box>
         </>
       )}
+
+      <FormDialog
+        open={createOpen}
+        title="新增部門公告"
+        submitting={createSubmitting}
+        submitLabel="新增公告"
+        onClose={() => {
+          if (createSubmitting) return;
+
+          setCreateOpen(false);
+          setCreateFiles([]);
+        }}
+        onSubmit={handleCreateAnnouncement}
+      >
+        <TextField
+          select
+          required
+          fullWidth
+          label="公告部門"
+          size="small"
+          value={createForm.unit_ids}
+          onChange={(event) =>
+            setCreateForm((current) => ({
+              ...current,
+              unit_ids: event.target.value,
+            }))
+          }
+          SelectProps={{
+            multiple: true,
+          }}
+        >
+          {announcementUnits.map((unit) => (
+            <MenuItem
+              key={unit.unit_id}
+              value={String(unit.unit_id)}
+            >
+              {unit.unit_name}
+            </MenuItem>
+          ))}
+        </TextField>
+
+        <TextField
+          required
+          fullWidth
+          label="標題"
+          size="small"
+          value={createForm.title}
+          onChange={(event) =>
+            setCreateForm((current) => ({
+              ...current,
+              title: event.target.value,
+            }))
+          }
+        />
+
+        <TextField
+          required
+          fullWidth
+          multiline
+          minRows={6}
+          label="內容"
+          value={createForm.content}
+          onChange={(event) =>
+            setCreateForm((current) => ({
+              ...current,
+              content: event.target.value,
+            }))
+          }
+        />
+
+        <TextField
+          required
+          fullWidth
+          type="datetime-local"
+          label="發布時間"
+          size="small"
+          value={createForm.published_at}
+          onChange={(event) =>
+            setCreateForm((current) => ({
+              ...current,
+              published_at: event.target.value,
+            }))
+          }
+          slotProps={{
+            inputLabel: {
+              shrink: true,
+            },
+          }}
+        />
+
+        <TextField
+          select
+          required
+          fullWidth
+          label="狀態"
+          size="small"
+          value={createForm.status}
+          onChange={(event) =>
+            setCreateForm((current) => ({
+              ...current,
+              status: event.target.value,
+            }))
+          }
+        >
+          <MenuItem value="發布">
+            發布
+          </MenuItem>
+
+          <MenuItem value="未發布">
+            未發布
+          </MenuItem>
+        </TextField>
+
+        <Box>
+          <Button
+            component="label"
+            variant="outlined"
+          >
+            選擇附件
+            <input
+              hidden
+              multiple
+              type="file"
+              onChange={(event) =>
+                setCreateFiles(
+                  Array.from(
+                    event.target.files || [],
+                  ),
+                )
+              }
+            />
+          </Button>
+
+          {createFiles.length > 0 ? (
+            <Typography
+              sx={{
+                mt: "8px",
+                fontSize: "13px",
+                color: "#6b7280",
+              }}
+            >
+              已選擇 {createFiles.length} 個附件
+            </Typography>
+          ) : null}
+        </Box>
+      </FormDialog>
+
+      <AppSnackbar
+        open={snackbar.open}
+        severity={snackbar.severity}
+        message={snackbar.message}
+        onClose={() =>
+          setSnackbar((current) => ({
+            ...current,
+            open: false,
+          }))
+        }
+      />
 
       <AnnouncementDialog
         open={dialogOpen}

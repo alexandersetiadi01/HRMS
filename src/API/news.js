@@ -41,3 +41,39 @@ export async function fetchNewsDetail(newsId) {
 
   return unwrapResponse(response, null);
 }
+
+export async function fetchNewsUnits() {
+  const response = await http.get("/org-units");
+
+  const rows = unwrapResponse(response, []);
+  return Array.isArray(rows) ? rows : [];
+}
+
+export async function createNews(payload = {}) {
+  const response = await http.post(
+    "/news",
+    payload,
+  );
+
+  return unwrapResponse(response, {});
+}
+
+export async function uploadNewsAttachment(
+  newsId,
+  file,
+) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await http.post(
+    `/news/${newsId}/attachments`,
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    },
+  );
+
+  return unwrapResponse(response, {});
+}

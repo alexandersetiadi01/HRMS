@@ -6,20 +6,30 @@ import {
   Dialog,
   DialogContent,
   IconButton,
+  MenuItem,
+  TextField,
   Typography,
   useMediaQuery,
   useTheme,
 } from "@mui/material";
+import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import CloseIcon from "@mui/icons-material/Close";
 import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
 import KeyboardDoubleArrowRightIcon from "@mui/icons-material/KeyboardDoubleArrowRight";
 import Breadcrumb from "../Utils/Breadcrumb";
+import AppSnackbar from "../Components/AppSnackbar";
+import FormDialog from "../Components/FormDialog";
+import { getStoredAuthUser } from "../API/auth";
+import { hasAttendancePermission } from "../Utils/AttendancePermissions";
 import {
+  createNews,
   fetchNewsCategories,
   fetchNewsDetail,
   fetchNewsList,
+  fetchNewsUnits,
+  uploadNewsAttachment,
 } from "../API/news";
 import useNotifications from "../Contexts/UseNotification";
 import useNotificationHighlight from "../Utils/Notifications/UseNotificationHighlight";
@@ -28,6 +38,29 @@ const ACCENT_COLOR = "#35b8ec";
 const DEFAULT_ROWS_PER_PAGE = 10;
 
 const LATEST_NEWS_CATEGORY_STORAGE_KEY = "latest-news-active-category-id";
+
+function getLocalDateTimeValue() {
+  const now = new Date();
+  const offset = now.getTimezoneOffset();
+
+  return new Date(
+    now.getTime() - offset * 60000,
+  )
+    .toISOString()
+    .slice(0, 16);
+}
+
+function createNewsForm(categoryId = "") {
+  return {
+    news_category_id: String(categoryId || ""),
+    title: "",
+    content: "",
+    publish_start: getLocalDateTimeValue(),
+    publish_end: "",
+    audience_type: "全公司",
+    audience_unit_id: "",
+  };
+}
 
 function getStoredCategoryId() {
   try {
@@ -1047,6 +1080,25 @@ export default function LatestNews() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailNews, setDetailNews] = useState(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createSubmitting, setCreateSubmitting] = useState(false);
+  const [newsUnits, setNewsUnits] = useState([]);
+  const [createForm, setCreateForm] = useState(() =>
+    createNewsForm(getStoredCategoryId()),
+  );
+  const [createFiles, setCreateFiles] = useState([]);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    severity: "success",
+    message: "",
+  });
+
+  const authUser = getStoredAuthUser();
+
+  const canManageNews = hasAttendancePermission(
+    authUser,
+    "attendance_news_manage",
+  );
 
   useEffect(() => {
     let alive = true;
@@ -1157,7 +1209,11 @@ export default function LatestNews() {
       try {
         const result = await fetchNewsList({
           news_category_id: activeCategoryId,
-          status: "發布",
+          ...(canManageNews
+            ? {}
+            : {
+                status: "發布",
+              }),
         });
 
         if (!alive) return;
@@ -1178,7 +1234,7 @@ export default function LatestNews() {
     return () => {
       alive = false;
     };
-  }, [activeCategoryId]);
+  }, [activeCategoryId, canManageNews]);
 
   useEffect(() => {
     const totalPages = Math.max(
@@ -1216,6 +1272,190 @@ export default function LatestNews() {
     const startIndex = (currentPage - 1) * DEFAULT_ROWS_PER_PAGE;
     return newsRows.slice(startIndex, startIndex + DEFAULT_ROWS_PER_PAGE);
   }, [currentPage, newsRows]);
+
+  const handleOpenCreate = async () => {
+    const defaultCategoryId =
+      activeCategoryId ||
+      categories[0]?.news_category_id ||
+      "";
+
+    setCreateForm(
+      createNewsForm(defaultCategoryId),
+    );
+    setCreateFiles([]);
+    setCreateOpen(true);
+
+    try {
+      const units = await fetchNewsUnits();
+
+      setNewsUnits(
+        Array.isArray(units)
+          ? units
+          : [],
+      );
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        severity: "error",
+        message:
+          error?.response?.data?.message ||
+          error?.message ||
+          "讀取部門資料失敗。",
+      });
+    }
+  };
+
+  const handleCreateNews = async () => {
+    const title = String(
+      createForm.title || "",
+    ).trim();
+
+    const content = String(
+      createForm.content || "",
+    ).trim();
+
+    if (!createForm.news_category_id) {
+      setSnackbar({
+        open: true,
+        severity: "warning",
+        message: "請選擇消息分類。",
+      });
+      return;
+    }
+
+    if (!title) {
+      setSnackbar({
+        open: true,
+        severity: "warning",
+        message: "請填寫消息標題。",
+      });
+      return;
+    }
+
+    if (!content) {
+      setSnackbar({
+        open: true,
+        severity: "warning",
+        message: "請填寫消息內容。",
+      });
+      return;
+    }
+
+    if (
+      createForm.audience_type === "指定單位" &&
+      !createForm.audience_unit_id
+    ) {
+      setSnackbar({
+        open: true,
+        severity: "warning",
+        message: "請選擇發布單位。",
+      });
+      return;
+    }
+
+    if (
+      createForm.publish_start &&
+      createForm.publish_end &&
+      new Date(createForm.publish_end) <=
+        new Date(createForm.publish_start)
+    ) {
+      setSnackbar({
+        open: true,
+        severity: "warning",
+        message: "發布結束時間必須晚於發布開始時間。",
+      });
+      return;
+    }
+
+    setCreateSubmitting(true);
+
+    try {
+      const result = await createNews({
+        news_category_id: Number(
+          createForm.news_category_id,
+        ),
+        title,
+        content,
+        publish_start:
+          createForm.publish_start || null,
+        publish_end:
+          createForm.publish_end || null,
+        audience_type:
+          createForm.audience_type,
+        audience_unit_id:
+          createForm.audience_type === "指定單位"
+            ? Number(
+                createForm.audience_unit_id,
+              )
+            : null,
+      });
+
+      const newsId = Number(
+        result?.news_id || 0,
+      );
+
+      const uploadResults =
+        newsId > 0
+          ? await Promise.allSettled(
+              createFiles.map((file) =>
+                uploadNewsAttachment(
+                  newsId,
+                  file,
+                ),
+              ),
+            )
+          : [];
+
+      const uploadFailed =
+        uploadResults.some(
+          (item) =>
+            item.status === "rejected",
+        );
+
+      const nextCategoryId = String(
+        createForm.news_category_id,
+      );
+
+      setActiveCategoryId(nextCategoryId);
+      setStoredCategoryId(nextCategoryId);
+      setCurrentPage(1);
+      setStoredPage(nextCategoryId, 1);
+
+      const rows = await fetchNewsList({
+        news_category_id: nextCategoryId,
+      });
+
+      setNewsRows(
+        Array.isArray(rows)
+          ? rows
+          : [],
+      );
+
+      setCreateOpen(false);
+      setCreateFiles([]);
+
+      setSnackbar({
+        open: true,
+        severity: uploadFailed
+          ? "warning"
+          : "success",
+        message: uploadFailed
+          ? "最新消息已建立，但部分附件上傳失敗。"
+          : "最新消息已建立。",
+      });
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        severity: "error",
+        message:
+          error?.response?.data?.message ||
+          error?.message ||
+          "新增最新消息失敗。",
+      });
+    } finally {
+      setCreateSubmitting(false);
+    }
+  };
 
   const handleOpenDetail = async (row) => {
     const newsId = row?.news_id;
@@ -1275,22 +1515,41 @@ export default function LatestNews() {
     <Box>
       <Breadcrumb rootLabel="首頁" currentLabel="最新消息" mb="14px" />
 
-      <Typography
+      <Box
         sx={{
-          fontSize: {
-            xs: "17px",
-            sm: "18px",
-          },
-          fontWeight: 700,
-          color: "#111827",
           mb: {
             xs: "16px",
             md: "18px",
           },
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "12px",
         }}
       >
-        最新消息
-      </Typography>
+        <Typography
+          sx={{
+            fontSize: {
+              xs: "17px",
+              sm: "18px",
+            },
+            fontWeight: 700,
+            color: "#111827",
+          }}
+        >
+          最新消息
+        </Typography>
+
+        {canManageNews ? (
+          <Button
+            variant="contained"
+            startIcon={<AddOutlinedIcon />}
+            onClick={handleOpenCreate}
+          >
+            新增消息
+          </Button>
+        ) : null}
+      </Box>
 
       <Box
         sx={{
@@ -1313,10 +1572,6 @@ export default function LatestNews() {
               md: "auto",
             },
             flexShrink: 0,
-            mt: {
-              xs: 0,
-              md: "46px",
-            },
           }}
         >
           <SidebarMenu
@@ -1333,17 +1588,6 @@ export default function LatestNews() {
             minWidth: 0,
           }}
         >
-          <Box
-            sx={{
-              display: {
-                xs: "none",
-                md: "block",
-              },
-              mb: "12px",
-              minHeight: "34px",
-            }}
-          />
-
           <NewsList
             loading={loadingCategories || loadingNews}
             errorMessage={errorMessage}
@@ -1360,6 +1604,221 @@ export default function LatestNews() {
           />
         </Box>
       </Box>
+
+      <FormDialog
+        open={createOpen}
+        title="新增最新消息"
+        submitting={createSubmitting}
+        submitLabel="新增消息"
+        onClose={() => {
+          if (createSubmitting) return;
+
+          setCreateOpen(false);
+          setCreateFiles([]);
+        }}
+        onSubmit={handleCreateNews}
+      >
+        <TextField
+          select
+          required
+          fullWidth
+          label="消息分類"
+          size="small"
+          value={createForm.news_category_id}
+          onChange={(event) =>
+            setCreateForm((current) => ({
+              ...current,
+              news_category_id:
+                event.target.value,
+            }))
+          }
+        >
+          {categories.map((category) => (
+            <MenuItem
+              key={category.news_category_id}
+              value={String(
+                category.news_category_id,
+              )}
+            >
+              {category.category_name}
+            </MenuItem>
+          ))}
+        </TextField>
+
+        <TextField
+          required
+          fullWidth
+          label="標題"
+          size="small"
+          value={createForm.title}
+          onChange={(event) =>
+            setCreateForm((current) => ({
+              ...current,
+              title: event.target.value,
+            }))
+          }
+        />
+
+        <TextField
+          required
+          fullWidth
+          multiline
+          minRows={6}
+          label="內容"
+          value={createForm.content}
+          onChange={(event) =>
+            setCreateForm((current) => ({
+              ...current,
+              content: event.target.value,
+            }))
+          }
+        />
+
+        <TextField
+          required
+          fullWidth
+          type="datetime-local"
+          label="發布開始"
+          size="small"
+          value={createForm.publish_start}
+          onChange={(event) =>
+            setCreateForm((current) => ({
+              ...current,
+              publish_start:
+                event.target.value,
+            }))
+          }
+          slotProps={{
+            inputLabel: {
+              shrink: true,
+            },
+          }}
+        />
+
+        <TextField
+          fullWidth
+          type="datetime-local"
+          label="發布結束"
+          size="small"
+          value={createForm.publish_end}
+          onChange={(event) =>
+            setCreateForm((current) => ({
+              ...current,
+              publish_end:
+                event.target.value,
+            }))
+          }
+          slotProps={{
+            inputLabel: {
+              shrink: true,
+            },
+          }}
+        />
+
+        <TextField
+          select
+          required
+          fullWidth
+          label="發布對象"
+          size="small"
+          value={createForm.audience_type}
+          onChange={(event) =>
+            setCreateForm((current) => ({
+              ...current,
+              audience_type:
+                event.target.value,
+              audience_unit_id:
+                event.target.value ===
+                "指定單位"
+                  ? current.audience_unit_id
+                  : "",
+            }))
+          }
+        >
+          <MenuItem value="全公司">
+            全公司
+          </MenuItem>
+
+          <MenuItem value="指定單位">
+            指定單位
+          </MenuItem>
+        </TextField>
+
+        {createForm.audience_type ===
+        "指定單位" ? (
+          <TextField
+            select
+            required
+            fullWidth
+            label="指定單位"
+            size="small"
+            value={
+              createForm.audience_unit_id
+            }
+            onChange={(event) =>
+              setCreateForm((current) => ({
+                ...current,
+                audience_unit_id:
+                  event.target.value,
+              }))
+            }
+          >
+            {newsUnits.map((unit) => (
+              <MenuItem
+                key={unit.unit_id}
+                value={String(unit.unit_id)}
+              >
+                {unit.unit_name}
+              </MenuItem>
+            ))}
+          </TextField>
+        ) : null}
+
+        <Box>
+          <Button
+            component="label"
+            variant="outlined"
+          >
+            選擇附件
+            <input
+              hidden
+              multiple
+              type="file"
+              onChange={(event) =>
+                setCreateFiles(
+                  Array.from(
+                    event.target.files || [],
+                  ),
+                )
+              }
+            />
+          </Button>
+
+          {createFiles.length > 0 ? (
+            <Typography
+              sx={{
+                mt: "8px",
+                fontSize: "13px",
+                color: "#6b7280",
+              }}
+            >
+              已選擇 {createFiles.length} 個附件
+            </Typography>
+          ) : null}
+        </Box>
+      </FormDialog>
+
+      <AppSnackbar
+        open={snackbar.open}
+        severity={snackbar.severity}
+        message={snackbar.message}
+        onClose={() =>
+          setSnackbar((current) => ({
+            ...current,
+            open: false,
+          }))
+        }
+      />
 
       <NewsDetailDialog
         open={detailOpen}
