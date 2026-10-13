@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Box, Typography } from "@mui/material";
 import {
-  apiGetPendingApprovalActor,
   apiLeaveRecordList,
 } from "../../../API/attendance";
+import { getStoredAuthUser } from "../../../API/auth";
+import { hasAttendancePermission } from "../../../Utils/AttendancePermissions";
 import {
   ActionButtons,
   SelectField,
@@ -76,9 +77,11 @@ export default function LeaveOfAbsence() {
   ]);
   const [loading, setLoading] = useState(false);
   const [errorText, setErrorText] = useState("");
-  const [actor, setActor] = useState(null);
 
-  const isEmployeeOnly = !!actor?.is_employee_position;
+  const isEmployeeOnly = !hasAttendancePermission(
+    getStoredAuthUser(),
+    "attendance_form_management_manage",
+  );
 
   const filteredRows = useMemo(() => {
     if (!searchKeyword.trim()) {
@@ -107,18 +110,11 @@ export default function LeaveOfAbsence() {
       setLoading(true);
       setErrorText("");
 
-      const [actorResponse, response] = await Promise.all([
-        apiGetPendingApprovalActor(),
-        apiLeaveRecordList({
-          year: Number(nextYear),
-          month: Number(nextMonth),
-          status: nextStatus,
-        }),
-      ]);
-
-      const actorData =
-        actorResponse?.data?.data || actorResponse?.data || actorResponse || {};
-      setActor(actorData);
+      const response = await apiLeaveRecordList({
+        year: Number(nextYear),
+        month: Number(nextMonth),
+        status: nextStatus,
+      });
 
       const payload = response?.data?.data || response?.data || response || {};
       let items = Array.isArray(payload?.items) ? payload.items : [];

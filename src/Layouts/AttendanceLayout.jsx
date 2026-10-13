@@ -57,6 +57,13 @@ export default function AttendanceLayout() {
 
   const filterByAccess = (item) => {
     if (
+      item.adminAccessOnly &&
+      authUser?.is_admin_access !== true
+    ) {
+      return false;
+    }
+
+    if (
       item.attendancePermission &&
       !hasAttendancePermission(authUser, item.attendancePermission)
     ) {

@@ -40,38 +40,30 @@ function getErrorMessage(error, fallback) {
   return error?.response?.data?.message || error?.message || fallback;
 }
 
-function roleLabel(role = {}) {
-  const roleCode = String(role?.role_code || "").trim();
+function positionLabel(position = {}) {
+  const name = String(position?.position_name || "").trim();
+  const code = String(position?.position_code || "").trim();
 
-  const labels = {
-    admin: "行政",
-    manager: "管理者",
-    supervisor: "主管",
-    employee: "員工",
-  };
+  if (!name) return code;
 
-  const translated = labels[roleCode];
-
-  if (!translated) {
-    return role?.role_name || roleCode || "";
-  }
-
-  return `${translated} - ${roleCode}`;
+  return code && code !== name
+    ? `${name} - ${code}`
+    : name;
 }
 
 function normalizeStep(step = {}) {
-  const roleId = Number(step?.role_id || 0);
+  const positionId = Number(step?.position_id || 0);
 
   return {
     approver_type: String(step?.approver_type || "direct_supervisor"),
-    role_id: roleId > 0 ? String(roleId) : "",
+    position_id: positionId > 0 ? String(positionId) : "",
   };
 }
 
 export default function ApprovalSettingsTab() {
   const [requestTypes, setRequestTypes] = useState({});
   const [approverTypes, setApproverTypes] = useState({});
-  const [roles, setRoles] = useState([]);
+  const [positions, setPositions] = useState([]);
   const [flows, setFlows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pageErrorText, setPageErrorText] = useState("");
@@ -89,13 +81,13 @@ export default function ApprovalSettingsTab() {
     message: "",
   });
 
-  const roleMap = useMemo(
+  const positionMap = useMemo(
     () =>
-      roles.reduce((result, role) => {
-        result[String(role.role_id)] = role;
+      positions.reduce((result, position) => {
+        result[String(position.position_id)] = position;
         return result;
       }, {}),
-    [roles],
+    [positions],
   );
 
   useEffect(() => {
@@ -121,14 +113,18 @@ export default function ApprovalSettingsTab() {
             ? data.approver_types
             : {},
         );
-        setRoles(Array.isArray(data?.roles) ? data.roles : []);
+        setPositions(
+          Array.isArray(data?.positions)
+            ? data.positions
+            : [],
+        );
         setFlows(Array.isArray(data?.flows) ? data.flows : []);
       } catch (error) {
         if (!active) return;
 
         setRequestTypes({});
         setApproverTypes({});
-        setRoles([]);
+        setPositions([]);
         setFlows([]);
         setPageErrorText(getErrorMessage(error, "載入簽核設定失敗。"));
       } finally {
@@ -149,7 +145,7 @@ export default function ApprovalSettingsTab() {
     const nextSteps =
       Array.isArray(flow?.steps) && flow.steps.length > 0
         ? flow.steps.map(normalizeStep)
-        : [{ approver_type: "direct_supervisor", role_id: "" }];
+        : [{ approver_type: "direct_supervisor", position_id: "" }];
 
     setRequestType(String(flow?.request_type || ""));
     setSteps(nextSteps);
@@ -174,7 +170,10 @@ export default function ApprovalSettingsTab() {
         stepIndex === index
           ? {
               approver_type: value,
-              role_id: value === "system_role" ? step.role_id : "",
+              position_id:
+                value === "job_position"
+                  ? step.position_id
+                  : "",
             }
           : step,
       ),
@@ -183,13 +182,13 @@ export default function ApprovalSettingsTab() {
     setDialogErrorText("");
   };
 
-  const handleStepRoleChange = (index, value) => {
+  const handleStepPositionChange = (index, value) => {
     setSteps((current) =>
       current.map((step, stepIndex) =>
         stepIndex === index
           ? {
               ...step,
-              role_id: value,
+              position_id: value,
             }
           : step,
       ),
@@ -203,7 +202,7 @@ export default function ApprovalSettingsTab() {
       ...current,
       {
         approver_type: "direct_supervisor",
-        role_id: "",
+        position_id: "",
       },
     ]);
 
@@ -243,21 +242,21 @@ export default function ApprovalSettingsTab() {
   const handleSave = async () => {
     if (!requestType || saving) return;
 
-    const invalidRoleStep = steps.find(
+    const invalidPositionStep = steps.find(
       (step) =>
-        step.approver_type === "system_role" &&
-        !String(step.role_id || "").trim(),
+        step.approver_type === "job_position" &&
+        !String(step.position_id || "").trim(),
     );
 
-    if (invalidRoleStep) {
-      setDialogErrorText("使用「指定系統角色」時，請選擇系統角色。");
+    if (invalidPositionStep) {
+      setDialogErrorText("使用「指定職位」時，請選擇職位。");
       return;
     }
 
     const payloadSteps = steps.map((step) => ({
       approver_type: step.approver_type,
-      ...(step.approver_type === "system_role"
-        ? { role_id: Number(step.role_id) }
+      ...(step.approver_type === "job_position"
+        ? { position_id: Number(step.position_id) }
         : {}),
     }));
 
@@ -311,13 +310,15 @@ export default function ApprovalSettingsTab() {
       return approverTypes?.direct_supervisor || "直屬主管";
     }
 
-    if (approverType === "system_role") {
-      const role = roleMap[String(step?.role_id || "")];
-      const roleText = role ? roleLabel(role) : "";
+    if (approverType === "job_position") {
+      const position =
+        positionMap[String(step?.position_id || "")];
+      const positionText =
+        position ? positionLabel(position) : "";
 
-      return roleText
-        ? `${approverTypes?.system_role || "指定系統角色"}（${roleText}）`
-        : approverTypes?.system_role || "指定系統角色";
+      return positionText
+        ? `${approverTypes?.job_position || "指定職位"}（${positionText}）`
+        : approverTypes?.job_position || "指定職位";
     }
 
     return approverTypes?.[approverType] || approverType || "-";
@@ -563,7 +564,7 @@ export default function ApprovalSettingsTab() {
                   gridTemplateColumns: {
                     xs: "1fr",
                     md:
-                      step.approver_type === "system_role"
+                      step.approver_type === "job_position"
                         ? "minmax(0, 1fr) minmax(0, 1fr)"
                         : "minmax(0, 1fr)",
                   },
@@ -588,24 +589,27 @@ export default function ApprovalSettingsTab() {
                   ))}
                 </TextField>
 
-                {step.approver_type === "system_role" ? (
+                {step.approver_type === "job_position" ? (
                   <TextField
                     select
-                    label="系統角色"
-                    value={step.role_id}
+                    label="職位 / Job Position"
+                    value={step.position_id}
                     onChange={(event) =>
-                      handleStepRoleChange(index, event.target.value)
+                      handleStepPositionChange(
+                        index,
+                        event.target.value,
+                      )
                     }
                     size="small"
                     fullWidth
                     disabled={dialogMode === "view" || saving}
                   >
-                    {roles.map((role) => (
+                    {positions.map((position) => (
                       <MenuItem
-                        key={role.role_id}
-                        value={String(role.role_id)}
+                        key={position.position_id}
+                        value={String(position.position_id)}
                       >
-                        {roleLabel(role)}
+                        {positionLabel(position)}
                       </MenuItem>
                     ))}
                   </TextField>

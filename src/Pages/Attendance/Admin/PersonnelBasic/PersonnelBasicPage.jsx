@@ -137,12 +137,6 @@ const INITIAL_CREATE_DATA = {
     entry_date: "",
     remarks: "",
   },
-  account: {
-    username: "",
-    password: "",
-    confirm_password: "",
-    role_id: "",
-  },
 };
 
 const TABLE_COLUMNS = [
@@ -240,7 +234,6 @@ export default function PersonnelBasicPage() {
     units: [],
     positions: [],
     employees: [],
-    roles: [],
   });
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -305,7 +298,6 @@ export default function PersonnelBasicPage() {
           employees: Array.isArray(data?.meta?.employees)
             ? data.meta.employees
             : [],
-          roles: Array.isArray(data?.meta?.roles) ? data.meta.roles : [],
         });
       } catch (error) {
         console.error(error);
@@ -393,12 +385,6 @@ export default function PersonnelBasicPage() {
         contact: data?.contact || {},
         military: data?.military || {},
         job: data?.job || {},
-        account: {
-          ...(data?.account || {}),
-          role_id: String(data?.role?.role_id || ""),
-          new_password: "",
-          confirm_password: "",
-        },
       });
     } catch (error) {
       console.error(error);
@@ -409,20 +395,12 @@ export default function PersonnelBasicPage() {
   };
 
   const handleOpenCreate = () => {
-    const employeeRole = (Array.isArray(meta.roles) ? meta.roles : []).find(
-      (role) => role.role_code === "employee",
-    );
-
     setCreateErrorText("");
     setCreateData({
       employee: { ...INITIAL_CREATE_DATA.employee },
       job: { ...INITIAL_CREATE_DATA.job },
       contact: { ...INITIAL_CREATE_DATA.contact },
       military: { ...INITIAL_CREATE_DATA.military },
-      account: {
-        ...INITIAL_CREATE_DATA.account,
-        role_id: String(employeeRole?.role_id || ""),
-      },
     });
   };
 
@@ -455,28 +433,6 @@ export default function PersonnelBasicPage() {
       return;
     }
 
-    if (!String(createData?.account?.role_id || "").trim()) {
-      setCreateErrorText("帳號角色為必填。");
-      return;
-    }
-
-    if (!String(createData?.account?.username || "").trim()) {
-      setCreateErrorText("HRMS 帳號的使用者名稱為必填。");
-      return;
-    }
-
-    if (!String(createData?.account?.password || "")) {
-      setCreateErrorText("HRMS 帳號的密碼為必填。");
-      return;
-    }
-
-    if (
-      createData?.account?.password !== createData?.account?.confirm_password
-    ) {
-      setCreateErrorText("密碼與確認密碼不一致。");
-      return;
-    }
-
     setCreating(true);
     setCreateErrorText("");
 
@@ -486,11 +442,6 @@ export default function PersonnelBasicPage() {
         job: createData.job,
         contact: createData.contact,
         military: createData.military,
-        account: {
-          username: createData.account.username,
-          password: createData.account.password,
-          role_id: createData.account.role_id,
-        },
       });
 
       setCreateData(null);
@@ -499,7 +450,7 @@ export default function PersonnelBasicPage() {
       setSuccessDialog({
         open: true,
         title: "建立成功",
-        message: "員工及 HRMS 帳號已建立。",
+        message: "員工資料已建立。",
       });
     } catch (error) {
       console.error(error);
@@ -532,19 +483,6 @@ export default function PersonnelBasicPage() {
       return;
     }
 
-    if (!String(editData?.account?.role_id || "").trim()) {
-      setEditErrorText("帳號角色為必填。");
-      return;
-    }
-
-    if (
-      editData?.account?.new_password &&
-      editData?.account?.new_password !== editData?.account?.confirm_password
-    ) {
-      setEditErrorText("新密碼與確認新密碼不一致。");
-      return;
-    }
-
     setSaving(true);
     setEditErrorText("");
 
@@ -553,10 +491,6 @@ export default function PersonnelBasicPage() {
         employee: editData.employee,
         contact: editData.contact,
         military: editData.military,
-        account: {
-          role_id: editData?.account?.role_id || "",
-          new_password: editData?.account?.new_password || "",
-        },
       });
 
       setEditData(null);
@@ -1503,80 +1437,6 @@ export default function PersonnelBasicPage() {
             />
           </Box>
         </DetailSection>
-
-        <DetailSection title="HRMS 帳號">
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: {
-                xs: "1fr",
-                sm: "repeat(2, minmax(0, 1fr))",
-              },
-              gap: "14px",
-            }}
-          >
-            <TextField
-              label="使用者名稱"
-              size="small"
-              required
-              value={createData?.account?.username || ""}
-              onChange={(event) =>
-                handleCreateChange("account", "username", event.target.value)
-              }
-            />
-
-            <Box />
-
-            <TextField
-              label="密碼"
-              type="password"
-              size="small"
-              required
-              value={createData?.account?.password || ""}
-              onChange={(event) =>
-                handleCreateChange("account", "password", event.target.value)
-              }
-            />
-
-            <TextField
-              label="確認密碼"
-              type="password"
-              size="small"
-              required
-              value={createData?.account?.confirm_password || ""}
-              onChange={(event) =>
-                handleCreateChange(
-                  "account",
-                  "confirm_password",
-                  event.target.value,
-                )
-              }
-            />
-          </Box>
-        </DetailSection>
-
-        <DetailSection title="帳號角色">
-          <TextField
-            select
-            fullWidth
-            required
-            label="帳號角色"
-            size="small"
-            value={createData?.account?.role_id || ""}
-            onChange={(event) =>
-              handleCreateChange("account", "role_id", event.target.value)
-            }
-            helperText="帳號角色決定此帳號可使用的系統功能與管理權限，請依實際職責選擇。"
-          >
-            <MenuItem value="">-- 請選擇 --</MenuItem>
-
-            {meta.roles.map((role) => (
-              <MenuItem key={role.role_id} value={String(role.role_id)}>
-                {role.role_name}
-              </MenuItem>
-            ))}
-          </TextField>
-        </DetailSection>
       </FormDialog>
 
       <FormDialog
@@ -2370,77 +2230,6 @@ export default function PersonnelBasicPage() {
               sx={{ gridColumn: { sm: "1 / -1" } }}
             />
           </Box>
-        </DetailSection>
-        <DetailSection title="HRMS 帳號">
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: {
-                xs: "1fr",
-                sm: "repeat(2, minmax(0, 1fr))",
-              },
-              gap: "14px",
-            }}
-          >
-            <TextField
-              label="使用者名稱"
-              size="small"
-              value={editData?.account?.username || ""}
-              slotProps={{
-                input: { readOnly: true },
-              }}
-            />
-
-            <Box />
-
-            <TextField
-              label="新密碼"
-              type="password"
-              size="small"
-              value={editData?.account?.new_password || ""}
-              onChange={(event) =>
-                handleEditChange("account", "new_password", event.target.value)
-              }
-              helperText="如不需變更密碼，請留空。"
-            />
-
-            <TextField
-              label="確認新密碼"
-              type="password"
-              size="small"
-              value={editData?.account?.confirm_password || ""}
-              onChange={(event) =>
-                handleEditChange(
-                  "account",
-                  "confirm_password",
-                  event.target.value,
-                )
-              }
-            />
-          </Box>
-        </DetailSection>
-
-        <DetailSection title="帳號角色">
-          <TextField
-            select
-            fullWidth
-            required
-            label="帳號角色"
-            size="small"
-            value={editData?.account?.role_id || ""}
-            onChange={(event) =>
-              handleEditChange("account", "role_id", event.target.value)
-            }
-            helperText="帳號角色決定此帳號可使用的系統功能與管理權限，請依實際職責選擇。"
-          >
-            <MenuItem value="">-- 請選擇 --</MenuItem>
-
-            {meta.roles.map((role) => (
-              <MenuItem key={role.role_id} value={String(role.role_id)}>
-                {role.role_name}
-              </MenuItem>
-            ))}
-          </TextField>
         </DetailSection>
       </FormDialog>
 

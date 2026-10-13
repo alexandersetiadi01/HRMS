@@ -307,20 +307,10 @@ export default function AttendancePendingApproval() {
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [deleteTargetRow, setDeleteTargetRow] = useState(null);
 
-  const isEmployee = !!actor?.is_employee_position;
+  const canManageLeaveBalance =
+    actor?.can_manage_leave_balance === true;
 
   const employeeOptions = useMemo(() => {
-    if (isEmployee) {
-      return [
-        {
-          value: actor?.employee_id
-            ? String(actor.employee_id)
-            : "self-employee",
-          label: actor?.applicant_label || "-",
-        },
-      ];
-    }
-
     const uniqueMap = new Map();
     rows.forEach((row) => {
       const id = String(row?.employee_id || "").trim();
@@ -332,12 +322,12 @@ export default function AttendancePendingApproval() {
     });
 
     return [{ value: "", label: "請選擇" }, ...Array.from(uniqueMap.values())];
-  }, [actor, isEmployee, rows]);
+  }, [rows]);
 
   const filteredData = useMemo(() => {
     let list = [...rows];
 
-    if (!isEmployee && employee) {
+    if (employee) {
       list = list.filter((row) => String(row.employee_id) === String(employee));
     }
 
@@ -351,7 +341,7 @@ export default function AttendancePendingApproval() {
     }
 
     return list;
-  }, [rows, isEmployee, employee, formType, searchKeyword]);
+  }, [rows, employee, formType, searchKeyword]);
 
   const allIds = useMemo(
     () => filteredData.map((row) => getRowKey(row)),
@@ -386,15 +376,6 @@ export default function AttendancePendingApproval() {
 
       setActor(actorData);
       setRows(mapItemsFromResponse(approvalData));
-
-      if (actorData?.is_employee_position) {
-        setUnit(actorData.unit_id ? String(actorData.unit_id) : "self-unit");
-        setEmployee(
-          actorData.employee_id
-            ? String(actorData.employee_id)
-            : "self-employee",
-        );
-      }
     } catch (error) {
       console.error(error);
       setErrorText(getErrorMessage(error, "載入待審核資料失敗。"));
@@ -418,15 +399,6 @@ export default function AttendancePendingApproval() {
   };
 
   const handleClear = () => {
-    if (isEmployee) {
-      setFormType("all");
-      setSearchText("");
-      setSearchKeyword("");
-      setSelectedIds([]);
-      setSearchTrigger((prev) => prev + 1);
-      return;
-    }
-
     setUnit("");
     setEmployee("");
     setFormType("all");

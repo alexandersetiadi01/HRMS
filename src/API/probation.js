@@ -54,6 +54,48 @@ export async function submitProbationEvaluation(
   return unwrapData(response, null);
 }
 
+export async function getProbationSignatureAssets() {
+  const response = await http.get(
+    "/attendance/probation/signatures",
+  );
+
+  const data = unwrapData(response, []);
+
+  return Array.isArray(data) ? data : [];
+}
+
+export async function uploadProbationSignature(file) {
+  const formData = new FormData();
+
+  formData.append("signature", file);
+
+  const response = await http.post(
+    "/attendance/probation/signatures",
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    },
+  );
+
+  return unwrapData(response, null);
+}
+
+export async function signProbationApproval(
+  caseId,
+  month,
+  role,
+  payload = {},
+) {
+  const response = await http.put(
+    `/attendance/probation/${caseId}/evaluation/${Number(month)}/approvals/${role}`,
+    payload,
+  );
+
+  return unwrapData(response, null);
+}
+
 export async function createProbation(payload = {}) {
   const response = await http.post(
     "/attendance/probation",

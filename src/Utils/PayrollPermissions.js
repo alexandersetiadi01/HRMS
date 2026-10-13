@@ -154,26 +154,27 @@ export function getPayrollPermissionCodes(
 export function hasPayrollOverride(
   authUser,
 ) {
-  return (
-    authUser?.can_manage_payroll ===
-    true
-  );
+  return authUser?.is_admin_access === true;
 }
 
 export function hasPayrollPermission(
   authUser,
   permissionCode,
 ) {
-  if (hasPayrollOverride(authUser)) {
-    return true;
-  }
-
   const normalizedCode = String(
     permissionCode || "",
   ).trim();
 
   if (!normalizedCode) {
     return false;
+  }
+
+  if (
+    normalizedCode ===
+      "payroll_permissions_manage" &&
+    hasPayrollOverride(authUser)
+  ) {
+    return true;
   }
 
   return getPayrollPermissionCodes(
@@ -185,10 +186,6 @@ export function hasAnyPayrollPermission(
   authUser,
   permissionCodes = [],
 ) {
-  if (hasPayrollOverride(authUser)) {
-    return true;
-  }
-
   const requiredCodes = Array.isArray(
     permissionCodes,
   )
@@ -197,6 +194,15 @@ export function hasAnyPayrollPermission(
 
   if (requiredCodes.length === 0) {
     return false;
+  }
+
+  if (
+    requiredCodes.includes(
+      "payroll_permissions_manage",
+    ) &&
+    hasPayrollOverride(authUser)
+  ) {
+    return true;
   }
 
   const userCodes = new Set(
@@ -225,10 +231,6 @@ export function canViewPayrollNavigationItem(
   authUser,
   item,
 ) {
-  if (hasPayrollOverride(authUser)) {
-    return true;
-  }
-
   const requiredPermissions =
     PAYROLL_NAVIGATION_PERMISSION_MAP[
       item?.id
@@ -246,10 +248,6 @@ export function filterPayrollNavigation(
 ) {
   if (!Array.isArray(navigation)) {
     return [];
-  }
-
-  if (hasPayrollOverride(authUser)) {
-    return navigation;
   }
 
   return navigation

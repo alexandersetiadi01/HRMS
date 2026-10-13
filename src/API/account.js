@@ -29,6 +29,47 @@ export function getCurrentEmployeeId() {
   );
 }
 
+export async function fetchHrmsAccounts() {
+  const response = await http.get("/accounts");
+
+  return safeArray(unwrap(response, []));
+}
+
+export async function createHrmsAccount(payload = {}) {
+  const response = await http.post("/accounts", payload);
+
+  return unwrap(response, {});
+}
+
+export async function updateHrmsAccount(employeeId, payload = {}) {
+  const response = await http.put(
+    `/accounts/${Number(employeeId)}`,
+    payload,
+  );
+
+  return unwrap(response, {});
+}
+
+export async function deleteHrmsAccount(employeeId) {
+  const response = await http.delete(
+    `/accounts/${Number(employeeId)}`,
+  );
+
+  return unwrap(response, {});
+}
+
+export async function fetchHrmsAccountSystemRoles() {
+  const roles = await safeGet("/system-roles", []);
+
+  return safeArray(roles).filter((role) =>
+    ["user", "admin"].includes(
+      String(role?.role_code || "")
+        .trim()
+        .toLowerCase(),
+    ),
+  );
+}
+
 export async function fetchMyAccountProfile() {
   const employeeId = getCurrentEmployeeId();
 
@@ -45,7 +86,7 @@ export async function fetchMyAccountProfile() {
     certificates,
     experiences,
     jobRecords,
-    systemRoleLinks,
+    accountSystemRoles,
     units,
     positions,
     systemRoles,
@@ -58,7 +99,7 @@ export async function fetchMyAccountProfile() {
     safeGet(`/employees/${employeeId}/certificates`, []),
     safeGet(`/employees/${employeeId}/experiences`, []),
     safeGet(`/employee-job-records?employee_id=${employeeId}`, []),
-    safeGet(`/employee-system-roles?employee_id=${employeeId}`, []),
+    safeGet(`/account-system-roles?employee_id=${employeeId}`, []),
     safeGet("/org-units", []),
     safeGet("/positions", []),
     safeGet("/system-roles", []),
@@ -74,7 +115,7 @@ export async function fetchMyAccountProfile() {
     certificates: safeArray(certificates),
     experiences: safeArray(experiences),
     jobRecords: safeArray(jobRecords),
-    systemRoleLinks: safeArray(systemRoleLinks),
+    accountSystemRoles: safeArray(accountSystemRoles),
     lookups: {
       units: safeArray(units),
       positions: safeArray(positions),

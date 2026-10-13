@@ -38,32 +38,24 @@ function getErrorMessage(error, fallback) {
   );
 }
 
-function roleLabel(role = {}) {
-  const roleCode = String(role?.role_code || "").trim();
+function positionLabel(position = {}) {
+  const name = String(position?.position_name || "").trim();
+  const code = String(position?.position_code || "").trim();
 
-  const labels = {
-    admin: "行政",
-    manager: "管理者",
-    supervisor: "主管",
-    employee: "員工",
-  };
+  if (!name) return code;
 
-  const translated = labels[roleCode];
-
-  if (!translated) {
-    return role?.role_name || roleCode || "";
-  }
-
-  return `${translated} - ${roleCode}`;
+  return code && code !== name
+    ? `${name} - ${code}`
+    : name;
 }
 
 export default function PermissionSettingsTab() {
-  const [roles, setRoles] = useState([]);
+  const [positions, setPositions] = useState([]);
   const [permissions, setPermissions] = useState([]);
-  const [roleId, setRoleId] = useState("");
+  const [positionId, setPositionId] = useState("");
   const [permissionCodes, setPermissionCodes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [roleLoading, setRoleLoading] = useState(false);
+  const [positionLoading, setPositionLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [errorText, setErrorText] = useState("");
   const [successDialog, setSuccessDialog] = useState({
@@ -85,23 +77,27 @@ export default function PermissionSettingsTab() {
 
         if (!active) return;
 
-        const nextRoles = Array.isArray(data?.roles) ? data.roles : [];
+        const nextPositions = Array.isArray(data?.positions)
+          ? data.positions
+          : [];
         const nextPermissions = Array.isArray(data?.permissions)
           ? data.permissions
           : [];
 
-        setRoles(nextRoles);
+        setPositions(nextPositions);
         setPermissions(nextPermissions);
 
-        if (nextRoles.length > 0) {
-          setRoleId(String(nextRoles[0].role_id));
+        if (nextPositions.length > 0) {
+          setPositionId(String(nextPositions[0].position_id));
+        } else {
+          setPositionId("");
         }
       } catch (error) {
         if (!active) return;
 
-        setRoles([]);
+        setPositions([]);
         setPermissions([]);
-        setRoleId("");
+        setPositionId("");
         setPermissionCodes([]);
         setErrorText(
           getErrorMessage(error, "無法載入權限設定資料。"),
@@ -121,19 +117,19 @@ export default function PermissionSettingsTab() {
   }, []);
 
   useEffect(() => {
-    if (!roleId) {
+    if (!positionId) {
       setPermissionCodes([]);
       return undefined;
     }
 
     let active = true;
 
-    const loadRolePermissions = async () => {
-      setRoleLoading(true);
+    const loadPositionPermissions = async () => {
+      setPositionLoading(true);
       setErrorText("");
 
       try {
-        const response = await apiAttendancePermissionSetting(roleId);
+        const response = await apiAttendancePermissionSetting(positionId);
         const data = unwrapData(response, {});
 
         if (!active) return;
@@ -148,21 +144,21 @@ export default function PermissionSettingsTab() {
 
         setPermissionCodes([]);
         setErrorText(
-          getErrorMessage(error, "無法載入角色權限。"),
+          getErrorMessage(error, "無法載入職位權限。"),
         );
       } finally {
         if (active) {
-          setRoleLoading(false);
+          setPositionLoading(false);
         }
       }
     };
 
-    loadRolePermissions();
+    loadPositionPermissions();
 
     return () => {
       active = false;
     };
-  }, [roleId]);
+  }, [positionId]);
 
   const permissionGroups = useMemo(() => {
     const groups = new Map();
@@ -197,14 +193,14 @@ export default function PermissionSettingsTab() {
   };
 
   const handleSave = async () => {
-    if (!roleId || saving) return;
+    if (!positionId || saving) return;
 
     setSaving(true);
     setErrorText("");
 
     try {
       const response = await apiUpdateAttendancePermissionSetting(
-        roleId,
+        positionId,
         permissionCodes,
       );
       const data = unwrapData(response, {});
@@ -288,23 +284,23 @@ export default function PermissionSettingsTab() {
           <Box>
             <TextField
               select
-              label="角色"
-              value={roleId}
+              label="職位 / Job Position"
+              value={positionId}
               onChange={(event) => {
-                setRoleId(event.target.value);
+                setPositionId(event.target.value);
                 setPermissionCodes([]);
                 setErrorText("");
               }}
               size="small"
               fullWidth
-              disabled={roleLoading || saving}
+              disabled={positionLoading || saving}
             >
-              {roles.map((role) => (
+              {positions.map((position) => (
                 <MenuItem
-                  key={role.role_id}
-                  value={String(role.role_id)}
+                  key={position.position_id}
+                  value={String(position.position_id)}
                 >
-                  {roleLabel(role)}
+                  {positionLabel(position)}
                 </MenuItem>
               ))}
             </TextField>
@@ -318,7 +314,7 @@ export default function PermissionSettingsTab() {
               borderRadius: "8px",
             }}
           >
-            {roleLoading ? (
+            {positionLoading ? (
               <Box
                 sx={{
                   minHeight: "260px",
@@ -420,7 +416,7 @@ export default function PermissionSettingsTab() {
           <Button
             variant="contained"
             onClick={handleSave}
-            disabled={!roleId || roleLoading || saving}
+            disabled={!positionId || positionLoading || saving}
           >
             {saving ? "儲存中..." : "儲存"}
           </Button>

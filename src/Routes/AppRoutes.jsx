@@ -17,6 +17,7 @@ import FormManagementPage from "../Pages/Attendance/Admin/FormManagement/FormMan
 import LeaveHoursManagement from "../Pages/Attendance/Admin/LeaveHoursManagement/LeaveHoursManagement";
 import ModuleSettingPage from "../Pages/Attendance/Admin/ModuleSetting/ModuleSettingPage";
 import PersonnelBasicPage from "../Pages/Attendance/Admin/PersonnelBasic/PersonnelBasicPage";
+import AccountManagementPage from "../Pages/Attendance/Admin/AccountManagement/AccountManagementPage";
 import ProbationManagementPage from "../Pages/Attendance/Admin/Probation/ProbationManagementPage";
 import ProbationDetailPage from "../Pages/Attendance/Admin/Probation/ProbationDetailPage";
 import ProbationEvaluationPage from "../Pages/Attendance/Admin/Probation/ProbationEvaluationPage";
@@ -48,6 +49,7 @@ import Settings from "../Pages/Settings/Settings";
 import MenuShortcuts from "../Pages/Settings/MenuShortcut";
 import RequireAuth from "./RequireAuth";
 import RequireAttendancePermission from "./RequireAttendancePermission";
+import RequireAdminAccess from "./RequireAdminAccess";
 import RequireScheduleManagementAccess from "./RequireScheduleManagementAccess";
 import RequirePayrollAdmin from "./RequirePayrollAdmin";
 import RequirePayrollPermission, {
@@ -465,6 +467,14 @@ export default function AppRoutes() {
             <RequireAttendancePermission permission="attendance_personnel_basic_manage">
               <PersonnelBasicPage />
             </RequireAttendancePermission>
+          }
+        />
+        <Route
+          path="/attendance/admin/account-management"
+          element={
+            <RequireAdminAccess>
+              <AccountManagementPage />
+            </RequireAdminAccess>
           }
         />
         <Route

@@ -19,8 +19,6 @@ import FormDialog from "../../../Components/FormDialog";
 import SuccessDialog from "../../../Components/SuccessDialog";
 import Breadcrumb from "../../../Utils/Breadcrumb";
 import {
-  getAuthUserSystemRole,
-  getAuthUserWordPressRoles,
   getScheduleManagerUnitIds,
 } from "../../../Utils/AttendancePermissions";
 import ResponsiveAttendanceTable from "../AttendanceForm/ResponsiveAttendanceTable";
@@ -109,13 +107,8 @@ export default function ShiftApprovalPage() {
     () => getScheduleManagerUnitIds(authUser),
     [authUser],
   );
-  const systemRole = getAuthUserSystemRole(authUser);
-  const wordpressRoles = getAuthUserWordPressRoles(authUser);
-  const hasGlobalScheduleAccess =
-    systemRole === "admin" ||
-    wordpressRoles.includes("administrator") ||
-    wordpressRoles.includes("hrms_admin");
-  const restrictScheduleUnits = !hasGlobalScheduleAccess;
+  const restrictScheduleUnits =
+    authUser?.is_admin_access !== true;
 
   const [unitOptions, setUnitOptions] = useState([]);
   const [employeeOptions, setEmployeeOptions] = useState([]);

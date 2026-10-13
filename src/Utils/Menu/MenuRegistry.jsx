@@ -30,7 +30,9 @@ import CalculateOutlinedIcon from "@mui/icons-material/CalculateOutlined";
 import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 import BadgeOutlinedIcon from "@mui/icons-material/BadgeOutlined";
 import LoginOutlinedIcon from "@mui/icons-material/LoginOutlined";
+import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
 import PlaylistAddCheckIcon from "@mui/icons-material/PlaylistAddCheck";
+import { Box } from "@mui/material";
 
 export function renderMenuIcon(iconKey, { size = 52, color = "#2196d3" } = {}) {
   const sx = { fontSize: `${size}px`, color };
@@ -78,8 +80,23 @@ export function renderMenuIcon(iconKey, { size = 52, color = "#2196d3" } = {}) {
       return <TuneOutlinedIcon sx={sx} />;
     case "attendance-personnel-basic":
       return <BadgeOutlinedIcon sx={sx} />;
+    case "attendance-account-management":
+      return <AdminPanelSettingsOutlinedIcon sx={sx} />;
     case "attendance-probation":
-      return <FactCheckOutlinedIcon sx={sx} />;
+      return (
+        <Box
+          component="span"
+          sx={{
+            width: `${size}px`,
+            height: `${size}px`,
+            display: "inline-block",
+            color: sx?.color || "inherit",
+            WebkitMask: "url(/icons/probation.svg) center / contain no-repeat",
+            mask: "url(/icons/probation.svg) center / contain no-repeat",
+            bgcolor: "currentColor",
+          }}
+        />
+      );
     case "attendance-shift-import":
       return <LoginOutlinedIcon sx={sx} />;
     case "home-announcement":
@@ -349,6 +366,16 @@ export const MENU_ITEMS = [
     groups: ["attendance"],
     sectionKey: "manager",
     attendancePermission: "attendance_personnel_basic_manage",
+  },
+  {
+    id: "account-management",
+    label: "帳號管理",
+    to: "/attendance/admin/account-management",
+    iconKey: "attendance-account-management",
+    disable: false,
+    groups: ["attendance"],
+    sectionKey: "manager",
+    adminAccessOnly: true,
   },
   {
     id: "probation-management",

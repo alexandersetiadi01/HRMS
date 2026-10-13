@@ -26,8 +26,11 @@ import Breadcrumb from "../../../../Utils/Breadcrumb";
 import { apiAttendanceAdminMeta } from "../../../../API/attendance";
 import {
   getProbationEvaluation,
+  getProbationSignatureAssets,
   saveProbationDraft,
+  signProbationApproval,
   submitProbationEvaluation,
+  uploadProbationSignature,
 } from "../../../../API/probation";
 import { EVALUATION_STATUS } from "./probationConstants";
 import { calculateEvaluationSummary } from "./probationUtils";
@@ -37,6 +40,25 @@ const DARK_BLUE = "#176886";
 const LIGHT_BLUE = "#dbeaf6";
 const LIGHT_ORANGE = "#fbe4d5";
 const BORDER = "#9ca3af";
+
+const APPROVAL_ROLES = [
+  {
+    role: "evaluator",
+    label: "評核人員簽名",
+  },
+  {
+    role: "department_supervisor",
+    label: "部門主管簽名",
+  },
+  {
+    role: "hr",
+    label: "人事簽名",
+  },
+  {
+    role: "general_manager",
+    label: "總經理簽名",
+  },
+];
 
 function createEmptyItem() {
   return {
@@ -59,6 +81,16 @@ function formatDate(value) {
   if (!year || !month || !day) return text;
 
   return `${year}/${month}/${day}`;
+}
+
+function formatSignedDate(value) {
+  const text = String(value || "").trim();
+
+  if (!text) return "-";
+
+  return formatDate(
+    text.slice(0, 10),
+  ) || "-";
 }
 
 function validateFinishForm(form) {
@@ -134,6 +166,31 @@ function validateFinishForm(form) {
   }
 
   return "";
+}
+
+function createApprovalDrafts(data) {
+  return Object.fromEntries(
+    APPROVAL_ROLES.map(({ role }) => {
+      const approval =
+        data?.evaluation?.approvals?.[role] || {};
+
+      return [
+        role,
+        {
+          approval_role: role,
+          signature_type: approval.signature_type || "",
+          signature_text: approval.signature_text || "",
+          signature_image: approval.signature_image || "",
+          signed_at: approval.signed_at || "",
+          can_sign: Boolean(approval.can_sign),
+          pending_signature_asset_id: 0,
+          pending_file: null,
+          pending_preview: "",
+          is_dirty: false,
+        },
+      ];
+    }),
+  );
 }
 
 function createFormState(data) {
@@ -330,6 +387,21 @@ export default function ProbationEvaluationPage() {
   const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState(null);
 
+  const [signatureDialogRole, setSignatureDialogRole] = useState("");
+  const [signatureMode, setSignatureMode] = useState("text");
+  const [signatureText, setSignatureText] = useState("");
+  const [signatureAssets, setSignatureAssets] = useState([]);
+  const [selectedSignatureAssetId, setSelectedSignatureAssetId] =
+    useState(0);
+  const [approvalDrafts, setApprovalDrafts] = useState({});
+  const [dialogSignatureFile, setDialogSignatureFile] = useState(null);
+  const [dialogSignaturePreview, setDialogSignaturePreview] = useState("");
+  const [signatureAssetsLoading, setSignatureAssetsLoading] =
+    useState(false);
+  const [signatureUploading, setSignatureUploading] = useState(false);
+  const [signatureSaving, setSignatureSaving] = useState(false);
+  const [signatureError, setSignatureError] = useState("");
+
   const hasUnsavedChangesRef = useRef(false);
   const allowNavigationRef = useRef(false);
 
@@ -367,6 +439,7 @@ export default function ProbationEvaluationPage() {
 
         setData(result);
         setForm(initialForm);
+        setApprovalDrafts(createApprovalDrafts(result));
         setSavedFormSnapshot(JSON.stringify(initialForm));
         setExpandedMobileItemId(initialForm.items?.[0]?.item_id || "");
       } catch (error) {
@@ -420,10 +493,18 @@ export default function ProbationEvaluationPage() {
     [form],
   );
 
+  const hasUnsavedApprovalChanges =
+    Object.values(approvalDrafts).some(
+      (approval) => Boolean(approval?.is_dirty),
+    );
+
   const hasUnsavedChanges =
-    Boolean(form) &&
-    Boolean(savedFormSnapshot) &&
-    serializedForm !== savedFormSnapshot;
+    (
+      Boolean(form) &&
+      Boolean(savedFormSnapshot) &&
+      serializedForm !== savedFormSnapshot
+    ) ||
+    hasUnsavedApprovalChanges;
 
   useEffect(() => {
     hasUnsavedChangesRef.current = hasUnsavedChanges;
@@ -506,6 +587,264 @@ export default function ProbationEvaluationPage() {
     }));
   };
 
+  const loadSignatureAssets = async () => {
+    setSignatureAssetsLoading(true);
+    setSignatureError("");
+
+    try {
+      const assets =
+        await getProbationSignatureAssets();
+
+      setSignatureAssets(assets);
+    } catch (error) {
+      console.error(error);
+
+      setSignatureError(
+        error?.response?.data?.message ||
+          error?.message ||
+          "載入數位簽名失敗。",
+      );
+    } finally {
+      setSignatureAssetsLoading(false);
+    }
+  };
+
+  const clearDialogSignatureFile = () => {
+    if (dialogSignaturePreview) {
+      URL.revokeObjectURL(
+        dialogSignaturePreview,
+      );
+    }
+
+    setDialogSignatureFile(null);
+    setDialogSignaturePreview("");
+  };
+
+  const handleOpenSignatureDialog = async (role) => {
+    const approval =
+      approvalDrafts?.[role] ||
+      data?.evaluation?.approvals?.[role] ||
+      {};
+
+    const existingType =
+      approval.signature_type === "image"
+        ? "image"
+        : "text";
+
+    clearDialogSignatureFile();
+
+    setSignatureDialogRole(role);
+    setSignatureMode(existingType);
+    setSignatureText(
+      existingType === "text"
+        ? approval.signature_text || ""
+        : "",
+    );
+    setSelectedSignatureAssetId(
+      Number(
+        approval.pending_signature_asset_id ||
+          0,
+      ),
+    );
+    setSignatureError("");
+
+    if (existingType === "image") {
+      await loadSignatureAssets();
+    }
+  };
+
+  const handleCloseSignatureDialog = () => {
+    if (
+      signatureSaving ||
+      signatureUploading
+    ) {
+      return;
+    }
+
+    clearDialogSignatureFile();
+    setSignatureDialogRole("");
+    setSignatureError("");
+    setSelectedSignatureAssetId(0);
+  };
+
+  const handleSignatureModeChange = async (mode) => {
+    setSignatureMode(mode);
+    setSignatureError("");
+
+    if (
+      mode === "image" &&
+      signatureAssets.length === 0
+    ) {
+      await loadSignatureAssets();
+    }
+  };
+
+  const selectDialogSignatureFile = (file) => {
+    if (!file) return;
+
+    const allowedTypes = [
+      "image/png",
+      "image/jpeg",
+      "image/webp",
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      setSignatureError(
+        "數位簽名僅支援 PNG、JPG/JPEG 或 WebP 圖片。",
+      );
+      return;
+    }
+
+    clearDialogSignatureFile();
+
+    setDialogSignatureFile(file);
+    setDialogSignaturePreview(
+      URL.createObjectURL(file),
+    );
+    setSelectedSignatureAssetId(0);
+    setSignatureError("");
+  };
+
+  const handleSignatureUpload = (event) => {
+    const file =
+      event.target.files?.[0];
+
+    event.target.value = "";
+
+    selectDialogSignatureFile(file);
+  };
+
+  const handleSignatureDrop = (event) => {
+    event.preventDefault();
+
+    if (signatureSaving) {
+      return;
+    }
+
+    const file =
+      event.dataTransfer.files?.[0];
+
+    selectDialogSignatureFile(file);
+  };
+
+  const handleSignatureDragOver = (event) => {
+    event.preventDefault();
+
+    if (
+      signatureSaving ||
+      signatureUploading
+    ) {
+      event.dataTransfer.dropEffect = "none";
+      return;
+    }
+
+    event.dataTransfer.dropEffect = "copy";
+  };
+
+  const handleSaveSignature = () => {
+    if (!signatureDialogRole) return;
+
+    if (
+      signatureMode === "text" &&
+      !signatureText.trim()
+    ) {
+      setSignatureError(
+        "請輸入簽名姓名。",
+      );
+      return;
+    }
+
+    if (
+      signatureMode === "image" &&
+      !selectedSignatureAssetId &&
+      !dialogSignatureFile
+    ) {
+      setSignatureError(
+        "請選擇或上傳數位簽名。",
+      );
+      return;
+    }
+
+    const role = signatureDialogRole;
+
+    setApprovalDrafts((current) => {
+      const previous =
+        current?.[role] || {};
+
+      if (
+        previous.pending_preview &&
+        previous.pending_preview !==
+          dialogSignaturePreview
+      ) {
+        URL.revokeObjectURL(
+          previous.pending_preview,
+        );
+      }
+
+      let signatureImage =
+        previous.signature_image || "";
+
+      if (dialogSignaturePreview) {
+        signatureImage =
+          dialogSignaturePreview;
+      } else if (selectedSignatureAssetId) {
+        signatureImage =
+          signatureAssets.find(
+            (asset) =>
+              Number(
+                asset.signature_asset_id,
+              ) ===
+              Number(
+                selectedSignatureAssetId,
+              ),
+          )?.image || "";
+      }
+
+      return {
+        ...current,
+        [role]:
+          signatureMode === "image"
+            ? {
+                ...previous,
+                signature_type: "image",
+                signature_text: "",
+                signature_image:
+                  signatureImage,
+                signed_at: "",
+                pending_signature_asset_id:
+                  Number(
+                    selectedSignatureAssetId ||
+                      0,
+                  ),
+                pending_file:
+                  dialogSignatureFile,
+                pending_preview:
+                  dialogSignaturePreview,
+                is_dirty: true,
+              }
+            : {
+                ...previous,
+                signature_type: "text",
+                signature_text:
+                  signatureText.trim(),
+                signature_image: "",
+                signed_at: "",
+                pending_signature_asset_id: 0,
+                pending_file: null,
+                pending_preview: "",
+                is_dirty: true,
+              },
+      };
+    });
+
+    setDialogSignatureFile(null);
+    setDialogSignaturePreview("");
+    setSignatureDialogRole("");
+    setSelectedSignatureAssetId(0);
+    setSignatureError("");
+    setSuccessText("");
+  };
+
   const handleItemChange = (itemId, field, value) => {
     if (field === "weight") {
       if (
@@ -583,6 +922,68 @@ export default function ProbationEvaluationPage() {
     }
   };
 
+  const persistApprovalDrafts = async (
+    baseResult,
+  ) => {
+    let latestResult = baseResult;
+
+    for (const { role } of APPROVAL_ROLES) {
+      const approval =
+        approvalDrafts?.[role];
+
+      if (!approval?.is_dirty) {
+        continue;
+      }
+
+      let signatureAssetId =
+        Number(
+          approval.pending_signature_asset_id ||
+            0,
+        );
+
+      if (
+        approval.signature_type === "image" &&
+        approval.pending_file
+      ) {
+        const asset =
+          await uploadProbationSignature(
+            approval.pending_file,
+          );
+
+        if (!asset?.signature_asset_id) {
+          throw new Error(
+            "上傳數位簽名失敗。",
+          );
+        }
+
+        signatureAssetId =
+          Number(
+            asset.signature_asset_id,
+          );
+      }
+
+      latestResult =
+        await signProbationApproval(
+          caseId,
+          evaluationMonth,
+          role,
+          approval.signature_type === "image"
+            ? {
+                signature_type: "image",
+                signature_asset_id:
+                  signatureAssetId,
+              }
+            : {
+                signature_type: "text",
+                signature_text:
+                  approval.signature_text,
+              },
+        );
+    }
+
+    return latestResult;
+  };
+
   const buildPayload = () => ({
     ...form,
     evaluation_date: form.evaluation_date,
@@ -600,20 +1001,31 @@ export default function ProbationEvaluationPage() {
     }
 
     try {
-      const result = await saveProbationDraft(
-        caseId,
-        evaluationMonth,
-        buildPayload(),
-      );
+      const draftResult =
+        await saveProbationDraft(
+          caseId,
+          evaluationMonth,
+          buildPayload(),
+        );
 
-      const savedForm = createFormState(result);
+      const result =
+        await persistApprovalDrafts(
+          draftResult,
+        );
 
-      const savedSnapshot = JSON.stringify(savedForm);
+      const savedForm =
+        createFormState(result);
+
+      const savedSnapshot =
+        JSON.stringify(savedForm);
 
       hasUnsavedChangesRef.current = false;
 
       setData(result);
       setForm(savedForm);
+      setApprovalDrafts(
+        createApprovalDrafts(result),
+      );
       setSavedFormSnapshot(savedSnapshot);
 
       if (showSuccess) {
@@ -723,20 +1135,37 @@ export default function ProbationEvaluationPage() {
     setSuccessText("");
 
     try {
-      const result = await submitProbationEvaluation(
-        caseId,
-        evaluationMonth,
-        buildPayload(),
+      const draftResult =
+        await saveProbationDraft(
+          caseId,
+          evaluationMonth,
+          buildPayload(),
+        );
+
+      await persistApprovalDrafts(
+        draftResult,
       );
 
-      const submittedForm = createFormState(result);
+      const result =
+        await submitProbationEvaluation(
+          caseId,
+          evaluationMonth,
+          buildPayload(),
+        );
 
-      const submittedSnapshot = JSON.stringify(submittedForm);
+      const submittedForm =
+        createFormState(result);
+
+      const submittedSnapshot =
+        JSON.stringify(submittedForm);
 
       hasUnsavedChangesRef.current = false;
 
       setData(result);
       setForm(submittedForm);
+      setApprovalDrafts(
+        createApprovalDrafts(result),
+      );
       setSavedFormSnapshot(submittedSnapshot);
       setSubmitDialogOpen(false);
       setSuccessText("本次評核已標記為已完成。");
@@ -1881,66 +2310,173 @@ export default function ProbationEvaluationPage() {
               },
             }}
           >
-            {["評核人員簽名", "部門主管簽名", "人事簽名", "總經理簽名"].map(
-              (label) => (
-                <Box
-                  key={label}
-                  sx={{
-                    minWidth: 0,
-                    borderRight: `1px solid ${BORDER}`,
-                    borderBottom: `1px solid ${BORDER}`,
-                    bgcolor: "#ffffff",
-                  }}
-                >
+            {APPROVAL_ROLES.map(
+              ({ role, label }) => {
+                const approval =
+                  approvalDrafts?.[role] ||
+                  data?.evaluation?.approvals?.[role] ||
+                  {};
+
+                const hasTextSignature =
+                  approval.signature_type === "text" &&
+                  Boolean(
+                    approval.signature_text,
+                  );
+
+                const hasImageSignature =
+                  approval.signature_type === "image" &&
+                  Boolean(
+                    approval.signature_image,
+                  );
+
+                return (
                   <Box
+                    key={role}
                     sx={{
-                      minHeight: "34px",
-                      px: "8px",
-                      py: "7px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
+                      minWidth: 0,
+                      borderRight: `1px solid ${BORDER}`,
                       borderBottom: `1px solid ${BORDER}`,
-                      bgcolor: LIGHT_BLUE,
-                      fontSize: "12px",
-                      fontWeight: 700,
-                      color: "#334155",
-                      textAlign: "center",
-                    }}
-                  >
-                    {label}
-                  </Box>
-
-                  <Box
-                    sx={{
-                      display: "grid",
-                      gridTemplateColumns: "minmax(0, 1fr) 112px",
-                      minHeight: "82px",
+                      bgcolor: "#ffffff",
                     }}
                   >
                     <Box
                       sx={{
-                        minWidth: 0,
-                        minHeight: "82px",
-                        bgcolor: "#ffffff",
-                      }}
-                    />
-
-                    <Box
-                      sx={{
-                        minWidth: 0,
-                        p: "6px",
+                        minHeight: "34px",
+                        px: "8px",
+                        py: "7px",
                         display: "flex",
                         alignItems: "center",
-                        borderLeft: `1px solid ${BORDER}`,
-                        bgcolor: "#ffffff",
+                        justifyContent: "center",
+                        borderBottom: `1px solid ${BORDER}`,
+                        bgcolor: LIGHT_BLUE,
+                        fontSize: "12px",
+                        fontWeight: 700,
+                        color: "#334155",
+                        textAlign: "center",
                       }}
                     >
-                      <SheetInput type="date" value="" onChange={() => {}} />
+                      {label}
+                    </Box>
+
+                    <Box
+                      sx={{
+                        display: "grid",
+                        gridTemplateColumns:
+                          "minmax(0, 1fr) 112px",
+                        minHeight: "82px",
+                      }}
+                    >
+                      <ButtonBase
+                        disabled={!approval.can_sign}
+                        onClick={() =>
+                          handleOpenSignatureDialog(
+                            role,
+                          )
+                        }
+                        sx={{
+                          minWidth: 0,
+                          minHeight: "82px",
+                          px: "8px",
+                          py: "7px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          bgcolor: "#ffffff",
+                          textAlign: "center",
+                          "&:hover": {
+                            bgcolor:
+                              approval.can_sign
+                                ? "#f8fafc"
+                                : "#ffffff",
+                          },
+                          "&.Mui-disabled": {
+                            opacity: 1,
+                            cursor: "default",
+                          },
+                        }}
+                      >
+                        {hasImageSignature ? (
+                          <Box
+                            component="img"
+                            src={
+                              approval.signature_image
+                            }
+                            alt={label}
+                            sx={{
+                              maxWidth: "100%",
+                              maxHeight: "64px",
+                              objectFit: "contain",
+                            }}
+                          />
+                        ) : hasTextSignature ? (
+                          <Typography
+                            sx={{
+                              fontSize: "15px",
+                              fontWeight: 600,
+                              color: "#111827",
+                              overflowWrap: "anywhere",
+                            }}
+                          >
+                            {
+                              approval.signature_text
+                            }
+                          </Typography>
+                        ) : (
+                          <Typography
+                            sx={{
+                              fontSize: "12px",
+                              color: "#6b7280",
+                            }}
+                          >
+                            {approval.can_sign
+                              ? "點擊簽名"
+                              : "尚未簽署"}
+                          </Typography>
+                        )}
+                      </ButtonBase>
+
+                      <Box
+                        sx={{
+                          minWidth: 0,
+                          px: "6px",
+                          py: "7px",
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "4px",
+                          borderLeft: `1px solid ${BORDER}`,
+                          bgcolor: "#ffffff",
+                        }}
+                      >
+                        <Typography
+                          sx={{
+                            fontSize: "11px",
+                            fontWeight: 700,
+                            color: "#64748b",
+                          }}
+                        >
+                          簽署日期
+                        </Typography>
+
+                        <Typography
+                          sx={{
+                            fontSize: "12px",
+                            color: "#111827",
+                            textAlign: "center",
+                          }}
+                        >
+                          {approval.is_dirty
+                            ? "-"
+                            : formatSignedDate(
+                                approval.signed_at,
+                              )}
+                        </Typography>
+                      </Box>
                     </Box>
                   </Box>
-                </Box>
-              ),
+                );
+              },
             )}
           </Box>
 
@@ -2008,6 +2544,380 @@ export default function ProbationEvaluationPage() {
           送出
         </Button>
       </Box>
+
+      <Dialog
+        open={Boolean(signatureDialogRole)}
+        onClose={handleCloseSignatureDialog}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle
+          sx={{
+            fontSize: "18px",
+            fontWeight: 700,
+          }}
+        >
+          {
+            APPROVAL_ROLES.find(
+              (item) =>
+                item.role ===
+                signatureDialogRole,
+            )?.label
+          }
+        </DialogTitle>
+
+        <DialogContent>
+          {signatureError ? (
+            <Alert
+              severity="error"
+              sx={{ mb: "12px" }}
+            >
+              {signatureError}
+            </Alert>
+          ) : null}
+
+          <Box
+            sx={{
+              mb: "16px",
+              display: "grid",
+              gridTemplateColumns:
+                "repeat(2, minmax(0, 1fr))",
+              gap: "8px",
+            }}
+          >
+            <Button
+              variant={
+                signatureMode === "text"
+                  ? "contained"
+                  : "outlined"
+              }
+              disabled={
+                signatureSaving ||
+                signatureUploading
+              }
+              onClick={() =>
+                handleSignatureModeChange(
+                  "text",
+                )
+              }
+            >
+              輸入姓名
+            </Button>
+
+            <Button
+              variant={
+                signatureMode === "image"
+                  ? "contained"
+                  : "outlined"
+              }
+              disabled={
+                signatureSaving ||
+                signatureUploading
+              }
+              onClick={() =>
+                handleSignatureModeChange(
+                  "image",
+                )
+              }
+            >
+              使用數位簽名
+            </Button>
+          </Box>
+
+          {signatureMode === "text" ? (
+            <TextField
+              value={signatureText}
+              onChange={(event) =>
+                setSignatureText(
+                  event.target.value,
+                )
+              }
+              label="簽名姓名"
+              placeholder="輸入簽名姓名"
+              fullWidth
+              disabled={signatureSaving}
+            />
+          ) : (
+            <Box>
+              <Box
+                sx={{
+                  mb: "12px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "10px",
+                }}
+              >
+                <Typography
+                  sx={{
+                    fontSize: "14px",
+                    fontWeight: 700,
+                    color: "#334155",
+                  }}
+                >
+                  我的數位簽名
+                </Typography>
+
+                <Button
+                  component="label"
+                  variant="outlined"
+                  size="small"
+                  disabled={
+                    signatureSaving ||
+                    signatureUploading
+                  }
+                >
+                  ＋ 選擇新簽名
+
+                  <input
+                    hidden
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    onChange={
+                      handleSignatureUpload
+                    }
+                  />
+                </Button>
+              </Box>
+
+              {dialogSignaturePreview ? (
+                <Box
+                  sx={{
+                    mb: "12px",
+                    p: "10px",
+                    border: `2px solid ${BLUE}`,
+                    borderRadius: "8px",
+                    bgcolor: "#f0f9ff",
+                  }}
+                >
+                  <Typography
+                    sx={{
+                      mb: "8px",
+                      fontSize: "12px",
+                      fontWeight: 700,
+                      color: "#334155",
+                    }}
+                  >
+                    尚未儲存的新簽名
+                  </Typography>
+
+                  <Box
+                    component="img"
+                    src={dialogSignaturePreview}
+                    alt="新數位簽名預覽"
+                    sx={{
+                      width: "100%",
+                      height: "90px",
+                      objectFit: "contain",
+                    }}
+                  />
+
+                  <Typography
+                    sx={{
+                      mt: "6px",
+                      fontSize: "11px",
+                      color: "#64748b",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      textAlign: "center",
+                    }}
+                  >
+                    {dialogSignatureFile?.name || ""}
+                  </Typography>
+                </Box>
+              ) : null}
+
+              {signatureAssetsLoading ? (
+                <Box
+                  sx={{
+                    py: "28px",
+                    display: "flex",
+                    justifyContent: "center",
+                  }}
+                >
+                  <CircularProgress size={28} />
+                </Box>
+              ) : signatureAssets.length === 0 ? (
+                <Box
+                  onDrop={handleSignatureDrop}
+                  onDragOver={
+                    handleSignatureDragOver
+                  }
+                  sx={{
+                    py: "28px",
+                    px: "16px",
+                    border: "1px dashed #93c5fd",
+                    borderRadius: "8px",
+                    bgcolor: "#f8fbff",
+                    color: "#64748b",
+                    fontSize: "13px",
+                    textAlign: "center",
+                  }}
+                >
+                  <Typography
+                    sx={{
+                      mb: "4px",
+                      fontSize: "14px",
+                      fontWeight: 700,
+                      color: "#334155",
+                    }}
+                  >
+                    將數位簽名圖片拖曳到這裡
+                  </Typography>
+
+                  <Typography
+                    sx={{
+                      fontSize: "12px",
+                      color: "#64748b",
+                    }}
+                  >
+                    或使用右上方「＋ 上傳新簽名」
+                  </Typography>
+                </Box>
+              ) : (
+                <Box
+                  onDrop={handleSignatureDrop}
+                  onDragOver={
+                    handleSignatureDragOver
+                  }
+                  sx={{
+                    p: "10px",
+                    border: "1px dashed #cbd5e1",
+                    borderRadius: "8px",
+                    bgcolor: "#ffffff",
+                  }}
+                >
+                  <Typography
+                    sx={{
+                      mb: "10px",
+                      fontSize: "12px",
+                      color: "#64748b",
+                      textAlign: "center",
+                    }}
+                  >
+                    可將新的數位簽名圖片拖曳到此區域上傳
+                  </Typography>
+
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gridTemplateColumns: {
+                        xs: "1fr",
+                        sm: "repeat(2, minmax(0, 1fr))",
+                      },
+                      gap: "10px",
+                    }}
+                  >
+                  {signatureAssets.map(
+                    (asset) => {
+                      const assetId =
+                        Number(
+                          asset.signature_asset_id,
+                        );
+
+                      const selected =
+                        selectedSignatureAssetId ===
+                        assetId;
+
+                      return (
+                        <ButtonBase
+                          key={assetId}
+                          onClick={() => {
+                            clearDialogSignatureFile();
+                            setSelectedSignatureAssetId(
+                              assetId,
+                            );
+                          }}
+                          sx={{
+                            minHeight: "110px",
+                            p: "10px",
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "stretch",
+                            justifyContent: "center",
+                            gap: "8px",
+                            border: "2px solid",
+                            borderColor: selected
+                              ? BLUE
+                              : "#d1d5db",
+                            borderRadius: "8px",
+                            bgcolor: selected
+                              ? "#f0f9ff"
+                              : "#ffffff",
+                          }}
+                        >
+                          <Box
+                            component="img"
+                            src={asset.image}
+                            alt="數位簽名"
+                            sx={{
+                              width: "100%",
+                              height: "68px",
+                              objectFit: "contain",
+                            }}
+                          />
+
+                          <Typography
+                            sx={{
+                              fontSize: "11px",
+                              color: "#64748b",
+                              overflow: "hidden",
+                              textOverflow:
+                                "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {
+                              asset.original_filename
+                            }
+                          </Typography>
+                        </ButtonBase>
+                      );
+                    },
+                  )}
+                  </Box>
+                </Box>
+              )}
+            </Box>
+          )}
+        </DialogContent>
+
+        <DialogActions
+          sx={{
+            px: 3,
+            pb: 2.5,
+            gap: "8px",
+          }}
+        >
+          <Button
+            variant="outlined"
+            disabled={
+              signatureSaving ||
+              signatureUploading
+            }
+            onClick={
+              handleCloseSignatureDialog
+            }
+          >
+            取消
+          </Button>
+
+          <Button
+            variant="contained"
+            disabled={
+              signatureSaving ||
+              signatureUploading ||
+              signatureAssetsLoading
+            }
+            onClick={handleSaveSignature}
+          >
+            {signatureSaving
+              ? "簽核中..."
+              : "確認簽核"}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog
         open={submitDialogOpen}

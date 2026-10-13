@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Box, Typography } from "@mui/material";
 import {
-  apiGetPendingApprovalActor,
   apiOvertimeApplicationRecords,
 } from "../../../API/attendance";
+import { getStoredAuthUser } from "../../../API/auth";
+import { hasAttendancePermission } from "../../../Utils/AttendancePermissions";
 import {
   ActionButtons,
   SearchField,
@@ -73,9 +74,11 @@ export default function OvertimeRecord() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [errorText, setErrorText] = useState("");
-  const [actor, setActor] = useState(null);
 
-  const isEmployeeOnly = !!actor?.is_employee_position;
+  const isEmployeeOnly = !hasAttendancePermission(
+    getStoredAuthUser(),
+    "attendance_form_management_manage",
+  );
 
   const filteredRows = useMemo(() => {
     if (!searchKeyword.trim()) {
@@ -105,18 +108,11 @@ export default function OvertimeRecord() {
       setLoading(true);
       setErrorText("");
 
-      const [actorResponse, response] = await Promise.all([
-        apiGetPendingApprovalActor(),
-        apiOvertimeApplicationRecords({
-          year: Number(nextYear),
-          month: Number(nextMonth),
-          request_status: nextStatus === "all" ? undefined : nextStatus,
-        }),
-      ]);
-
-      const actorData =
-        actorResponse?.data?.data || actorResponse?.data || actorResponse || {};
-      setActor(actorData);
+      const response = await apiOvertimeApplicationRecords({
+        year: Number(nextYear),
+        month: Number(nextMonth),
+        request_status: nextStatus === "all" ? undefined : nextStatus,
+      });
 
       const payload = response?.data?.data || response?.data || response || {};
       const items = Array.isArray(payload?.items) ? payload.items : [];

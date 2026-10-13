@@ -10,6 +10,7 @@ import {
   ClickAwayListener,
   InputBase,
   Paper,
+  Switch,
   Typography,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
@@ -17,7 +18,11 @@ import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import { Outlet, useNavigate } from "react-router-dom";
 import Navbar from "../Components/Navbar/Navbar";
-import { getStoredAuthUser, logoutFromServer } from "../API/auth";
+import {
+  getStoredAuthUser,
+  logoutFromServer,
+  updateAccessMode,
+} from "../API/auth";
 import LocationConsentDialog from "../Components/LocationConsentDialog";
 import NotificationConsentDialog from "../Components/NotificationConsentDialog";
 import { shouldPromptLocationConsent } from "../Utils/LocationConsent";
@@ -29,6 +34,7 @@ function MainLayout() {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [authUser, setAuthUser] = useState(getStoredAuthUser());
+  const [accessModeSwitching, setAccessModeSwitching] = useState(false);
   const [locationConsentResolved, setLocationConsentResolved] = (
     useState(() => !shouldPromptLocationConsent())
   );
@@ -62,6 +68,30 @@ function MainLayout() {
   const handleLocationConsentResolved = useCallback(() => {
     setLocationConsentResolved(true);
   }, []);
+
+  async function handleAccessModeSwitch() {
+    if (
+      accessModeSwitching ||
+      !authUser?.can_switch_access_mode
+    ) {
+      return;
+    }
+
+    const nextMode = authUser?.is_admin_access
+      ? "normal"
+      : "admin";
+
+    setAccessModeSwitching(true);
+
+    try {
+      const nextUser = await updateAccessMode(nextMode);
+
+      setAuthUser(nextUser);
+      window.location.reload();
+    } finally {
+      setAccessModeSwitching(false);
+    }
+  }
 
   async function handleLogout() {
     try {
@@ -170,6 +200,39 @@ function MainLayout() {
             </Box>
 
             <NotificationBell />
+
+            {authUser?.can_switch_access_mode ? (
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  mr: "4px",
+                }}
+              >
+                <Typography
+                  sx={{
+                    fontSize: "12px",
+                    fontWeight: 600,
+                    color: "#374151",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {accessModeSwitching
+                    ? "切換中..."
+                    : authUser?.is_admin_access
+                      ? "管理員模式"
+                      : "一般模式"}
+                </Typography>
+
+                <Switch
+                  size="small"
+                  checked={authUser?.is_admin_access === true}
+                  disabled={accessModeSwitching}
+                  onChange={handleAccessModeSwitch}
+                />
+              </Box>
+            ) : null}
 
             <ClickAwayListener onClickAway={() => setMenuOpen(false)}>
               <Box

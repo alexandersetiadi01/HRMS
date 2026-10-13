@@ -1494,8 +1494,7 @@ export async function apiCreateLeaveEntitlementRequest(payload = {}) {
 }
 
 export async function apiLeaveApplicationMeta() {
-  const [actorRes, employeeRes, unitRes, jobRecordRes] = await Promise.all([
-    apiGetPendingApprovalActor().catch(() => ({ data: null })),
+  const [employeeRes, unitRes, jobRecordRes] = await Promise.all([
     http
       .get("/employees", {
         params: {
@@ -1510,7 +1509,6 @@ export async function apiLeaveApplicationMeta() {
       .catch(() => ({ data: { data: [] } })),
   ]);
 
-  const actor = unwrapData(actorRes, {}) || {};
   const employees = unwrapData(employeeRes, []) || [];
   const units = unwrapData(unitRes, []) || [];
   const jobRecords = unwrapData(jobRecordRes, []) || [];
@@ -1594,13 +1592,6 @@ export async function apiLeaveApplicationMeta() {
   );
 
   return {
-    actor: {
-      employee_id: Number(actor?.employee_id || 0),
-      unit_id: Number(actor?.unit_id || 0),
-      unit_name: String(actor?.unit_name || "").trim(),
-      position_name: String(actor?.position_name || "").trim(),
-      is_employee_position: !!actor?.is_employee_position,
-    },
     unitOptions,
     employeeOptions,
   };
@@ -1626,13 +1617,12 @@ export async function apiLeaveApplicationRecordList(params = {}) {
   const dateFrom = year ? `${Number(year)}-01-01` : "";
   const dateTo = year ? `${Number(year)}-12-31` : "";
 
-  const [res, actorRes, employeeRes, unitRes, jobRecordRes] = await Promise.all([
+  const [res, employeeRes, unitRes, jobRecordRes] = await Promise.all([
     apiLeaveRequests({
       employee_id: employeeId || undefined,
       request_status:
         request_status && request_status !== "all" ? request_status : undefined,
     }),
-    apiGetPendingApprovalActor().catch(() => ({ data: null })),
     http
       .get("/employees", {
         params: {
@@ -1674,7 +1664,6 @@ export async function apiLeaveApplicationRecordList(params = {}) {
     });
   }
 
-  const actor = unwrapData(actorRes, {}) || {};
   const employees = unwrapData(employeeRes, []) || [];
   const units = unwrapData(unitRes, []) || [];
   const jobRecords = unwrapData(jobRecordRes, []) || [];
@@ -1841,15 +1830,21 @@ export async function apiAttendancePermissionSettings() {
   return res.data;
 }
 
-export async function apiAttendancePermissionSetting(roleId) {
-  const res = await http.get(`/attendance/permission-settings/${roleId}`);
+export async function apiAttendancePermissionSetting(positionId) {
+  const res = await http.get(`/attendance/permission-settings/${positionId}`);
   return res.data;
 }
 
-export async function apiUpdateAttendancePermissionSetting(roleId, permissionCodes = []) {
-  const res = await http.put(`/attendance/permission-settings/${roleId}`, {
-    permission_codes: permissionCodes,
-  });
+export async function apiUpdateAttendancePermissionSetting(
+  positionId,
+  permissionCodes = [],
+) {
+  const res = await http.put(
+    `/attendance/permission-settings/${positionId}`,
+    {
+      permission_codes: permissionCodes,
+    },
+  );
 
   return res.data;
 }
@@ -2081,8 +2076,7 @@ export async function apiRejectOvertimeRequest(requestId, payload = {}) {
 }
 
 export async function apiOvertimeApplicationMeta() {
-  const [actorRes, employeeRes, unitRes, jobRecordRes] = await Promise.all([
-    apiGetPendingApprovalActor().catch(() => ({ data: null })),
+  const [employeeRes, unitRes, jobRecordRes] = await Promise.all([
     http
       .get("/employees", {
         params: {
@@ -2097,7 +2091,6 @@ export async function apiOvertimeApplicationMeta() {
       .catch(() => ({ data: { data: [] } })),
   ]);
 
-  const actor = unwrapData(actorRes, {}) || {};
   const employees = unwrapData(employeeRes, []) || [];
   const units = unwrapData(unitRes, []) || [];
   const jobRecords = unwrapData(jobRecordRes, []) || [];
@@ -2181,13 +2174,6 @@ export async function apiOvertimeApplicationMeta() {
   );
 
   return {
-    actor: {
-      employee_id: Number(actor?.employee_id || 0),
-      unit_id: Number(actor?.unit_id || 0),
-      unit_name: String(actor?.unit_name || "").trim(),
-      position_name: String(actor?.position_name || "").trim(),
-      is_employee_position: !!actor?.is_employee_position,
-    },
     unitOptions,
     employeeOptions,
   };
@@ -2230,13 +2216,12 @@ export async function apiOvertimeApplicationRecordList(params = {}) {
     date_to = `${y}-12-31`;
   }
 
-  const [res, actorRes, employeeRes, unitRes, jobRecordRes] = await Promise.all([
+  const [res, employeeRes, unitRes, jobRecordRes] = await Promise.all([
     apiOvertimeRequests({
       employee_id: employeeId || undefined,
       request_status:
         request_status && request_status !== "all" ? request_status : undefined,
     }),
-    apiGetPendingApprovalActor().catch(() => ({ data: null })),
     http
       .get("/employees", {
         params: {
@@ -2278,7 +2263,6 @@ export async function apiOvertimeApplicationRecordList(params = {}) {
     });
   }
 
-  const actor = unwrapData(actorRes, {}) || {};
   const employees = unwrapData(employeeRes, []) || [];
   const units = unwrapData(unitRes, []) || [];
   const jobRecords = unwrapData(jobRecordRes, []) || [];
@@ -2487,8 +2471,7 @@ export async function apiRejectMissedPunchRequest(requestId, payload = {}) {
 }
 
 export async function apiMissedPunchApplicationMeta() {
-  const [actorRes, employeeRes, unitRes, jobRecordRes] = await Promise.all([
-    apiGetPendingApprovalActor().catch(() => ({ data: null })),
+  const [employeeRes, unitRes, jobRecordRes] = await Promise.all([
     http
       .get("/employees", {
         params: {
@@ -2503,7 +2486,6 @@ export async function apiMissedPunchApplicationMeta() {
       .catch(() => ({ data: { data: [] } })),
   ]);
 
-  const actor = unwrapData(actorRes, {}) || {};
   const employees = unwrapData(employeeRes, []) || [];
   const units = unwrapData(unitRes, []) || [];
   const jobRecords = unwrapData(jobRecordRes, []) || [];
@@ -2587,13 +2569,6 @@ export async function apiMissedPunchApplicationMeta() {
   );
 
   return {
-    actor: {
-      employee_id: Number(actor?.employee_id || 0),
-      unit_id: Number(actor?.unit_id || 0),
-      unit_name: String(actor?.unit_name || "").trim(),
-      position_name: String(actor?.position_name || "").trim(),
-      is_employee_position: !!actor?.is_employee_position,
-    },
     unitOptions,
     employeeOptions,
   };
@@ -2632,7 +2607,7 @@ export async function apiMissedPunchApplicationRecordList(params = {}) {
     )}`;
   }
 
-  const [res, actorRes, employeeRes, unitRes, jobRecordRes] = await Promise.all([
+  const [res, employeeRes, unitRes, jobRecordRes] = await Promise.all([
     apiMissedPunchRequests({
       employee_id: employeeId || undefined,
       request_status:
@@ -2641,7 +2616,6 @@ export async function apiMissedPunchApplicationRecordList(params = {}) {
       date_to,
       use_current_employee,
     }),
-    apiGetPendingApprovalActor().catch(() => ({ data: null })),
     http
       .get("/employees", {
         params: {
@@ -2663,7 +2637,6 @@ export async function apiMissedPunchApplicationRecordList(params = {}) {
       ? payload
       : [];
 
-  const actor = unwrapData(actorRes, {}) || {};
   const employees = unwrapData(employeeRes, []) || [];
   const units = unwrapData(unitRes, []) || [];
   const jobRecords = unwrapData(jobRecordRes, []) || [];

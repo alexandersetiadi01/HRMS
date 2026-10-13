@@ -14,6 +14,8 @@ import {
   apiMissedPunchApplicationMeta,
   apiMissedPunchApplicationRecordList,
 } from "../../../../API/attendance";
+import { getStoredAuthUser } from "../../../../API/auth";
+import { hasAttendancePermission } from "../../../../Utils/AttendancePermissions";
 
 const STATUS_OPTIONS = [
   { value: "all", label: "全部" },
@@ -99,40 +101,30 @@ export default function ForgetTapping() {
           return;
         }
 
-        const actor = meta?.actor || {};
-        const positionName = String(actor?.position_name || "")
-          .trim()
-          .toLowerCase();
-        const unitName = String(actor?.unit_name || "")
-          .trim()
-          .toLowerCase();
-
-        const isManagerLike =
-          positionName.includes("manager") ||
-          positionName.includes("主管") ||
-          positionName.includes("經理") ||
-          positionName.includes("副理") ||
-          positionName.includes("協理") ||
-          positionName.includes("總監") ||
-          positionName.includes("director") ||
-          positionName.includes("supervisor") ||
-          positionName.includes("admin") ||
-          unitName.includes("管理");
-
-        const employeeOnly =
-          actor?.is_employee_position === true ? true : !isManagerLike;
+        const employeeOnly = !hasAttendancePermission(
+          getStoredAuthUser(),
+          "attendance_form_management_manage",
+        );
 
         setIsEmployeeOnly(employeeOnly);
 
-        setUnitOptions([
-          { value: "", label: "請選擇" },
-          ...(Array.isArray(meta?.unitOptions) ? meta.unitOptions : []),
-        ]);
+        setUnitOptions(
+          employeeOnly
+            ? [{ value: "", label: "請選擇" }]
+            : [
+                { value: "", label: "請選擇" },
+                ...(Array.isArray(meta?.unitOptions) ? meta.unitOptions : []),
+              ],
+        );
 
-        setEmployeeOptions([
-          { value: "", label: "請選擇" },
-          ...(Array.isArray(meta?.employeeOptions) ? meta.employeeOptions : []),
-        ]);
+        setEmployeeOptions(
+          employeeOnly
+            ? [{ value: "", label: "請選擇" }]
+            : [
+                { value: "", label: "請選擇" },
+                ...(Array.isArray(meta?.employeeOptions) ? meta.employeeOptions : []),
+              ],
+        );
       } catch (error) {
         if (!active) {
           return;

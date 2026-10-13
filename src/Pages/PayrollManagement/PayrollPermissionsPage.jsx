@@ -1,10 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Box,
@@ -19,16 +13,15 @@ import {
   Typography,
 } from "@mui/material";
 
-import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import SecurityOutlinedIcon from "@mui/icons-material/SecurityOutlined";
 
 import {
-  getPayrollPermissionRole,
-  getPayrollPermissionRoles,
+  getPayrollPermissionPosition,
+  getPayrollPermissionPositions,
   getPayrollPermissions,
-  updatePayrollPermissionRole,
+  updatePayrollPermissionPosition,
 } from "../../API/payroll";
 
 const PERMISSION_GROUP_ORDER = [
@@ -44,71 +37,45 @@ const PERMISSION_GROUP_ORDER = [
 const PERMISSION_GROUP_MAP = {
   payroll_view: "基本權限",
 
-  payroll_settings_manage:
-    "薪資設定",
+  payroll_settings_manage: "薪資設定",
 
-  payroll_calculate:
-    "薪資作業",
+  payroll_calculate: "薪資作業",
 
-  payroll_close:
-    "薪資作業",
+  payroll_close: "薪資作業",
 
-  payroll_approve:
-    "薪資作業",
+  payroll_approve: "薪資作業",
 
-  payroll_mark_paid:
-    "薪資作業",
+  payroll_mark_paid: "薪資作業",
 
-  payroll_reports_view:
-    "報表與查詢",
+  payroll_reports_view: "報表與查詢",
 
-  payroll_tax_insurance_manage:
-    "稅務與保險",
+  payroll_tax_insurance_manage: "稅務與保險",
 
-  payroll_permissions_manage:
-    "權限管理",
-};
-
-const ROLE_DISPLAY_NAME_MAP = {
-  hrms_admin: "人資管理員",
-  hrms_employee: "員工",
-  hrms_manager: "經理",
-  hrms_supervisor: "主管",
+  payroll_permissions_manage: "權限管理",
 };
 
 const PERMISSION_DESCRIPTION_MAP = {
-  payroll_view:
-    "檢視薪資批次、薪資結果與薪資明細。",
+  payroll_view: "檢視薪資批次、薪資結果與薪資明細。",
 
-  payroll_settings_manage:
-    "管理薪資範圍、計薪週期、薪資科目、銀行與計算規則。",
+  payroll_settings_manage: "管理薪資範圍、計薪週期、薪資科目、銀行與計算規則。",
 
-  payroll_calculate:
-    "建立薪資批次、執行計算及修改尚未核准的薪資結果。",
+  payroll_calculate: "建立薪資批次、執行計算及修改尚未核准的薪資結果。",
 
-  payroll_close:
-    "將已核准的薪資批次關帳。",
+  payroll_close: "將已核准的薪資批次關帳。",
 
-  payroll_approve:
-    "核准薪資批次及員工薪資結果。",
+  payroll_approve: "核准薪資批次及員工薪資結果。",
 
-  payroll_mark_paid:
-    "將員工薪資結果標記為已發放。",
+  payroll_mark_paid: "將員工薪資結果標記為已發放。",
 
-  payroll_reports_view:
-    "檢視及匯出人資薪資報表。",
+  payroll_reports_view: "檢視及匯出人資薪資報表。",
 
   payroll_tax_insurance_manage:
     "管理投保單位、投保身分、保險費率、所得稅及員工投保資料。",
 
-  payroll_permissions_manage:
-    "查看及修改各角色的薪資模組權限。",
+  payroll_permissions_manage: "查看及修改各職位的薪資模組權限。",
 };
 
-function getErrorMessage(
-  error,
-  fallback,
-) {
+function getErrorMessage(error, fallback) {
   return (
     error?.response?.data?.message ||
     error?.response?.data?.data?.message ||
@@ -117,28 +84,21 @@ function getErrorMessage(
   );
 }
 
-function normalizeListPayload(
-  payload,
-) {
+function normalizeListPayload(payload) {
   if (Array.isArray(payload)) {
     return payload;
   }
 
-  if (
-    payload &&
-    typeof payload === "object"
-  ) {
+  if (payload && typeof payload === "object") {
     const candidates = [
       payload.rows,
       payload.items,
       payload.permissions,
-      payload.roles,
+      payload.positions,
       payload.data,
     ];
 
-    const matched = candidates.find(
-      Array.isArray,
-    );
+    const matched = candidates.find(Array.isArray);
 
     if (matched) {
       return matched;
@@ -148,14 +108,9 @@ function normalizeListPayload(
   return [];
 }
 
-function normalizePermission(
-  permission,
-) {
+function normalizePermission(permission) {
   const permissionCode = String(
-    permission?.permission_code ||
-      permission?.code ||
-      permission?.id ||
-      "",
+    permission?.permission_code || permission?.code || permission?.id || "",
   ).trim();
 
   const permissionName = String(
@@ -166,16 +121,10 @@ function normalizePermission(
   ).trim();
 
   const description = String(
-    permission?.description ||
-      PERMISSION_DESCRIPTION_MAP[
-        permissionCode
-      ] ||
-      "",
+    permission?.description || PERMISSION_DESCRIPTION_MAP[permissionCode] || "",
   ).trim();
 
-  const status = String(
-    permission?.status || "啟用",
-  ).trim();
+  const status = String(permission?.status || "啟用").trim();
 
   return {
     ...permission,
@@ -183,117 +132,80 @@ function normalizePermission(
     permission_name: permissionName,
     description,
     status,
-    group:
-      PERMISSION_GROUP_MAP[
-        permissionCode
-      ] || "其他",
+    group: PERMISSION_GROUP_MAP[permissionCode] || "其他",
   };
 }
 
-function normalizeRole(
-  role,
-) {
-  const roleKey = String(
-    role?.role_key ||
-      role?.key ||
-      role?.id ||
-      "",
+function normalizePosition(position) {
+  const positionId = Number(position?.position_id || position?.id || 0);
+
+  const positionCode = String(
+    position?.position_code || position?.code || "",
   ).trim();
 
-  const originalRoleName = String(
-    role?.role_name ||
-      role?.name ||
-      role?.label ||
-      roleKey,
+  const positionName = String(
+    position?.position_name ||
+      position?.name ||
+      position?.label ||
+      positionCode,
   ).trim();
 
-  const roleName =
-    ROLE_DISPLAY_NAME_MAP[roleKey] ||
-    originalRoleName;
-
-  const protectedRole =
-    role?.is_protected === true ||
-    role?.is_protected === 1 ||
-    role?.is_protected === "1";
-
-  const permissionCodes =
-    Array.isArray(
-      role?.permission_codes,
-    )
-      ? role.permission_codes
-      : [];
+  const permissionCodes = Array.isArray(position?.permission_codes)
+    ? position.permission_codes
+    : [];
 
   return {
-    ...role,
-    role_key: roleKey,
-    role_name: roleName,
-    is_protected: protectedRole,
-    permission_codes:
-      permissionCodes
-        .map((code) =>
-          String(code || "").trim(),
-        )
-        .filter(Boolean),
+    ...position,
+    position_id:
+      Number.isInteger(positionId) && positionId > 0 ? positionId : 0,
+    position_code: positionCode,
+    position_name: positionName,
+    permission_codes: permissionCodes
+      .map((code) => String(code || "").trim())
+      .filter(Boolean),
   };
 }
 
-function normalizeRoleDetail(
-  detail,
-  fallbackRole,
-) {
-  const normalizedBase =
-    normalizeRole({
-      ...fallbackRole,
-      ...(detail || {}),
-    });
+function normalizePositionDetail(detail, fallbackPosition) {
+  const normalizedBase = normalizePosition({
+    ...fallbackPosition,
+    ...(detail?.position || detail || {}),
+    permission_codes:
+      detail?.permission_codes || fallbackPosition?.permission_codes || [],
+  });
 
-  const nestedPermissions =
-    Array.isArray(detail?.permissions)
-      ? detail.permissions
-      : [];
+  const nestedPermissions = Array.isArray(detail?.permissions)
+    ? detail.permissions
+    : [];
 
-  const nestedCodes =
-    nestedPermissions
-      .filter((permission) => {
-        return (
-          permission?.granted === true ||
-          permission?.granted === 1 ||
-          permission?.granted === "1" ||
-          permission?.enabled === true ||
-          permission?.enabled === 1 ||
-          permission?.enabled === "1"
-        );
-      })
-      .map((permission) =>
-        String(
-          permission?.permission_code ||
-            permission?.code ||
-            "",
-        ).trim(),
-      )
-      .filter(Boolean);
+  const nestedCodes = nestedPermissions
+    .filter((permission) => {
+      return (
+        permission?.granted === true ||
+        permission?.granted === 1 ||
+        permission?.granted === "1" ||
+        permission?.enabled === true ||
+        permission?.enabled === 1 ||
+        permission?.enabled === "1"
+      );
+    })
+    .map((permission) =>
+      String(permission?.permission_code || permission?.code || "").trim(),
+    )
+    .filter(Boolean);
 
   const permissionCodes =
-    normalizedBase
-      .permission_codes.length > 0
+    normalizedBase.permission_codes.length > 0
       ? normalizedBase.permission_codes
       : nestedCodes;
 
   return {
     ...normalizedBase,
-    permission_codes:
-      Array.from(
-        new Set(permissionCodes),
-      ),
+    permission_codes: Array.from(new Set(permissionCodes)),
   };
 }
 
-function PermissionItem({
-  permission,
-  checked,
-  disabled,
-  onChange,
-}) {
+function PermissionItem({ permission, checked, disabled, onChange }) {
   return (
     <Box
       sx={{
@@ -305,8 +217,7 @@ function PermissionItem({
           sm: "16px",
         },
         py: "13px",
-        borderBottom:
-          "1px solid #edf0f3",
+        borderBottom: "1px solid #edf0f3",
         "&:last-of-type": {
           borderBottom: 0,
         },
@@ -316,18 +227,14 @@ function PermissionItem({
         checked={checked}
         disabled={disabled}
         onChange={(event) =>
-          onChange(
-            permission.permission_code,
-            event.target.checked,
-          )
+          onChange(permission.permission_code, event.target.checked)
         }
         sx={{
           mt: "-8px",
           ml: "-8px",
         }}
         inputProps={{
-          "aria-label":
-            permission.permission_name,
+          "aria-label": permission.permission_name,
         }}
       />
 
@@ -366,9 +273,7 @@ function PermissionItem({
           </Typography>
 
           <Chip
-            label={
-              permission.permission_code
-            }
+            label={permission.permission_code}
             size="small"
             variant="outlined"
             sx={{
@@ -379,8 +284,7 @@ function PermissionItem({
               fontSize: "11px",
               "& .MuiChip-label": {
                 overflow: "hidden",
-                textOverflow:
-                  "ellipsis",
+                textOverflow: "ellipsis",
               },
             }}
           />
@@ -407,435 +311,229 @@ function PermissionItem({
 }
 
 export default function PayrollPermissionsPage() {
-  const [
-    permissions,
-    setPermissions,
-  ] = useState([]);
+  const [permissions, setPermissions] = useState([]);
 
-  const [
-    roles,
-    setRoles,
-  ] = useState([]);
+  const [positions, setPositions] = useState([]);
 
-  const [
-    selectedRoleKey,
-    setSelectedRoleKey,
-  ] = useState("");
+  const [selectedPositionId, setSelectedPositionId] = useState("");
 
-  const selectedRoleKeyRef =
-    useRef("");
+  const selectedPositionIdRef = useRef("");
 
-  const [
-    selectedRole,
-    setSelectedRole,
-  ] = useState(null);
+  const [selectedPosition, setSelectedPosition] = useState(null);
 
-  const [
-    selectedPermissionCodes,
-    setSelectedPermissionCodes,
-  ] = useState([]);
+  const [selectedPermissionCodes, setSelectedPermissionCodes] = useState([]);
 
-  const [
-    initialPermissionCodes,
-    setInitialPermissionCodes,
-  ] = useState([]);
+  const [initialPermissionCodes, setInitialPermissionCodes] = useState([]);
 
-  const [
-    loading,
-    setLoading,
-  ] = useState(true);
+  const [loading, setLoading] = useState(true);
 
-  const [
-    roleLoading,
-    setRoleLoading,
-  ] = useState(false);
+  const [positionLoading, setPositionLoading] = useState(false);
 
-  const [
-    saving,
-    setSaving,
-  ] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const [
-    error,
-    setError,
-  ] = useState("");
+  const [error, setError] = useState("");
 
-  const [
-    success,
-    setSuccess,
-  ] = useState("");
+  const [success, setSuccess] = useState("");
 
-  const groupedPermissions =
-    useMemo(() => {
-      const groups = {};
+  const groupedPermissions = useMemo(() => {
+    const groups = {};
 
-      permissions.forEach(
-        (permission) => {
-          if (
-            permission.status !==
-            "啟用"
-          ) {
-            return;
-          }
+    permissions.forEach((permission) => {
+      if (permission.status !== "啟用") {
+        return;
+      }
 
-          if (
-            !groups[
-              permission.group
-            ]
-          ) {
-            groups[
-              permission.group
-            ] = [];
-          }
+      if (!groups[permission.group]) {
+        groups[permission.group] = [];
+      }
 
-          groups[
-            permission.group
-          ].push(permission);
-        },
-      );
+      groups[permission.group].push(permission);
+    });
 
-      return PERMISSION_GROUP_ORDER
-        .filter(
-          (groupName) =>
-            groups[groupName]
-              ?.length > 0,
-        )
-        .map((groupName) => ({
-          groupName,
-          permissions:
-            groups[groupName],
-        }));
-    }, [permissions]);
+    return PERMISSION_GROUP_ORDER.filter(
+      (groupName) => groups[groupName]?.length > 0,
+    ).map((groupName) => ({
+      groupName,
+      permissions: groups[groupName],
+    }));
+  }, [permissions]);
 
-  const selectedCodeSet =
-    useMemo(
-      () =>
-        new Set(
-          selectedPermissionCodes,
-        ),
-      [selectedPermissionCodes],
-    );
+  const selectedCodeSet = useMemo(
+    () => new Set(selectedPermissionCodes),
+    [selectedPermissionCodes],
+  );
 
-  const changed =
-    useMemo(() => {
-      const current = [
-        ...selectedPermissionCodes,
-      ].sort();
+  const changed = useMemo(() => {
+    const current = [...selectedPermissionCodes].sort();
 
-      const initial = [
-        ...initialPermissionCodes,
-      ].sort();
+    const initial = [...initialPermissionCodes].sort();
 
-      return (
-        JSON.stringify(current) !==
-        JSON.stringify(initial)
-      );
-    }, [
-      selectedPermissionCodes,
-      initialPermissionCodes,
-    ]);
+    return JSON.stringify(current) !== JSON.stringify(initial);
+  }, [selectedPermissionCodes, initialPermissionCodes]);
 
-  const loadRoleDetail =
-    useCallback(
-      async (
-        roleKey,
-        availableRoles = [],
-      ) => {
-        const normalizedKey =
-          String(
-            roleKey || "",
-          ).trim();
+  const loadPositionDetail = useCallback(
+    async (positionId, availablePositions = []) => {
+      const normalizedId = Number(positionId || 0);
 
-        if (!normalizedKey) {
-          setSelectedRole(null);
-          setSelectedPermissionCodes(
-            [],
-          );
-          setInitialPermissionCodes(
-            [],
-          );
-          return;
-        }
+      if (!Number.isInteger(normalizedId) || normalizedId <= 0) {
+        setSelectedPosition(null);
+        setSelectedPermissionCodes([]);
+        setInitialPermissionCodes([]);
+        return;
+      }
 
-        setRoleLoading(true);
-        setError("");
-        setSuccess("");
-
-        try {
-          const detail =
-            await getPayrollPermissionRole(
-              normalizedKey,
-            );
-
-          const fallbackRole =
-            availableRoles.find(
-              (role) =>
-                role.role_key ===
-                normalizedKey,
-            ) || null;
-
-          const normalizedDetail =
-            normalizeRoleDetail(
-              detail,
-              fallbackRole,
-            );
-
-          const permissionCodes =
-            Array.from(
-              new Set(
-                normalizedDetail
-                  .permission_codes,
-              ),
-            );
-
-          setSelectedRole(
-            normalizedDetail,
-          );
-
-          setSelectedPermissionCodes(
-            permissionCodes,
-          );
-
-          setInitialPermissionCodes(
-            permissionCodes,
-          );
-        } catch (loadError) {
-          setError(
-            getErrorMessage(
-              loadError,
-              "載入角色權限失敗。",
-            ),
-          );
-        } finally {
-          setRoleLoading(false);
-        }
-      },
-      [],
-    );
-
-  const loadPage =
-    useCallback(async () => {
-      setLoading(true);
+      setPositionLoading(true);
       setError("");
       setSuccess("");
 
       try {
-        const [
-          permissionResponse,
-          roleResponse,
-        ] = await Promise.all([
-          getPayrollPermissions(),
-          getPayrollPermissionRoles(),
-        ]);
+        const detail = await getPayrollPermissionPosition(normalizedId);
 
-        const normalizedPermissions =
-          normalizeListPayload(
-            permissionResponse,
-          )
-            .map(
-              normalizePermission,
-            )
-            .filter(
-              (permission) =>
-                permission
-                  .permission_code,
-            );
+        const fallbackPosition =
+          availablePositions.find(
+            (position) => Number(position.position_id) === normalizedId,
+          ) || null;
 
-        const normalizedRoles =
-          normalizeListPayload(
-            roleResponse,
-          )
-            .map(normalizeRole)
-            .filter(
-              (role) =>
-                role.role_key,
-            );
-
-        setPermissions(
-          normalizedPermissions,
+        const normalizedDetail = normalizePositionDetail(
+          detail,
+          fallbackPosition,
         );
 
-        setRoles(
-          normalizedRoles,
+        const permissionCodes = Array.from(
+          new Set(normalizedDetail.permission_codes),
         );
 
-        const currentRoleKey =
-          selectedRoleKeyRef.current;
+        setSelectedPosition(normalizedDetail);
 
-        const nextRoleKey =
-          normalizedRoles.some(
-            (role) =>
-              role.role_key ===
-              currentRoleKey,
-          )
-            ? currentRoleKey
-            : normalizedRoles[0]
-                ?.role_key || "";
+        setSelectedPermissionCodes(permissionCodes);
 
-        selectedRoleKeyRef.current =
-          nextRoleKey;
-
-        setSelectedRoleKey(
-          nextRoleKey,
-        );
-
-        if (nextRoleKey) {
-          await loadRoleDetail(
-            nextRoleKey,
-            normalizedRoles,
-          );
-        } else {
-          setSelectedRole(null);
-          setSelectedPermissionCodes(
-            [],
-          );
-          setInitialPermissionCodes(
-            [],
-          );
-        }
+        setInitialPermissionCodes(permissionCodes);
       } catch (loadError) {
-        setError(
-          getErrorMessage(
-            loadError,
-            "載入薪資權限設定失敗。",
-          ),
-        );
+        setError(getErrorMessage(loadError, "載入職位權限失敗。"));
       } finally {
-        setLoading(false);
+        setPositionLoading(false);
       }
-    }, [loadRoleDetail]);
+    },
+    [],
+  );
+
+  const loadPage = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      const [permissionResponse, positionResponse] = await Promise.all([
+        getPayrollPermissions(),
+        getPayrollPermissionPositions(),
+      ]);
+
+      const normalizedPermissions = normalizeListPayload(permissionResponse)
+        .map(normalizePermission)
+        .filter((permission) => permission.permission_code);
+
+      const normalizedPositions = normalizeListPayload(positionResponse)
+        .map(normalizePosition)
+        .filter((position) => position.position_id > 0);
+
+      setPermissions(normalizedPermissions);
+
+      setPositions(normalizedPositions);
+
+      const currentPositionId = selectedPositionIdRef.current;
+
+      const nextPositionId = normalizedPositions.some(
+        (position) =>
+          String(position.position_id) === String(currentPositionId),
+      )
+        ? currentPositionId
+        : String(normalizedPositions[0]?.position_id || "");
+
+      selectedPositionIdRef.current = nextPositionId;
+
+      setSelectedPositionId(nextPositionId);
+
+      if (nextPositionId) {
+        await loadPositionDetail(nextPositionId, normalizedPositions);
+      } else {
+        setSelectedPosition(null);
+        setSelectedPermissionCodes([]);
+        setInitialPermissionCodes([]);
+      }
+    } catch (loadError) {
+      setError(getErrorMessage(loadError, "載入薪資權限設定失敗。"));
+    } finally {
+      setLoading(false);
+    }
+  }, [loadPositionDetail]);
 
   useEffect(() => {
     loadPage();
   }, [loadPage]);
 
-  async function handleRoleSelect(
-    roleKey,
-  ) {
-    if (
-      roleKey ===
-      selectedRoleKey
-    ) {
+  async function handlePositionSelect(positionId) {
+    if (String(positionId) === String(selectedPositionId)) {
       return;
     }
 
     if (
       changed &&
-      !window.confirm(
-        "目前有尚未儲存的權限變更，確定要切換角色嗎？",
-      )
+      !window.confirm("目前有尚未儲存的權限變更，確定要切換職位嗎？")
     ) {
       return;
     }
 
-    selectedRoleKeyRef.current =
-      roleKey;
+    selectedPositionIdRef.current = String(positionId);
 
-    setSelectedRoleKey(roleKey);
+    setSelectedPositionId(String(positionId));
 
-    await loadRoleDetail(
-      roleKey,
-      roles,
-    );
+    await loadPositionDetail(positionId, positions);
   }
 
-  function handlePermissionChange(
-    permissionCode,
-    checked,
-  ) {
-    if (
-      selectedRole
-        ?.is_protected
-    ) {
-      return;
-    }
-
+  function handlePermissionChange(permissionCode, checked) {
     setSuccess("");
     setError("");
 
-    setSelectedPermissionCodes(
-      (current) => {
-        const next =
-          new Set(current);
+    setSelectedPermissionCodes((current) => {
+      const next = new Set(current);
 
-        if (checked) {
-          next.add(
-            permissionCode,
-          );
-        } else {
-          next.delete(
-            permissionCode,
-          );
-        }
+      if (checked) {
+        next.add(permissionCode);
+      } else {
+        next.delete(permissionCode);
+      }
 
-        return Array.from(next);
-      },
-    );
+      return Array.from(next);
+    });
   }
 
   function handleSelectAll() {
-    if (
-      selectedRole
-        ?.is_protected
-    ) {
-      return;
-    }
+    const allCodes = permissions
+      .filter((permission) => permission.status === "啟用")
+      .map((permission) => permission.permission_code);
 
-    const allCodes =
-      permissions
-        .filter(
-          (permission) =>
-            permission.status ===
-            "啟用",
-        )
-        .map(
-          (permission) =>
-            permission
-              .permission_code,
-        );
-
-    setSelectedPermissionCodes(
-      Array.from(
-        new Set(allCodes),
-      ),
-    );
+    setSelectedPermissionCodes(Array.from(new Set(allCodes)));
 
     setSuccess("");
     setError("");
   }
 
   function handleClearAll() {
-    if (
-      selectedRole
-        ?.is_protected
-    ) {
-      return;
-    }
-
-    setSelectedPermissionCodes(
-      [],
-    );
+    setSelectedPermissionCodes([]);
 
     setSuccess("");
     setError("");
   }
 
   function handleReset() {
-    setSelectedPermissionCodes(
-      [...initialPermissionCodes],
-    );
+    setSelectedPermissionCodes([...initialPermissionCodes]);
 
     setSuccess("");
     setError("");
   }
 
   async function handleSave() {
-    if (
-      !selectedRoleKey ||
-      selectedRole
-        ?.is_protected ||
-      !changed
-    ) {
+    if (!selectedPositionId || !changed) {
       return;
     }
 
@@ -844,53 +542,34 @@ export default function PayrollPermissionsPage() {
     setSuccess("");
 
     try {
-      await updatePayrollPermissionRole(
-        selectedRoleKey,
+      await updatePayrollPermissionPosition(
+        selectedPositionId,
         selectedPermissionCodes,
       );
 
-      const savedCodes =
-        Array.from(
-          new Set(
-            selectedPermissionCodes,
-          ),
-        );
+      const savedCodes = Array.from(new Set(selectedPermissionCodes));
 
-      setInitialPermissionCodes(
-        savedCodes,
-      );
+      setInitialPermissionCodes(savedCodes);
 
-      setSelectedRole(
-        (current) => ({
-          ...(current || {}),
-          permission_codes:
-            savedCodes,
-        }),
-      );
+      setSelectedPosition((current) => ({
+        ...(current || {}),
+        permission_codes: savedCodes,
+      }));
 
-      setRoles((current) =>
-        current.map((role) =>
-          role.role_key ===
-          selectedRoleKey
+      setPositions((current) =>
+        current.map((position) =>
+          String(position.position_id) === String(selectedPositionId)
             ? {
-                ...role,
-                permission_codes:
-                  savedCodes,
+                ...position,
+                permission_codes: savedCodes,
               }
-            : role,
+            : position,
         ),
       );
 
-      setSuccess(
-        "角色薪資權限已儲存。",
-      );
+      setSuccess("職位薪資權限已儲存。");
     } catch (saveError) {
-      setError(
-        getErrorMessage(
-          saveError,
-          "儲存角色薪資權限失敗。",
-        ),
-      );
+      setError(getErrorMessage(saveError, "儲存職位薪資權限失敗。"));
     } finally {
       setSaving(false);
     }
@@ -944,26 +623,14 @@ export default function PayrollPermissionsPage() {
               lineHeight: 1.6,
             }}
           >
-            設定各角色可使用的薪資管理功能。
+            設定各職位可使用的薪資管理功能。
           </Typography>
         </Box>
 
         <Button
           variant="outlined"
-          startIcon={
-            loading ? (
-              <CircularProgress
-                size={16}
-              />
-            ) : (
-              <RefreshIcon />
-            )
-          }
-          disabled={
-            loading ||
-            roleLoading ||
-            saving
-          }
+          startIcon={loading ? <CircularProgress size={16} /> : <RefreshIcon />}
+          disabled={loading || positionLoading || saving}
           onClick={loadPage}
           sx={{
             alignSelf: {
@@ -980,9 +647,7 @@ export default function PayrollPermissionsPage() {
         <Alert
           severity="error"
           sx={{ mb: "16px" }}
-          onClose={() =>
-            setError("")
-          }
+          onClose={() => setError("")}
         >
           {error}
         </Alert>
@@ -992,9 +657,7 @@ export default function PayrollPermissionsPage() {
         <Alert
           severity="success"
           sx={{ mb: "16px" }}
-          onClose={() =>
-            setSuccess("")
-          }
+          onClose={() => setSuccess("")}
         >
           {success}
         </Alert>
@@ -1011,13 +674,8 @@ export default function PayrollPermissionsPage() {
             borderColor: "#e2e8f0",
           }}
         >
-          <Stack
-            spacing={1.5}
-            alignItems="center"
-          >
-            <CircularProgress
-              size={30}
-            />
+          <Stack spacing={1.5} alignItems="center">
+            <CircularProgress size={30} />
 
             <Typography
               sx={{
@@ -1053,8 +711,7 @@ export default function PayrollPermissionsPage() {
                 px: "16px",
                 py: "14px",
                 bgcolor: "#f8fafc",
-                borderBottom:
-                  "1px solid #e2e8f0",
+                borderBottom: "1px solid #e2e8f0",
               }}
             >
               <Typography
@@ -1064,11 +721,11 @@ export default function PayrollPermissionsPage() {
                   fontWeight: 800,
                 }}
               >
-                角色
+                職位 / Job Position
               </Typography>
             </Box>
 
-            {roles.length === 0 ? (
+            {positions.length === 0 ? (
               <Box
                 sx={{
                   px: "16px",
@@ -1081,56 +738,39 @@ export default function PayrollPermissionsPage() {
                     fontSize: "13px",
                   }}
                 >
-                  目前沒有可設定的角色。
+                  目前沒有可設定的職位。
                 </Typography>
               </Box>
             ) : (
-              roles.map((role) => {
+              positions.map((position) => {
                 const active =
-                  selectedRoleKey ===
-                  role.role_key;
+                  String(selectedPositionId) === String(position.position_id);
 
                 return (
                   <Box
-                    key={
-                      role.role_key
-                    }
+                    key={position.position_id}
                     component="button"
                     type="button"
-                    onClick={() =>
-                      handleRoleSelect(
-                        role.role_key,
-                      )
-                    }
+                    onClick={() => handlePositionSelect(position.position_id)}
                     sx={{
                       width: "100%",
                       display: "flex",
-                      alignItems:
-                        "center",
+                      alignItems: "center",
                       gap: "10px",
                       px: "16px",
                       py: "13px",
                       border: 0,
-                      borderBottom:
-                        "1px solid #edf0f3",
-                      bgcolor: active
-                        ? "#eaf7fd"
-                        : "#ffffff",
-                      color: active
-                        ? "#168dc5"
-                        : "#475569",
+                      borderBottom: "1px solid #edf0f3",
+                      bgcolor: active ? "#eaf7fd" : "#ffffff",
+                      color: active ? "#168dc5" : "#475569",
                       textAlign: "left",
                       cursor: "pointer",
                       "&:hover": {
-                        bgcolor: active
-                          ? "#eaf7fd"
-                          : "#f8fafc",
+                        bgcolor: active ? "#eaf7fd" : "#f8fafc",
                       },
-                      "&:last-of-type":
-                        {
-                          borderBottom:
-                            0,
-                        },
+                      "&:last-of-type": {
+                        borderBottom: 0,
+                      },
                     }}
                   >
                     <SecurityOutlinedIcon
@@ -1147,51 +787,26 @@ export default function PayrollPermissionsPage() {
                     >
                       <Typography
                         sx={{
-                          fontSize:
-                            "14px",
-                          fontWeight:
-                            active
-                              ? 800
-                              : 600,
-                          lineHeight:
-                            1.4,
+                          fontSize: "14px",
+                          fontWeight: active ? 800 : 600,
+                          lineHeight: 1.4,
                         }}
                       >
-                        {
-                          role.role_name
-                        }
+                        {position.position_name}
                       </Typography>
 
                       <Typography
                         sx={{
                           mt: "2px",
-                          color:
-                            "#94a3b8",
-                          fontSize:
-                            "11px",
-                          lineHeight:
-                            1.4,
-                          wordBreak:
-                            "break-all",
+                          color: "#94a3b8",
+                          fontSize: "11px",
+                          lineHeight: 1.4,
+                          wordBreak: "break-all",
                         }}
                       >
-                        {
-                          role.role_key
-                        }
+                        {position.position_code}
                       </Typography>
                     </Box>
-
-                    {role.is_protected ? (
-                      <LockOutlinedIcon
-                        titleAccess="受保護角色"
-                        sx={{
-                          color:
-                            "#94a3b8",
-                          fontSize:
-                            "17px",
-                        }}
-                      />
-                    ) : null}
                   </Box>
                 );
               })
@@ -1206,14 +821,13 @@ export default function PayrollPermissionsPage() {
               borderColor: "#e2e8f0",
             }}
           >
-            {!selectedRoleKey ? (
+            {!selectedPositionId ? (
               <Box
                 sx={{
                   minHeight: "320px",
                   display: "flex",
                   alignItems: "center",
-                  justifyContent:
-                    "center",
+                  justifyContent: "center",
                   px: "20px",
                 }}
               >
@@ -1223,22 +837,19 @@ export default function PayrollPermissionsPage() {
                     fontSize: "14px",
                   }}
                 >
-                  請先選擇角色。
+                  請先選擇職位。
                 </Typography>
               </Box>
-            ) : roleLoading ? (
+            ) : positionLoading ? (
               <Box
                 sx={{
                   minHeight: "320px",
                   display: "flex",
                   alignItems: "center",
-                  justifyContent:
-                    "center",
+                  justifyContent: "center",
                 }}
               >
-                <CircularProgress
-                  size={30}
-                />
+                <CircularProgress size={30} />
               </Box>
             ) : (
               <>
@@ -1253,8 +864,7 @@ export default function PayrollPermissionsPage() {
                       xs: "stretch",
                       sm: "center",
                     },
-                    justifyContent:
-                      "space-between",
+                    justifyContent: "space-between",
                     gap: "12px",
                     px: {
                       xs: "14px",
@@ -1262,8 +872,7 @@ export default function PayrollPermissionsPage() {
                     },
                     py: "15px",
                     bgcolor: "#f8fafc",
-                    borderBottom:
-                      "1px solid #e2e8f0",
+                    borderBottom: "1px solid #e2e8f0",
                   }}
                 >
                   <Box>
@@ -1275,31 +884,21 @@ export default function PayrollPermissionsPage() {
                     >
                       <Typography
                         sx={{
-                          color:
-                            "#1e293b",
+                          color: "#1e293b",
                           fontSize: {
                             xs: "16px",
                             sm: "17px",
                           },
-                          fontWeight:
-                            800,
+                          fontWeight: 800,
                         }}
                       >
-                        {
-                          selectedRole
-                            ?.role_name
-                        }
+                        {selectedPosition?.position_name}
                       </Typography>
 
-                      {selectedRole
-                        ?.is_protected ? (
+                      {selectedPosition?.position_code ? (
                         <Chip
-                          icon={
-                            <LockOutlinedIcon />
-                          }
-                          label="系統保護角色"
+                          label={selectedPosition.position_code}
                           size="small"
-                          color="warning"
                           variant="outlined"
                         />
                       ) : null}
@@ -1309,35 +908,19 @@ export default function PayrollPermissionsPage() {
                       sx={{
                         mt: "4px",
                         color: "#64748b",
-                        fontSize:
-                          "12px",
+                        fontSize: "12px",
                       }}
                     >
-                      已選擇{" "}
-                      {
-                        selectedPermissionCodes.length
-                      }{" "}
-                      項權限
+                      已選擇 {selectedPermissionCodes.length} 項權限
                     </Typography>
                   </Box>
 
-                  <Stack
-                    direction="row"
-                    spacing={1}
-                    flexWrap="wrap"
-                    useFlexGap
-                  >
+                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                     <Button
                       size="small"
                       variant="outlined"
-                      disabled={
-                        selectedRole
-                          ?.is_protected ||
-                        saving
-                      }
-                      onClick={
-                        handleSelectAll
-                      }
+                      disabled={saving}
+                      onClick={handleSelectAll}
                     >
                       全選
                     </Button>
@@ -1345,40 +928,15 @@ export default function PayrollPermissionsPage() {
                     <Button
                       size="small"
                       variant="outlined"
-                      disabled={
-                        selectedRole
-                          ?.is_protected ||
-                        saving
-                      }
-                      onClick={
-                        handleClearAll
-                      }
+                      disabled={saving}
+                      onClick={handleClearAll}
                     >
                       清除
                     </Button>
                   </Stack>
                 </Box>
 
-                {selectedRole
-                  ?.is_protected ? (
-                  <Alert
-                    severity="warning"
-                    icon={
-                      <LockOutlinedIcon />
-                    }
-                    sx={{
-                      m: {
-                        xs: "12px",
-                        sm: "16px",
-                      },
-                    }}
-                  >
-                    此角色為系統保護角色，會自動保留全部薪資管理權限，不能在此修改。
-                  </Alert>
-                ) : null}
-
-                {groupedPermissions.length ===
-                0 ? (
+                {groupedPermissions.length === 0 ? (
                   <Box
                     sx={{
                       px: "18px",
@@ -1387,12 +945,9 @@ export default function PayrollPermissionsPage() {
                   >
                     <Typography
                       sx={{
-                        color:
-                          "#64748b",
-                        fontSize:
-                          "14px",
-                        textAlign:
-                          "center",
+                        color: "#64748b",
+                        fontSize: "14px",
+                        textAlign: "center",
                       }}
                     >
                       目前沒有可設定的薪資權限。
@@ -1400,16 +955,8 @@ export default function PayrollPermissionsPage() {
                   </Box>
                 ) : (
                   groupedPermissions.map(
-                    ({
-                      groupName,
-                      permissions:
-                        groupItems,
-                    }) => (
-                      <Box
-                        key={
-                          groupName
-                        }
-                      >
+                    ({ groupName, permissions: groupItems }) => (
+                      <Box key={groupName}>
                         <Box
                           sx={{
                             px: {
@@ -1417,57 +964,33 @@ export default function PayrollPermissionsPage() {
                               sm: "18px",
                             },
                             py: "10px",
-                            bgcolor:
-                              "#fbfdff",
-                            borderTop:
-                              "1px solid #edf0f3",
-                            borderBottom:
-                              "1px solid #edf0f3",
+                            bgcolor: "#fbfdff",
+                            borderTop: "1px solid #edf0f3",
+                            borderBottom: "1px solid #edf0f3",
                           }}
                         >
                           <Typography
                             sx={{
-                              color:
-                                "#475569",
-                              fontSize:
-                                "13px",
-                              fontWeight:
-                                800,
+                              color: "#475569",
+                              fontSize: "13px",
+                              fontWeight: 800,
                             }}
                           >
-                            {
-                              groupName
-                            }
+                            {groupName}
                           </Typography>
                         </Box>
 
-                        {groupItems.map(
-                          (
-                            permission,
-                          ) => (
-                            <PermissionItem
-                              key={
-                                permission
-                                  .permission_code
-                              }
-                              permission={
-                                permission
-                              }
-                              checked={selectedCodeSet.has(
-                                permission
-                                  .permission_code,
-                              )}
-                              disabled={
-                                selectedRole
-                                  ?.is_protected ||
-                                saving
-                              }
-                              onChange={
-                                handlePermissionChange
-                              }
-                            />
-                          ),
-                        )}
+                        {groupItems.map((permission) => (
+                          <PermissionItem
+                            key={permission.permission_code}
+                            permission={permission}
+                            checked={selectedCodeSet.has(
+                              permission.permission_code,
+                            )}
+                            disabled={saving}
+                            onChange={handlePermissionChange}
+                          />
+                        ))}
                       </Box>
                     ),
                   )
@@ -1493,15 +1016,8 @@ export default function PayrollPermissionsPage() {
                 >
                   <Button
                     variant="outlined"
-                    disabled={
-                      !changed ||
-                      saving ||
-                      selectedRole
-                        ?.is_protected
-                    }
-                    onClick={
-                      handleReset
-                    }
+                    disabled={!changed || saving}
+                    onClick={handleReset}
                   >
                     還原變更
                   </Button>
@@ -1510,27 +1026,15 @@ export default function PayrollPermissionsPage() {
                     variant="contained"
                     startIcon={
                       saving ? (
-                        <CircularProgress
-                          size={17}
-                          color="inherit"
-                        />
+                        <CircularProgress size={17} color="inherit" />
                       ) : (
                         <SaveOutlinedIcon />
                       )
                     }
-                    disabled={
-                      !changed ||
-                      saving ||
-                      selectedRole
-                        ?.is_protected
-                    }
-                    onClick={
-                      handleSave
-                    }
+                    disabled={!changed || saving}
+                    onClick={handleSave}
                   >
-                    {saving
-                      ? "儲存中…"
-                      : "儲存權限"}
+                    {saving ? "儲存中…" : "儲存權限"}
                   </Button>
                 </Stack>
               </>

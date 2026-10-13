@@ -14,7 +14,6 @@ import {
 import { getStoredAuthUser } from "../API/auth";
 import {
   hasAnyPayrollPermission,
-  hasPayrollOverride,
 } from "../Utils/PayrollPermissions";
 
 const PAYROLL_DEFAULT_ROUTES = [
@@ -61,15 +60,6 @@ const PAYROLL_DEFAULT_ROUTES = [
 
 export function PayrollDefaultRedirect() {
   const authUser = getStoredAuthUser();
-
-  if (hasPayrollOverride(authUser)) {
-    return (
-      <Navigate
-        to="/attendance/admin/payroll/operations/salary"
-        replace
-      />
-    );
-  }
 
   const matchedRoute =
     PAYROLL_DEFAULT_ROUTES.find(

@@ -76,6 +76,23 @@ export async function fetchCurrentUser() {
   return user;
 }
 
+export async function updateAccessMode(accessMode) {
+  const response = await http.put("/auth/access-mode", {
+    access_mode: accessMode,
+  });
+
+  const responseData = response?.data || {};
+  const user = responseData?.data || responseData || null;
+
+  if (!user) {
+    throw new Error("無法切換存取模式。");
+  }
+
+  localStorage.setItem(HRMS_AUTH_USER_KEY, JSON.stringify(user));
+
+  return user;
+}
+
 export async function logoutFromServer() {
   try {
     await http.post("/auth/logout");

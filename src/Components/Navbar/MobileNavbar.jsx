@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Avatar,
   Box,
+  Button,
   Divider,
   Drawer,
   IconButton,
@@ -18,13 +19,18 @@ import {
   getMenuItemsByIds,
 } from "../../Utils/Menu/MenuRegistry";
 import { loadMobileDrawerShortcutIds } from "../../Utils/Menu/MobileShortcutSettings";
-import { getStoredAuthUser, logoutFromServer } from "../../API/auth";
+import {
+  getStoredAuthUser,
+  logoutFromServer,
+  updateAccessMode,
+} from "../../API/auth";
 import NotificationBell from "../Notifications/NotificationBell";
 
 export default function MobileNavbar() {
   const [open, setOpen] = useState(false);
   const [shortcutIds, setShortcutIds] = useState(loadMobileDrawerShortcutIds());
   const [authUser, setAuthUser] = useState(getStoredAuthUser());
+  const [accessModeSwitching, setAccessModeSwitching] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -76,6 +82,30 @@ export default function MobileNavbar() {
 
     return employeeRowEmail || userEmail || "";
   }, [authUser]);
+
+  async function handleAccessModeSwitch() {
+    if (
+      accessModeSwitching
+      || !authUser?.can_switch_access_mode
+    ) {
+      return;
+    }
+
+    const nextMode = authUser?.is_admin_access
+      ? "normal"
+      : "admin";
+
+    setAccessModeSwitching(true);
+
+    try {
+      const nextUser = await updateAccessMode(nextMode);
+
+      setAuthUser(nextUser);
+      window.location.reload();
+    } finally {
+      setAccessModeSwitching(false);
+    }
+  }
 
   async function handleLogout() {
     try {
@@ -152,6 +182,31 @@ export default function MobileNavbar() {
               iconColor="#b6bcc8"
               iconSize={28}
             />
+
+            {authUser?.can_switch_access_mode ? (
+              <Button
+                size="small"
+                variant={
+                  authUser?.is_admin_access
+                    ? "contained"
+                    : "outlined"
+                }
+                disabled={accessModeSwitching}
+                onClick={handleAccessModeSwitch}
+                sx={{
+                  minWidth: 0,
+                  height: "28px",
+                  px: "8px",
+                  borderRadius: "14px",
+                  fontSize: "11px",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {authUser?.is_admin_access
+                  ? "管理員"
+                  : "一般"}
+              </Button>
+            ) : null}
 
             <IconButton
               onClick={() => setOpen(true)}

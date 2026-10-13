@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Box, Typography } from "@mui/material";
 import {
-  apiGetPendingApprovalActor,
   apiMissedPunchRecordList,
 } from "../../../API/attendance";
+import { getStoredAuthUser } from "../../../API/auth";
+import { hasAttendancePermission } from "../../../Utils/AttendancePermissions";
 import {
   ActionButtons,
   SearchField,
@@ -69,9 +70,11 @@ export default function CheckInRecord() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [errorText, setErrorText] = useState("");
-  const [actor, setActor] = useState(null);
 
-  const isEmployeeOnly = !!actor?.is_employee_position;
+  const isEmployeeOnly = !hasAttendancePermission(
+    getStoredAuthUser(),
+    "attendance_form_management_manage",
+  );
 
   const filteredRows = useMemo(() => {
     if (!searchKeyword.trim()) {
@@ -101,17 +104,10 @@ export default function CheckInRecord() {
       setLoading(true);
       setErrorText("");
 
-      const [actorResponse, response] = await Promise.all([
-        apiGetPendingApprovalActor(),
-        apiMissedPunchRecordList({
-          year: Number(nextYear),
-          month: Number(nextMonth),
-        }),
-      ]);
-
-      const actorData =
-        actorResponse?.data?.data || actorResponse?.data || actorResponse || {};
-      setActor(actorData);
+      const response = await apiMissedPunchRecordList({
+        year: Number(nextYear),
+        month: Number(nextMonth),
+      });
 
       const payload = response?.data?.data || response?.data || response || {};
       let items = Array.isArray(payload?.items) ? payload.items : [];

@@ -129,38 +129,41 @@ export async function getPayrollPermissions() {
   return unwrapResponse(response, []);
 }
 
-export async function getPayrollPermissionRoles() {
-  const response = await http.get("/payroll/permission-roles");
+export async function getPayrollPermissionPositions() {
+  const response = await http.get("/payroll/permission-positions");
 
   return unwrapResponse(response, []);
 }
 
-export async function getPayrollPermissionRole(roleKey) {
-  const normalizedRoleKey = String(roleKey || "").trim();
-
-  if (!normalizedRoleKey) {
-    throw new Error("Role key is required.");
-  }
+export async function getPayrollPermissionPosition(positionId) {
+  const normalizedPositionId = normalizePositiveId(
+    positionId,
+    "Position ID",
+  );
 
   const response = await http.get(
-    `/payroll/permission-roles/${encodeURIComponent(normalizedRoleKey)}`,
+    `/payroll/permission-positions/${normalizedPositionId}`,
   );
 
   return unwrapResponse(response, {
-    role_key: normalizedRoleKey,
-    role_name: "",
-    is_protected: false,
+    position: {
+      position_id: normalizedPositionId,
+      position_code: "",
+      position_name: "",
+    },
     permission_codes: [],
     permissions: [],
   });
 }
 
-export async function updatePayrollPermissionRole(roleKey, permissionCodes) {
-  const normalizedRoleKey = String(roleKey || "").trim();
-
-  if (!normalizedRoleKey) {
-    throw new Error("Role key is required.");
-  }
+export async function updatePayrollPermissionPosition(
+  positionId,
+  permissionCodes,
+) {
+  const normalizedPositionId = normalizePositiveId(
+    positionId,
+    "Position ID",
+  );
 
   const normalizedPermissionCodes = Array.from(
     new Set(
@@ -171,7 +174,7 @@ export async function updatePayrollPermissionRole(roleKey, permissionCodes) {
   );
 
   const response = await http.put(
-    `/payroll/permission-roles/${encodeURIComponent(normalizedRoleKey)}`,
+    `/payroll/permission-positions/${normalizedPositionId}`,
     {
       permission_codes: normalizedPermissionCodes,
     },
