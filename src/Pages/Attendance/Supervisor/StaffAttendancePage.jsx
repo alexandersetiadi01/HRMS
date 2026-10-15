@@ -15,9 +15,12 @@ import {
   apiAttendanceAdminRecords,
   apiSyncAttendanceAdminRecords,
 } from "../../../API/attendance";
+import { getCurrentEmployeeId } from "../../../API/account";
+import { getStoredAuthUser } from "../../../API/auth";
 import FormDialog from "../../../Components/FormDialog";
 import { renderDateField } from "../../../Components/GlobalComponent";
 import Breadcrumb from "../../../Utils/Breadcrumb";
+import { hasAttendancePermission } from "../../../Utils/AttendancePermissions";
 import ResponsiveAttendanceTable from "../AttendanceForm/ResponsiveAttendanceTable";
 import {
   ActionButtons,
@@ -142,6 +145,13 @@ function formatAttendanceStatus(value) {
 }
 
 export default function StaffAttendancePage() {
+  const authUser = getStoredAuthUser();
+  const currentEmployeeId = Number(getCurrentEmployeeId() || 0);
+  const canViewOtherEmployees = hasAttendancePermission(
+    authUser,
+    "attendance_staff_attendance_view_others",
+  );
+
   const [filters, setFilters] = useState(INITIAL_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState(INITIAL_FILTERS);
   const [unitOptions, setUnitOptions] = useState([]);
@@ -160,14 +170,51 @@ export default function StaffAttendancePage() {
       try {
         const meta = await apiAttendanceAdminMeta();
 
-        setUnitOptions([
-          { value: "", label: "全部單位" },
-          ...(Array.isArray(meta?.unitOptions) ? meta.unitOptions : []),
-        ]);
+        const allEmployeeOptions = Array.isArray(meta?.employeeOptions)
+          ? meta.employeeOptions
+          : [];
+        const allUnitOptions = Array.isArray(meta?.unitOptions)
+          ? meta.unitOptions
+          : [];
 
-        setEmployeeOptions(
-          Array.isArray(meta?.employeeOptions) ? meta.employeeOptions : [],
-        );
+        if (canViewOtherEmployees) {
+          setUnitOptions([
+            { value: "", label: "全部單位" },
+            ...allUnitOptions,
+          ]);
+          setEmployeeOptions(allEmployeeOptions);
+        } else {
+          const ownEmployee = allEmployeeOptions.find(
+            (employee) =>
+              Number(employee?.employee_id || 0) === currentEmployeeId,
+          );
+          const ownUnitId = String(ownEmployee?.unit_id || "");
+
+          setEmployeeOptions(ownEmployee ? [ownEmployee] : []);
+          setUnitOptions(
+            ownUnitId
+              ? allUnitOptions.filter(
+                  (unit) => String(unit?.value || "") === ownUnitId,
+                )
+              : [],
+          );
+
+          setFilters((current) => ({
+            ...current,
+            unit_id: ownUnitId,
+            employee_id: currentEmployeeId
+              ? String(currentEmployeeId)
+              : "",
+          }));
+
+          setAppliedFilters((current) => ({
+            ...current,
+            unit_id: ownUnitId,
+            employee_id: currentEmployeeId
+              ? String(currentEmployeeId)
+              : "",
+          }));
+        }
       } catch (error) {
         console.error(error);
         setUnitOptions([{ value: "", label: "全部單位" }]);
@@ -326,13 +373,28 @@ export default function StaffAttendancePage() {
   };
 
   const handleClear = async () => {
-    setFilters(INITIAL_FILTERS);
-    setAppliedFilters(INITIAL_FILTERS);
+    const ownEmployee = employeeOptions.find(
+      (employee) =>
+        Number(employee?.employee_id || 0) === currentEmployeeId,
+    );
+    const ownUnitId = String(ownEmployee?.unit_id || "");
+    const nextFilters = canViewOtherEmployees
+      ? INITIAL_FILTERS
+      : {
+          ...INITIAL_FILTERS,
+          unit_id: ownUnitId,
+          employee_id: currentEmployeeId
+            ? String(currentEmployeeId)
+            : "",
+        };
+
+    setFilters(nextFilters);
+    setAppliedFilters(nextFilters);
     setLoading(true);
     setErrorText("");
 
     try {
-      await loadRows(INITIAL_FILTERS);
+      await loadRows(nextFilters);
     } catch (error) {
       console.error(error);
       setRows([]);
@@ -453,7 +515,11 @@ export default function StaffAttendancePage() {
                   displayEmpty
                   fullWidth
                   height="38px"
-                  disabled={loadingMeta || loading}
+                  disabled={
+                    loadingMeta ||
+                    loading ||
+                    !canViewOtherEmployees
+                  }
                 />
               </Box>
 
@@ -467,14 +533,22 @@ export default function StaffAttendancePage() {
                 <SelectField
                   value={filters.employee_id}
                   onChange={(value) => handleFilterChange("employee_id", value)}
-                  options={[
-                    { value: "", label: "全部員工" },
-                    ...filteredEmployeeOptions,
-                  ]}
+                  options={
+                    canViewOtherEmployees
+                      ? [
+                          { value: "", label: "全部員工" },
+                          ...filteredEmployeeOptions,
+                        ]
+                      : filteredEmployeeOptions
+                  }
                   displayEmpty
                   fullWidth
                   height="38px"
-                  disabled={loadingMeta || loading}
+                  disabled={
+                    loadingMeta ||
+                    loading ||
+                    !canViewOtherEmployees
+                  }
                 />
               </Box>
 

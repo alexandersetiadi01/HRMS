@@ -17,9 +17,11 @@ import {
   apiAttendanceShiftImportMeta,
   apiAttendanceShiftImportPreview,
 } from "../../../../API/attendance";
+import { getStoredAuthUser } from "../../../../API/auth";
 import FormDialog from "../../../../Components/FormDialog";
 import SuccessDialog from "../../../../Components/SuccessDialog";
 import Breadcrumb from "../../../../Utils/Breadcrumb";
+import { hasAttendancePermission } from "../../../../Utils/AttendancePermissions";
 import ResponsiveAttendanceTable from "../../AttendanceForm/ResponsiveAttendanceTable";
 import {
   FilterActions,
@@ -263,6 +265,26 @@ function parseWorkbook(arrayBuffer) {
 
 export default function ShiftImportPage() {
   const fileInputRef = useRef(null);
+  const authUser = getStoredAuthUser();
+
+  const canDownloadTemplate = hasAttendancePermission(
+    authUser,
+    "attendance_shift_import_template",
+  );
+
+  const canPreview = hasAttendancePermission(
+    authUser,
+    "attendance_shift_import_preview",
+  );
+
+  const canExecute = hasAttendancePermission(
+    authUser,
+    "attendance_shift_import_execute",
+  );
+
+  const canPrepareImport =
+    canPreview ||
+    canExecute;
 
   const [meta, setMeta] = useState({
     shifts: [],
@@ -549,20 +571,22 @@ export default function ShiftImportPage() {
             Excel 必須包含「員工編號」、「日期」及「班次代碼」三個欄位。
           </Typography>
 
-          <Button
-            variant="outlined"
-            startIcon={<DownloadOutlinedIcon />}
-            onClick={handleDownloadTemplate}
-            disabled={
-              loadingMeta ||
-              readingFile ||
-              previewing ||
-              submitting
-            }
-            sx={ACTION_BUTTON_SX}
-          >
-            下載匯入範本
-          </Button>
+          {canDownloadTemplate ? (
+            <Button
+              variant="outlined"
+              startIcon={<DownloadOutlinedIcon />}
+              onClick={handleDownloadTemplate}
+              disabled={
+                loadingMeta ||
+                readingFile ||
+                previewing ||
+                submitting
+              }
+              sx={ACTION_BUTTON_SX}
+            >
+              下載匯入範本
+            </Button>
+          ) : null}
         </Box>
 
         <Box
@@ -600,28 +624,34 @@ export default function ShiftImportPage() {
                 gap: "10px",
               }}
             >
-              <Button
-                variant="outlined"
-                startIcon={<UploadFileOutlinedIcon />}
-                onClick={handleChooseFile}
-                disabled={
-                  loadingMeta ||
-                  readingFile ||
-                  previewing ||
-                  submitting
-                }
-                sx={{
-                  ...ACTION_BUTTON_SX,
-                  minWidth: "150px",
-                }}
-              >
-                選擇 Excel 檔案
-              </Button>
+              {canPrepareImport ? (
+                <Button
+                  variant="outlined"
+                  startIcon={<UploadFileOutlinedIcon />}
+                  onClick={handleChooseFile}
+                  disabled={
+                    loadingMeta ||
+                    readingFile ||
+                    previewing ||
+                    submitting
+                  }
+                  sx={{
+                    ...ACTION_BUTTON_SX,
+                    minWidth: "150px",
+                  }}
+                >
+                  選擇 Excel 檔案
+                </Button>
+              ) : null}
 
               <TextField
                 size="small"
                 value={selectedFile?.name || ""}
-                placeholder="尚未選擇檔案"
+                placeholder={
+                  canPrepareImport
+                    ? "尚未選擇檔案"
+                    : "目前權限僅供檢視"
+                }
                 fullWidth
                 slotProps={{
                   input: {
@@ -710,20 +740,22 @@ export default function ShiftImportPage() {
               清空
             </Button>
 
-            <Button
-              variant="outlined"
-              onClick={handlePreview}
-              disabled={
-                loadingMeta ||
-                readingFile ||
-                previewing ||
-                submitting ||
-                !rows.length
-              }
-              sx={ACTION_BUTTON_SX}
-            >
-              {previewing ? "預覽中..." : "預覽匯入"}
-            </Button>
+            {canPrepareImport ? (
+              <Button
+                variant="outlined"
+                onClick={handlePreview}
+                disabled={
+                  loadingMeta ||
+                  readingFile ||
+                  previewing ||
+                  submitting ||
+                  !rows.length
+                }
+                sx={ACTION_BUTTON_SX}
+              >
+                {previewing ? "預覽中..." : "預覽匯入"}
+              </Button>
+            ) : null}
           </FilterActions>
         </Box>
 
@@ -752,6 +784,7 @@ export default function ShiftImportPage() {
         submitLabel="確認匯入"
         cancelLabel="取消"
         maxWidth="lg"
+        hideSubmit={!canExecute}
         onClose={() => {
           if (submitting) return;
           setPreview(null);
